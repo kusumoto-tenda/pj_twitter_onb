@@ -1,9 +1,11 @@
 import type postgres from 'postgres';
 import type {
   CreateUserOutcome,
+  UpdateProfileOutcome,
   UserRepository,
 } from '@/application/users/ports/user-repository';
 import { normalizeDisplayId } from '@/domain/users/account-validation';
+import type { ValidEditProfileInput } from '@/domain/users/profile-edit-validation';
 import type { StoredAccount } from '@/domain/users/user';
 
 type UserRow = {
@@ -59,5 +61,9 @@ export class PostgresUserRepository implements UserRepository {
       RETURNING id
     `;
     return rows.length === 1 ? 'created' : 'display-id-taken';
+  }
+
+  async updateProfile(_id: string, _input: ValidEditProfileInput): Promise<UpdateProfileOutcome> {
+    throw new Error('未実装');
   }
 }
