@@ -208,25 +208,25 @@ playwright.config.ts
 
 **Files:** `package.json`、`pnpm-lock.yaml`、`vitest.config.ts`、`playwright.config.ts`、`test/setup.ts`、`.gitignore`、`app/ui/fonts.ts`。
 
-- [ ] `vitest`、`@vitejs/plugin-react`、`jsdom`、`@testing-library/react`、`@testing-library/jest-dom`、`@testing-library/user-event`、`@playwright/test`、`tsx` を開発依存に追加。対応するpeerDependenciesと現行Node/Reactへの適合を導入時に確認し、lockfileに固定する。
-- [ ] `test:unit` = `vitest run test/unit`、`test:integration` = `vitest run test/integration`、`test:e2e` = `playwright test`、`typecheck` = `tsc --noEmit`、`db:migrate` = `tsx scripts/migrate.ts` を追加する。
-- [ ] Vitestの `@` aliasをリポジトリルートへ向ける。UIテストだけjsdom、その他はnode。E2EはVitestの収集対象から外す。
-- [ ] DBテストを専用コマンドに分け、未設定時にskip成功としない。E2EサーバーにもTEST_POSTGRES_URLをPOSTGRES_URLとして渡し、開発用サーバーを使い回さない。
-- [ ] 教材のfonts importは外部フォント取得なしで解消できる互換exportにする。教材UIの全面改修はしない。空のsigninページ由来の型エラーはTask 7で解消する。
-- [ ] 最初のdomainテストを追加して、ランナーが期待するアサーション失敗を出すことを確認する。動作確認のためだけの恒久的なダミーテストは追加しない。
+- [x] `vitest`、`@vitejs/plugin-react`、`jsdom`、`@testing-library/react`、`@testing-library/jest-dom`、`@testing-library/user-event`、`@playwright/test`、`tsx` を開発依存に追加。対応するpeerDependenciesと現行Node/Reactへの適合を導入時に確認し、lockfileに固定する。
+- [x] `test:unit` = `vitest run test/unit`、`test:integration` = `vitest run test/integration`、`test:e2e` = `playwright test`、`typecheck` = `tsc --noEmit`、`db:migrate` = `tsx scripts/migrate.ts` を追加する。
+- [x] Vitestの `@` aliasをリポジトリルートへ向ける。UIテストだけjsdom、その他はnode。E2EはVitestの収集対象から外す。
+- [x] DBテストを専用コマンドに分け、未設定時にskip成功としない。E2EサーバーにもTEST_POSTGRES_URLをPOSTGRES_URLとして渡し、開発用サーバーを使い回さない。
+- [x] 教材のfonts importは外部フォント取得なしで解消できる互換exportにする。教材UIの全面改修はしない。空のsigninページ由来の型エラーはTask 7で解消する。
+- [x] 最初のdomainテストを追加して、ランナーが期待するアサーション失敗を出すことを確認する。動作確認のためだけの恒久的なダミーテストは追加しない。
 
 ### Task 2: 入力ルールをdomainでTDD
 
 **Files:** `domain/users/user.ts`、`domain/users/account-validation.ts`、`test/unit/domain/account-validation.test.ts`。
 
-- [ ] 名前の空入力で `name` エラーを返すテストを書き、失敗を確認してから最小実装する。
-- [ ] 名前の1・50・51文字、前後空白、空白のみを順に追加する。
-- [ ] IDの4・5・15・16文字、英大小文字・数字・アンダーバー、全角・ハイフン・空白・`@` を検証する。
-- [ ] `normalizeDisplayId('Alice_1') === 'alice_1'` と表示用の元表記の保持を検証する。
-- [ ] bioの0・160・161文字、省略時の空文字化を検証する。
-- [ ] パスワードの7・8・50・51文字、多バイト文字、前後空白をそのまま保持することを検証する。
-- [ ] 絵文字がUTF-16の2文字扱いにならないこと、複数項目のエラーを一括で得られることを検証する。
-- [ ] `pnpm test:unit test/unit/domain/account-validation.test.ts` で成功を確認する。Green後に検証の重複だけを整理する。
+- [x] 名前の空入力で `name` エラーを返すテストを書き、失敗を確認してから最小実装する。
+- [x] 名前の1・50・51文字、前後空白、空白のみを順に追加する。
+- [x] IDの4・5・15・16文字、英大小文字・数字・アンダーバー、全角・ハイフン・空白・`@` を検証する。
+- [x] `normalizeDisplayId('Alice_1') === 'alice_1'` と表示用の元表記の保持を検証する。
+- [x] bioの0・160・161文字、省略時の空文字化を検証する。
+- [x] パスワードの7・8・50・51文字、多バイト文字、前後空白をそのまま保持することを検証する。
+- [x] 絵文字がUTF-16の2文字扱いにならないこと、複数項目のエラーを一括で得られることを検証する。
+- [x] `pnpm test:unit test/unit/domain/account-validation.test.ts` で成功を確認する。Green後に検証の重複だけを整理する。
 
 代表ケースの形：
 
@@ -244,89 +244,89 @@ it('名前が51コードポイントならname欄のエラーになる', () => {
 
 **Files:** `application/users/create-account.ts`、`application/users/ports/*.ts`、`test/support/{in-memory-user-repository,fake-password-hasher,account-fixtures}.ts`、`test/unit/application/create-account.test.ts`。
 
-- [ ] 正常入力で1件保存され、注入したUUID・日時と元のdisplayIdを持つ公開プロフィールが返るテストから始める。
-- [ ] FakeHasherは明示的なテスト用文字列を返し、保存内容がその値であることを検証する。ハッシュそのものの安全性はTask 5で検証する。
-- [ ] 成功結果にpasswordとpasswordHashのプロパティが存在しないことを検証する。
-- [ ] 無効入力では保存・ハッシュ処理を行わないことを検証する。
-- [ ] `Alice_1` を保存した後 `alice_1` を登録すると重複結果になり、件数が増えないことを検証する。
-- [ ] Repositoryが競合結果を返すケース、DB障害をthrowするケース、Hasherがthrowするケースを個別にテストする。競合を事前検索結果だけで判定しない。
-- [ ] すべて成功後、domainの入力検証とユースケースの手順を分離できているか確認する。
+- [x] 正常入力で1件保存され、注入したUUID・日時と元のdisplayIdを持つ公開プロフィールが返るテストから始める。
+- [x] FakeHasherは明示的なテスト用文字列を返し、保存内容がその値であることを検証する。ハッシュそのものの安全性はTask 5で検証する。
+- [x] 成功結果にpasswordとpasswordHashのプロパティが存在しないことを検証する。
+- [x] 無効入力では保存・ハッシュ処理を行わないことを検証する。
+- [x] `Alice_1` を保存した後 `alice_1` を登録すると重複結果になり、件数が増えないことを検証する。
+- [x] Repositoryが競合結果を返すケース、DB障害をthrowするケース、Hasherがthrowするケースを個別にテストする。競合を事前検索結果だけで判定しない。
+- [x] すべて成功後、domainの入力検証とユースケースの手順を分離できているか確認する。
 
 ### Task 4: PostgreSQL Repositoryを実DBでTDD
 
 **Files:** `infra/db/client.ts`、`infra/db/migrations/001-create-users.sql`、`infra/repositories/postgres-user-repository.ts`、`scripts/migrate.ts`、`test/support/test-db.ts`、`test/integration/postgres-user-repository.test.ts`、`.env.example`。
 
-- [ ] 専用テストDBに必要なmigrationを適用し、Repository未実装による保存・取得の失敗を確認する。
-- [ ] 保存後に `findByDisplayId('ALICE_1')` で同一UUIDを取得でき、displayIdは登録時の表記を保つことを検証して最小実装する。
-- [ ] 固定UUIDとTIMESTAMPTZ、bio空文字、password_hashが往復できることを検証する。
-- [ ] `Alice_1` / `alice_1` の2つの `create` をPromise.allで同時実行し、成功が1件・競合が1件・DB行が1件になるテストを追加する。
-- [ ] 一意性以外のCHECK違反や切断を重複扱いにしないことを確認する。
-- [ ] SQLはパラメータ化し、DBのsnake_caseとアプリのcamelCaseの変換をRepositoryに閉じ込める。
-- [ ] `pnpm test:integration test/integration/postgres-user-repository.test.ts` を実DBで成功させる。
+- [x] 専用テストDBに必要なmigrationを適用し、Repository未実装による保存・取得の失敗を確認する。
+- [x] 保存後に `findByDisplayId('ALICE_1')` で同一UUIDを取得でき、displayIdは登録時の表記を保つことを検証して最小実装する。
+- [x] 固定UUIDとTIMESTAMPTZ、bio空文字、password_hashが往復できることを検証する。
+- [x] `Alice_1` / `alice_1` の2つの `create` をPromise.allで同時実行し、成功が1件・競合が1件・DB行が1件になるテストを追加する。
+- [x] 一意性以外のCHECK違反や切断を重複扱いにしないことを確認する。
+- [x] SQLはパラメータ化し、DBのsnake_caseとアプリのcamelCaseの変換をRepositoryに閉じ込める。
+- [x] `pnpm test:integration test/integration/postgres-user-repository.test.ts` を実DBで成功させる。
 
 ### Task 5: 実ハッシュと認証ユースケースをTDD
 
 **Files:** `infra/security/scrypt-password-hasher.ts`、`application/users/authenticate-user.ts`、`test/integration/scrypt-password-hasher.test.ts`、`test/unit/application/authenticate-user.test.ts`。
 
-- [ ] 実Hasherのhash→verify成功、不一致でfalse、同じ平文でも別saltで別ハッシュになるテストを1つずつ追加する。
-- [ ] 72バイトを超える許可範囲内のUnicodeパスワードを2つ用意し、末尾が異なれば照合失敗になることを検証する。
-- [ ] scryptは非同期API、ランダムな16バイト以上のsalt、64バイトの導出鍵、timingSafeEqualを使う。初期パラメータはN=131072・r=8・p=1・maxmem=256MiBとし、バージョン・パラメータ・salt・鍵を保存用文字列に含める。実行環境でレイテンシとメモリを確認する。
-- [ ] 壊れた保存形式は照合失敗とし、保存文字列に任意の計算量を指定されても無制限に実行しない。対応バージョンとパラメータを制限する。
-- [ ] 認証ユースケースはID大小文字違いでも正しいパスワードなら公開プロフィール、未登録・誤パスワードならnullを返すテストから実装する。
-- [ ] 認証ユースケースは平文の扱いを登録時と合わせ、入力をログに残さない。DB障害は資格情報不一致と混同せず、上位で一般エラーに変換する。
+- [x] 実Hasherのhash→verify成功、不一致でfalse、同じ平文でも別saltで別ハッシュになるテストを1つずつ追加する。
+- [x] 72バイトを超える許可範囲内のUnicodeパスワードを2つ用意し、末尾が異なれば照合失敗になることを検証する。
+- [x] scryptは非同期API、ランダムな16バイト以上のsalt、64バイトの導出鍵、timingSafeEqualを使う。初期パラメータはN=131072・r=8・p=1・maxmem=256MiBとし、バージョン・パラメータ・salt・鍵を保存用文字列に含める。実行環境でレイテンシとメモリを確認する。
+- [x] 壊れた保存形式は照合失敗とし、保存文字列に任意の計算量を指定されても無制限に実行しない。対応バージョンとパラメータを制限する。
+- [x] 認証ユースケースはID大小文字違いでも正しいパスワードなら公開プロフィール、未登録・誤パスワードならnullを返すテストから実装する。
+- [x] 認証ユースケースは平文の扱いを登録時と合わせ、入力をログに残さない。DB障害は資格情報不一致と混同せず、上位で一般エラーに変換する。
 
 ### Task 6: Server ActionとAuth.jsを接続しTDD
 
 **Files:** `app/_composition/account.ts`、`app/_auth/auth.ts`、`app/api/auth/[...nextauth]/route.ts`、`types/next-auth.d.ts`、`app/signin/actions.ts`、`app/login/actions.ts`、`test/unit/app/{account-actions,auth-config}.test.ts`。
 
-- [ ] FormData→入力の変換で文字列以外・欠落・重複キーを拒否し、UUIDなどの余計な入力を採用しないテストを書く。
-- [ ] 登録ユースケースの無効入力・重複・UNAVAILABLEをフォームのstateへ変換し、失敗時は認証・redirectを呼ばないテストを書く。
-- [ ] 登録成功後にのみCredentials認証を呼び、Cookieの設定後に `/` へredirectするテストを書く。Next.jsとAuth.jsの境界だけをstubし、業務処理はユースケーステストで検証する。
-- [ ] Credentials authorizeがAuthenticateUserを利用し、JWT/sessionのユーザー識別子がUUIDで、hashを含まないことを検証する。
-- [ ] 登録後にAuth.jsが失敗した場合は `ACCOUNT_CREATED_SESSION_FAILED` のstateを返す。登録失敗扱いの再作成・ユーザー削除をしないテストを書く。
-- [ ] `signIn('credentials', { displayId, password, redirect: false })` を使う。成功を確認後、通知用フラグを渡して、try/catchの外で `redirect('/')` を呼ぶ。予期しない認証結果を成功扱いにしない。
-- [ ] 通知フラグは認証・権限判定には使わない。今回の成功通知はsessionStorageの一度限りのキーで受け渡す方式ではなく、短命の通知Cookieと次項の消費処理を使う。
-- [ ] 最小ログインActionも同じCredentials認証を利用し、成功時は `/`、失敗時はID・パスワード不一致の一般メッセージとする。
-- [ ] `AUTH_SECRET` は環境変数から読み、テスト専用値と実環境値を分ける。Node.js runtimeを使用する。
+- [x] FormData→入力の変換で文字列以外・欠落・重複キーを拒否し、UUIDなどの余計な入力を採用しないテストを書く。
+- [x] 登録ユースケースの無効入力・重複・UNAVAILABLEをフォームのstateへ変換し、失敗時は認証・redirectを呼ばないテストを書く。
+- [x] 登録成功後にのみCredentials認証を呼び、Cookieの設定後に `/` へredirectするテストを書く。Next.jsとAuth.jsの境界だけをstubし、業務処理はユースケーステストで検証する。
+- [x] Credentials authorizeがAuthenticateUserを利用し、JWT/sessionのユーザー識別子がUUIDで、hashを含まないことを検証する。
+- [x] 登録後にAuth.jsが失敗した場合は `ACCOUNT_CREATED_SESSION_FAILED` のstateを返す。登録失敗扱いの再作成・ユーザー削除をしないテストを書く。
+- [x] `signIn('credentials', { displayId, password, redirect: false })` を使う。成功を確認後、通知用フラグを渡して、try/catchの外で `redirect('/')` を呼ぶ。予期しない認証結果を成功扱いにしない。
+- [x] 通知フラグは認証・権限判定には使わない。今回の成功通知はsessionStorageの一度限りのキーで受け渡す方式ではなく、短命の通知Cookieと次項の消費処理を使う。
+- [x] 最小ログインActionも同じCredentials認証を利用し、成功時は `/`、失敗時はID・パスワード不一致の一般メッセージとする。
+- [x] `AUTH_SECRET` は環境変数から読み、テスト専用値と実環境値を分ける。Node.js runtimeを使用する。
 
 ### Task 7: 登録フォーム・通知・遷移先をTDD
 
 **Files:** `app/signin/page.tsx`、`app/ui/account/{create-account-form,login-form}.tsx`、`app/login/page.tsx`、`app/ui/notifications/{toast,account-created-flash}.tsx`、`app/page.tsx`、`app/layout.tsx`、`test/unit/ui/*.test.tsx`。
 
-- [ ] 画面案に沿ったID・名前・パスワードと、追加の任意bio欄、登録ボタン、ログインリンクをラベルで取得するテストを書く。
-- [ ] `useActionState` で結果とpendingを扱う。送信中は登録ボタンを無効化し、項目エラーを `aria-describedby` と `aria-invalid` で関連付ける。通常のPOSTで利用できるformにする。
-- [ ] 失敗時は名前・ID・bioだけ保持し、パスワードはサーバーstateに返さない。欄エラーと上部失敗通知が同時に表示されることを検証する。
-- [ ] Toastはrole=status/alertを用途で使い分け、fake timerで2999msでは表示・3000msで非表示を検証する。同じエラーが連続しても表示が再開し、再表示から3秒で消えることを確認する。
-- [ ] 成功通知Cookieは個人情報を含まない固定値、path=/、短命、SameSite=Lax、実運用HTTPSではSecureとする。表示専用なのでHttpOnlyにはせず、Client Componentが読み取った直後に削除する。認証CookieはAuth.jsに任せ、JSから読まない。
-- [ ] `AccountCreatedFlash` はルートのlayoutで常時マウントせず、遷移先のメイン画面でマウントし、Cookieを消費後に成功Toastを起動する。Strict Modeの二重effect、再読込、別画面への移動で通知が重複しないテストを書く。
-- [ ] メイン画面はサーバー側 `auth()` で認証済みUUIDに対応する表示名・IDを表示する。未ログイン時はログイン・登録の導線を表示する。投稿一覧は実装しない。
-- [ ] `/login` は最小の復帰用フォームを作成し、保存済みアカウントでログインできる。登録画面から移動できることを検証する。
-- [ ] `layout.tsx` でglobal.cssを読み、html lang=jaにする。画像のXロゴは既存のテキスト表現またはCSSで再現し、画像生成は不要。
+- [x] 画面案に沿ったID・名前・パスワードと、追加の任意bio欄、登録ボタン、ログインリンクをラベルで取得するテストを書く。
+- [x] `useActionState` で結果とpendingを扱う。送信中は登録ボタンを無効化し、項目エラーを `aria-describedby` と `aria-invalid` で関連付ける。通常のPOSTで利用できるformにする。
+- [x] 失敗時は名前・ID・bioだけ保持し、パスワードはサーバーstateに返さない。欄エラーと上部失敗通知が同時に表示されることを検証する。
+- [x] Toastはrole=status/alertを用途で使い分け、fake timerで2999msでは表示・3000msで非表示を検証する。同じエラーが連続しても表示が再開し、再表示から3秒で消えることを確認する。
+- [x] 成功通知Cookieは個人情報を含まない固定値、path=/、短命、SameSite=Lax、実運用HTTPSではSecureとする。表示専用なのでHttpOnlyにはせず、Client Componentが読み取った直後に削除する。認証CookieはAuth.jsに任せ、JSから読まない。
+- [x] `AccountCreatedFlash` はルートのlayoutで常時マウントせず、遷移先のメイン画面でマウントし、Cookieを消費後に成功Toastを起動する。Strict Modeの二重effect、再読込、別画面への移動で通知が重複しないテストを書く。
+- [x] メイン画面はサーバー側 `auth()` で認証済みUUIDに対応する表示名・IDを表示する。未ログイン時はログイン・登録の導線を表示する。投稿一覧は実装しない。
+- [x] `/login` は最小の復帰用フォームを作成し、保存済みアカウントでログインできる。登録画面から移動できることを検証する。
+- [x] `layout.tsx` でglobal.cssを読み、html lang=jaにする。画像のXロゴは既存のテキスト表現またはCSSで再現し、画像生成は不要。
 
 ### Task 8: E2Eで受け入れ条件を通す
 
 **Files:** `test/e2e/create-account.spec.ts`、`playwright.config.ts`、`test/support/test-db.ts`。
 
-- [ ] E2Eを先に書いて未対応の画面操作で失敗させ、Task 6〜7の各挙動を実装する際の受け入れテストとして使う。E2Eの作成を実装完了後まで待たない。
-- [ ] `/signin` → 有効入力 → `/` → 作成済みユーザーの表示 → 3秒の成功通知 → 通知消滅を検証する。
-- [ ] Cookieの存在だけで認証成功と判定せず、再読込後もサーバー側で同じUUIDの利用者として表示されることを検証する。
-- [ ] 入力違反では `/signin` に留まり、項目エラーと3秒通知が出て、DBに行が増えないことを検証する。ブラウザの入力制約に遮られる場合はAction/unitでサーバー検証を直接確認する。
-- [ ] 別ブラウザcontextで `Alice_1` 登録後 `alice_1` を登録し、ID欄エラー・遷移なし・追加保存なしを検証する。
-- [ ] 成功通知消滅後の再読込で通知が再表示されないことを検証する。
-- [ ] 登録後のセッション発行失敗とDB障害はActionの境界テストで再現する。E2Eのためだけに本番用障害注入APIを追加しない。
-- [ ] E2EのDB行はテストごとのUUID/IDで識別して削除し、実行ごとにDB全体を破壊しない。
+- [x] E2Eを先に書いて未対応の画面操作で失敗させ、Task 6〜7の各挙動を実装する際の受け入れテストとして使う。E2Eの作成を実装完了後まで待たない。
+- [x] `/signin` → 有効入力 → `/` → 作成済みユーザーの表示 → 3秒の成功通知 → 通知消滅を検証する。
+- [x] Cookieの存在だけで認証成功と判定せず、再読込後もサーバー側で同じUUIDの利用者として表示されることを検証する。
+- [x] 入力違反では `/signin` に留まり、項目エラーと3秒通知が出て、DBに行が増えないことを検証する。ブラウザの入力制約に遮られる場合はAction/unitでサーバー検証を直接確認する。
+- [x] 別ブラウザcontextで `Alice_1` 登録後 `alice_1` を登録し、ID欄エラー・遷移なし・追加保存なしを検証する。
+- [x] 成功通知消滅後の再読込で通知が再表示されないことを検証する。
+- [x] 登録後のセッション発行失敗とDB障害はActionの境界テストで再現する。E2Eのためだけに本番用障害注入APIを追加しない。
+- [x] E2EのDB行はテストごとのUUID/IDで識別して削除し、実行ごとにDB全体を破壊しない。
 
 ### Task 9: 全体検証と手順の文書化
 
 **Files:** `README.md`、`.env.example`、必要なら `docs/front_design.md` に任意bio欄の補足。
 
-- [ ] 開発・テスト用DB、AUTH_SECRET、migration、各テストの実行方法をREADMEに書く。教材用 `/seed` はTwitter用DB準備には使わないと記載する。
-- [ ] `pnpm test:unit` → 単体/UI全件成功。
-- [ ] `pnpm test:integration` → 専用PostgreSQLと実scryptの全件成功。
-- [ ] `pnpm typecheck` → 既存のfonts問題、signinの空ファイル問題を含め型エラー0件。
-- [ ] `pnpm build` → 本番ビルド成功。DB接続をページのビルド時に実行しない。Auth.jsを使うメイン画面が静的生成に依存しないことを確認する。
-- [ ] `pnpm test:e2e` → 専用DB・専用サーバーで登録・自動ログイン・エラー・通知のフロー成功。
-- [ ] 入力欄に平文が再描画されないこと、戻り値・session・ログに秘密情報がないこと、内側の層がNext.js/DB実装をimportしていないことを確認する。
+- [x] 開発・テスト用DB、AUTH_SECRET、migration、各テストの実行方法をREADMEに書く。教材用 `/seed` はTwitter用DB準備には使わないと記載する。
+- [x] `pnpm test:unit` → 単体/UI全件成功。
+- [x] `pnpm test:integration` → 専用PostgreSQLと実scryptの全件成功。
+- [x] `pnpm typecheck` → 既存のfonts問題、signinの空ファイル問題を含め型エラー0件。
+- [x] `pnpm build` → 本番ビルド成功。DB接続をページのビルド時に実行しない。Auth.jsを使うメイン画面が静的生成に依存しないことを確認する。
+- [x] `pnpm test:e2e` → 専用DB・専用サーバーで登録・自動ログイン・エラー・通知のフロー成功。
+- [x] 入力欄に平文が再描画されないこと、戻り値・session・ログに秘密情報がないこと、内側の層がNext.js/DB実装をimportしていないことを確認する。
 - [ ] 利用可能なGit環境では各タスクの変更ファイルだけを指定してコミットする。完了報告には実行コマンド・結果と残る制約を記す。
 
 ## 9. 実装順と完了の判定
