@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { auth } from '@/app/_auth/auth';
-import { getAccountDependencies } from '@/app/_composition/account';
+import { resolveViewer, viewerProfileDisplayId, type Viewer } from '@/app/_auth/viewer';
 import { getTimelineDependencies } from '@/app/_composition/timeline';
+import { profileHref } from '@/app/lib/profile-query';
 import { parseCursorParam, parseFollowParam, timelineHref } from '@/app/lib/timeline-query';
 import { AccountCreatedFlash } from '@/app/ui/notifications/account-created-flash';
 import { TimelineFilter } from '@/app/ui/timeline/timeline-filter';
@@ -10,32 +10,9 @@ import { InvalidCursorNotice, TimelineList } from '@/app/ui/timeline/timeline-li
 import { TimelinePagination } from '@/app/ui/timeline/timeline-pagination';
 import { TimelineRetry } from '@/app/ui/timeline/timeline-retry';
 import { getTimeline } from '@/application/timeline/get-timeline';
-import { findAccountProfile } from '@/application/users/find-account-profile';
-import type { AccountProfile } from '@/domain/users/user';
 import { HomeShell } from './layout-shell';
 
 type SearchParams = Record<string, string | string[] | undefined>;
-
-type Viewer =
-  | { status: 'anonymous' }
-  | { status: 'signed-in'; profile: AccountProfile }
-  | { status: 'unavailable' };
-
-/**
- * セッションのUUIDに対応する利用者がDBに実在するかで閲覧者を決める。
- * URLやクライアントから渡されたUUIDは使わない。DB障害は「利用者なし」と区別する。
- */
-async function resolveViewer(): Promise<Viewer> {
-  const session = await auth();
-  const id = session?.user?.id;
-  if (!id) return { status: 'anonymous' };
-  try {
-    const profile = await findAccountProfile(getAccountDependencies(), id);
-    return profile ? { status: 'signed-in', profile } : { status: 'anonymous' };
-  } catch {
-    return { status: 'unavailable' };
-  }
-}
 
 /** 一覧部分を取得して組み立てる。不正なカーソルや閲覧者の確認失敗ではQueryを呼ばない。 */
 async function loadTimelineSection(
@@ -77,8 +54,9 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
 
   const timeline = await loadTimelineSection(viewer, followingOnly, cursorParam);
 
+  const ownDisplayId = viewerProfileDisplayId(viewer);
   return (
-    <HomeShell>
+    <HomeShell profileHref={ownDisplayId ? profileHref({ displayId: ownDisplayId, tab: 'tweets' }) : null}>
       <AccountCreatedFlash />
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
         <h1 className="text-xl font-bold">最新ツイート</h1>
