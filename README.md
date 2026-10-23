@@ -63,3 +63,10 @@ pnpm dev
 - `/login` は登録時と同じ形式ルールでID・パスワードを検証してから認証する。形式違反はAuth.jsへの直接リクエストでも認証ユースケースで拒否する。
 - 未登録IDと誤パスワードは同じメッセージ、DB障害などは別のメッセージで区別する。失敗時はIDだけを保持する。
 - ログイン済みでセッションのUUIDに対応する利用者がDBに存在する場合、`/login` は `/` に移動する。Cookieの有無だけでは判断しない。
+
+## メイン画面（タイムライン）の仕様メモ
+
+- 投稿（`twitter.tweets`）・フォロー（`twitter.follows`）・リツイート（`twitter.retweets`）は `002-create-timeline.sql` で作成する。利用者を削除すると関連行もcascadeで削除される。
+- 一覧は投稿とリツイートを1本のSQL（UNION ALL）で取得し、`(出来事の日時, 種類, ID)` のキーセットで20件ずつページングする。OFFSETは使わない。
+- カーソルの日時はDBのマイクロ秒精度を保つ文字列のまま扱う。postgres.js は `timestamptz` 型のパラメータを `Date`（ミリ秒）に変換するため、SQLでは `::text::timestamptz` で渡している。
+- 投稿の作成・反応・画像はまだ実装していない。動作確認用のデータはSQLで直接入れる（テストでは `test/support/timeline-fixtures.ts`）。
