@@ -1,4 +1,4 @@
-import type postgres from 'postgres';
+import postgres from 'postgres';
 import type {
   CreateUserOutcome,
   UpdateProfileOutcome,
@@ -16,6 +16,15 @@ type UserRow = {
   password_hash: string;
   created_at: Date;
 };
+
+/** ユーザーIDの一意インデックスの違反だけを重複として扱う。他の制約違反や障害は含めない。 */
+function isDisplayIdConflict(error: unknown): boolean {
+  return (
+    error instanceof postgres.PostgresError &&
+    error.code === '23505' &&
+    error.constraint_name === 'users_display_id_ci_unique'
+  );
+}
 
 function toAccount(row: UserRow): StoredAccount {
   return {
@@ -63,7 +72,30 @@ export class PostgresUserRepository implements UserRepository {
     return rows.length === 1 ? 'created' : 'display-id-taken';
   }
 
-  async updateProfile(_id: string, _input: ValidEditProfileInput): Promise<UpdateProfileOutcome> {
-    throw new Error('未実装');
+  async updateProfile(id: string, input: ValidEditProfileInput): Promise<UpdateProfileOutcome> {
+    try {
+      // 3項目を1つのUPDATEで更新する。一意制約違反なら文全体が失敗し、部分的に変わらない。
+      const rows = await this.sql<Omit<UserRow, 'password_hash'>[]>`
+        UPDATE twitter.users
+        SET name = ${input.name}, display_id = ${input.displayId}, bio = ${input.bio}
+        WHERE id = ${id}
+        RETURNING id, name, display_id, bio, created_at
+      `;
+      const row = rows[0];
+      if (!row) return { status: 'not-found' };
+      return {
+        status: 'updated',
+        profile: {
+          id: row.id,
+          name: row.name,
+          displayId: row.display_id,
+          bio: row.bio,
+          createdAt: row.created_at,
+        },
+      };
+    } catch (error) {
+      if (isDisplayIdConflict(error)) return { status: 'display-id-taken' };
+      throw error;
+    }
   }
 }
