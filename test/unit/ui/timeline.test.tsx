@@ -77,6 +77,26 @@ describe('TweetCard', () => {
     expect(card).not.toHaveTextContent('リツイート');
   });
 
+  it('投稿者名を保存済みのIDのプロフィールへのリンクにする', () => {
+    render(<TweetCard item={item()} />);
+
+    expect(screen.getByRole('link', { name: 'アリス' })).toHaveAttribute('href', '/profile/Alice_1');
+  });
+
+  it('リツイート実行者と元投稿者をそれぞれのプロフィールへのリンクにする', () => {
+    render(
+      <TweetCard
+        item={item({
+          key: { ...item().key, kind: 'retweet', eventId: '00000000-0000-4000-8000-0000000000bb' },
+          retweetedBy: bob,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('link', { name: 'ボブ' })).toHaveAttribute('href', '/profile/Bob_12');
+    expect(screen.getByRole('link', { name: 'アリス' })).toHaveAttribute('href', '/profile/Alice_1');
+  });
+
   it('リツイートでは実行者と元投稿者・本文を表示する', () => {
     render(
       <TweetCard
@@ -224,9 +244,25 @@ describe('TimelineRetry', () => {
 });
 
 describe('MainNavigation', () => {
-  it('ホームへのリンクを現在のページとして表示する', () => {
-    render(<MainNavigation />);
+  it('ホームを開いているときはホームを現在のページにする', () => {
+    render(<MainNavigation activePage="home" profileHref="/profile/Alice_1" />);
 
     expect(screen.getByRole('link', { name: 'ホーム' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'プロフィール' })).toHaveAttribute('href', '/profile/Alice_1');
+    expect(screen.getByRole('link', { name: 'プロフィール' })).not.toHaveAttribute('aria-current');
+  });
+
+  it('自分のプロフィールを開いているときはプロフィールを現在のページにする', () => {
+    render(<MainNavigation activePage="profile" profileHref="/profile/Alice_1" />);
+
+    expect(screen.getByRole('link', { name: 'ホーム' })).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('link', { name: 'プロフィール' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('未ログインでは自分のプロフィールへのリンクを出さない', () => {
+    render(<MainNavigation activePage={null} profileHref={null} />);
+
+    expect(screen.getByRole('link', { name: 'ホーム' })).not.toHaveAttribute('aria-current');
+    expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
   });
 });

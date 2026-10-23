@@ -3,54 +3,8 @@ import type {
   TimelinePageRequest,
   TimelineQuery,
 } from '@/application/timeline/ports/timeline-query';
-import type {
-  TimelineCursor,
-  TimelineEventKind,
-  TimelineItem,
-  TimelinePage,
-} from '@/application/timeline/timeline';
-
-// 同時刻の並びを固定するため、DB内では種類を数値で比較する。
-const KIND_ORDER: Record<TimelineEventKind, number> = { tweet: 0, retweet: 1 };
-const KIND_BY_ORDER: Record<number, TimelineEventKind> = { 0: 'tweet', 1: 'retweet' };
-
-// マイクロ秒を保ったUTC文字列。JSのDateを経由するとページ境界がずれるため、比較用の値として使う。
-const UTC_MICROS = 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"';
-
-type EventRow = {
-  event_at: string;
-  kind: number;
-  event_id: string;
-  tweet_id: string;
-  content: string;
-  tweet_created_at: string;
-  author_id: string;
-  author_name: string;
-  author_display_id: string;
-  retweeter_id: string | null;
-  retweeter_name: string | null;
-  retweeter_display_id: string | null;
-};
-
-function toItem(row: EventRow): TimelineItem {
-  return {
-    key: { eventAt: row.event_at, kind: KIND_BY_ORDER[row.kind], eventId: row.event_id },
-    tweet: {
-      id: row.tweet_id,
-      content: row.content,
-      author: { id: row.author_id, name: row.author_name, displayId: row.author_display_id },
-      createdAt: row.tweet_created_at,
-    },
-    retweetedBy:
-      row.retweeter_id === null
-        ? null
-        : {
-            id: row.retweeter_id,
-            name: row.retweeter_name!,
-            displayId: row.retweeter_display_id!,
-          },
-  };
-}
+import type { TimelineCursor, TimelinePage } from '@/application/timeline/timeline';
+import { KIND_ORDER, UTC_MICROS, toTimelineItem, type EventRow } from './timeline-rows';
 
 /** 投稿とリツイートをUNION ALLで1つの出来事の列にし、キーセットでページングする。 */
 export class PostgresTimelineQuery implements TimelineQuery {
@@ -137,7 +91,7 @@ export class PostgresTimelineQuery implements TimelineQuery {
       LIMIT ${fetchSize}
     `;
 
-    const items = rows.slice(0, limit).map(toItem);
+    const items = rows.slice(0, limit).map(toTimelineItem);
     const nextCursor: TimelineCursor | null = rows.length > limit ? items[limit - 1].key : null;
     return { items, nextCursor };
   }

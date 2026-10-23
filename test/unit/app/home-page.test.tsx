@@ -87,6 +87,7 @@ describe('HomePage', () => {
     expect(screen.queryByLabelText('ログイン中のユーザー')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'アカウントを作成' })).toHaveAttribute('href', '/signin');
     expect(screen.getByRole('link', { name: 'ホーム' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
   });
 
   it('ログイン中は利用者の名前・IDと未チェックの切り替えを表示し、viewerIdで取得する', async () => {
@@ -98,6 +99,8 @@ describe('HomePage', () => {
     expect(screen.getByLabelText('ログイン中のユーザー')).toHaveTextContent('アリス');
     expect(screen.getByLabelText('ログイン中のユーザー')).toHaveTextContent('@Alice_1');
     expect(screen.getByRole('checkbox', { name: 'フォローのみ' })).not.toBeChecked();
+    expect(screen.getByRole('link', { name: 'ホーム' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'プロフィール' })).toHaveAttribute('href', '/profile/Alice_1');
   });
 
   it('ログイン中に follow=true ならフォロー一覧を取得し、切り替えをチェック済みにする', async () => {
