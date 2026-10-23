@@ -38,9 +38,17 @@ export function ProfileHeader({
         </div>
         {/* 操作ボタンではなく、状態の表示。 */}
         {isSelf ? (
-          <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-700">
-            自分のプロフィール
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-700">
+              自分のプロフィール
+            </span>
+            <Link
+              href={`${profileHref({ displayId: profile.displayId, tab: 'tweets' })}/edit`}
+              className="rounded-full border border-gray-300 px-4 py-1 text-sm font-bold hover:bg-gray-100"
+            >
+              プロフィール編集
+            </Link>
+          </div>
         ) : (
           profile.followedByViewer && (
             <span className="rounded-full border border-gray-300 px-3 py-1 text-sm font-bold text-gray-700">

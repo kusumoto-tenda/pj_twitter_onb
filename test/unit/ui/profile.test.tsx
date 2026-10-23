@@ -83,10 +83,14 @@ describe('ProfileHeader', () => {
     expect(screen.getByRole('region', { name: 'プロフィール' }).querySelector('[data-bio]')).toBeNull();
   });
 
-  it('自分なら「自分のプロフィール」を表示し、操作ボタンは出さない', () => {
+  it('自分なら「自分のプロフィール」と編集リンクを表示し、操作ボタンは出さない', () => {
     render(<ProfileHeader profile={{ ...profile, followedByViewer: false }} isSelf tab="tweets" />);
 
     expect(screen.getByText('自分のプロフィール')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'プロフィール編集' })).toHaveAttribute(
+      'href',
+      '/profile/Alice_1/edit',
+    );
     expect(screen.queryByText('フォロー中')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
@@ -96,6 +100,7 @@ describe('ProfileHeader', () => {
 
     expect(screen.getByText('フォロー中')).toBeInTheDocument();
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'プロフィール編集' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -104,6 +109,7 @@ describe('ProfileHeader', () => {
 
     expect(screen.queryByText('フォロー中')).not.toBeInTheDocument();
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'プロフィール編集' })).not.toBeInTheDocument();
   });
 
   it('フォロー・フォロワーのタブでは対応する件数リンクを選択状態にする', () => {
