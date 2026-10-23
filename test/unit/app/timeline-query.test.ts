@@ -39,6 +39,12 @@ describe('カーソル', () => {
     expect(parseCursorParam(encoded)).toEqual({ ok: true, cursor });
   });
 
+  it('年0001のカーソルは有効にする', () => {
+    const oldest = { ...cursor, eventAt: '0001-01-01T00:00:00.000000Z' };
+
+    expect(parseCursorParam(encodeCursor(oldest))).toEqual({ ok: true, cursor: oldest });
+  });
+
   it('kindがtweetのカーソルも往復する', () => {
     const tweetCursor = { ...cursor, kind: 'tweet' as const };
 
@@ -61,6 +67,7 @@ describe('カーソル', () => {
     ['小数秒が3桁', encodeRaw(['2026-10-23T03:04:05.123Z', cursor.kind, cursor.eventId])],
     ['存在しない日付', encodeRaw(['2026-02-30T03:04:05.123456Z', cursor.kind, cursor.eventId])],
     ['存在しない時刻', encodeRaw(['2026-10-23T25:04:05.123456Z', cursor.kind, cursor.eventId])],
+    ['年0000（PostgreSQLで扱えない）', encodeRaw(['0000-01-01T00:00:00.000000Z', cursor.kind, cursor.eventId])],
     ['未知のkind', encodeRaw([cursor.eventAt, 'like', cursor.eventId])],
     ['UUIDでないID', encodeRaw([cursor.eventAt, cursor.kind, 'not-a-uuid'])],
     ['SQL風の文字列', encodeRaw([cursor.eventAt, cursor.kind, "' OR 1=1 --"])],

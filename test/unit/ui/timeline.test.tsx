@@ -152,6 +152,21 @@ describe('TimelineFilter', () => {
     expect(screen.getByRole('checkbox', { name: 'フォローのみ' })).toBeChecked();
   });
 
+  it('遷移後に再読み込みせず戻ると、戻り先のURL条件どおりにチェックを外す', async () => {
+    const { rerender } = render(
+      <TimelineFilter loggedIn followingOnly={false} toggleHref="/?follow=true" />,
+    );
+    await userEvent.setup().click(screen.getByRole('checkbox', { name: 'フォローのみ' }));
+
+    // 遷移完了（/?follow=true）
+    rerender(<TimelineFilter loggedIn followingOnly toggleHref="/" />);
+    expect(screen.getByRole('checkbox', { name: 'フォローのみ' })).toBeChecked();
+
+    // ブラウザの「戻る」（/）
+    rerender(<TimelineFilter loggedIn followingOnly={false} toggleHref="/?follow=true" />);
+    expect(screen.getByRole('checkbox', { name: 'フォローのみ' })).not.toBeChecked();
+  });
+
   it('フォロー一覧ではチェック済みで表示する', () => {
     render(<TimelineFilter loggedIn followingOnly toggleHref="/" />);
 

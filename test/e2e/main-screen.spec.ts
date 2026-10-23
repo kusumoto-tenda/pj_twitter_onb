@@ -129,6 +129,15 @@ test('ログイン後のフォロー切り替えで、リツイート実行者�
     contents.a,
   ]);
 
+  // 再読み込みせずに戻ると、チェックと一覧の両方が全体に戻る。
+  await followToggle(page).check();
+  await expect(page).toHaveURL('/?follow=true');
+  await expect.poll(() => visibleContents(page, all)).toHaveLength(3);
+  await page.goBack();
+  await expect(page).toHaveURL('/');
+  await expect(followToggle(page)).not.toBeChecked();
+  await expect.poll(() => visibleContents(page, all)).toHaveLength(5);
+
   await followToggle(page).check();
   await expect(page).toHaveURL('/?follow=true');
   await expect(followToggle(page)).toBeChecked();

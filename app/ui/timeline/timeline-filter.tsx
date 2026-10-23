@@ -17,9 +17,15 @@ export function TimelineFilter({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  // 操作した時点で表示を切り替える。URLの条件が変わったら（遷移完了・戻る操作）要求は無効になる。
-  const [requested, setRequested] = useState<{ from: boolean; to: boolean } | null>(null);
-  const checked = requested?.from === followingOnly ? requested.to : followingOnly;
+  // 操作した時点で表示を切り替える（遷移が終わるまでの仮の状態）。
+  const [requested, setRequested] = useState<boolean | null>(null);
+  // URLの条件が変わったら（遷移完了・戻る操作）仮の状態を破棄し、以後はURLの条件どおりに表示する。
+  const [lastFollowingOnly, setLastFollowingOnly] = useState(followingOnly);
+  if (lastFollowingOnly !== followingOnly) {
+    setLastFollowingOnly(followingOnly);
+    setRequested(null);
+  }
+  const checked = requested ?? followingOnly;
 
   if (!loggedIn) {
     return (
@@ -36,7 +42,7 @@ export function TimelineFilter({
         checked={checked}
         disabled={pending}
         onChange={() => {
-          setRequested({ from: followingOnly, to: !followingOnly });
+          setRequested(!followingOnly);
           startTransition(() => router.push(toggleHref));
         }}
         className="h-5 w-5 rounded border-2 border-gray-900 text-sky-500"

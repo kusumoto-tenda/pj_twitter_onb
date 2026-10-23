@@ -18,6 +18,8 @@ export function parseFollowParam(value: SearchParamValue): boolean {
 /** 実在する日時で、DBと同じ小数秒6桁のUTC表記か。 */
 function isValidEventAt(value: unknown): value is string {
   if (typeof value !== 'string' || !EVENT_AT_PATTERN.test(value)) return false;
+  // 年0000はJSでは有効だがPostgreSQLでは扱えないため拒否する。
+  if (value.startsWith('0000-')) return false;
   const date = new Date(`${value.slice(0, 23)}Z`);
   // 2026-02-30 のような値はDateが繰り上げるため、往復した表記と比べて弾く。
   return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 19) === value.slice(0, 19);
