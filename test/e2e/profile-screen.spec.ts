@@ -144,10 +144,10 @@ test('ログイン中は自分のナビで自分、他人のカードで他人�
   await fixtures.tweet(friend, `ともだちの投稿 ${t}`, at(1));
 
   await login(page, me);
-  await page.getByRole('link', { name: 'プロフィール' }).click();
+  await page.getByRole('link', { name: 'プロフィール', exact: true }).click();
   await expect(page).toHaveURL(`/profile/${me.displayId}`);
   await expect(profileHeader(page)).toContainText('自分のプロフィール');
-  await expect(page.getByRole('link', { name: 'プロフィール' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('link', { name: 'プロフィール', exact: true })).toHaveAttribute('aria-current', 'page');
 
   await page.goto(`/profile/${me.displayId.toUpperCase()}`);
   await expect(profileHeader(page)).toContainText('自分のプロフィール');
@@ -164,7 +164,7 @@ test('ログイン中は自分のナビで自分、他人のカードで他人�
   await expect(profileHeader(page)).toContainText('フォロー中');
   await expect(profileHeader(page).getByRole('button')).toHaveCount(0);
   // 他人のページを見ていても、自分のナビは自分を指す
-  await expect(page.getByRole('link', { name: 'プロフィール' })).toHaveAttribute(
+  await expect(page.getByRole('link', { name: 'プロフィール', exact: true })).toHaveAttribute(
     'href',
     `/profile/${me.displayId}`,
   );
