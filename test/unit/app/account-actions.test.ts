@@ -197,7 +197,9 @@ describe('createAccountAction', () => {
 });
 
 describe('loginAction', () => {
-  it('成功時は / へredirectする', async () => {
+  const credentialsError = 'ユーザーIDまたはパスワードが違います';
+
+  it('成功時のみ / へredirectし、遷移の例外を失敗stateに変換しない', async () => {
     const data = form({ displayId: 'Alice_1', password: 'password123' });
 
     await expect(loginAction(initialLoginState, data)).rejects.toThrow('NEXT_REDIRECT');
@@ -210,33 +212,103 @@ describe('loginAction', () => {
     expect(boundary.calls).toEqual(['signIn', 'redirect:/']);
   });
 
-  it('資格情報の不一致は一般的なメッセージにし、IDだけを保持する', async () => {
-    boundary.signIn.mockRejectedValue(new CredentialsSignin());
+  it('空欄では認証せず、項目エラーを返す', async () => {
+    const state = await loginAction(initialLoginState, form({ displayId: '', password: '' }));
+
+    expect(state).toMatchObject({
+      status: 'error',
+      code: 'INVALID_INPUT',
+      fieldErrors: { displayId: expect.any(Array), password: expect.any(Array) },
+    });
+    expect(boundary.signIn).not.toHaveBeenCalled();
+  });
+
+  it('ID形式違反では認証せず、ID欄のエラーとIDを返し、パスワードを含めない', async () => {
+    const state = await loginAction(
+      initialLoginState,
+      form({ displayId: '@alice', password: 'secret-pw' }),
+    );
+
+    expect(state).toMatchObject({
+      status: 'error',
+      code: 'INVALID_INPUT',
+      fieldErrors: { displayId: expect.any(Array) },
+      displayId: '@alice',
+    });
+    expect(state.status === 'error' && state.fieldErrors.password).toBeUndefined();
+    expect(JSON.stringify(state)).not.toContain('secret-pw');
+    expect(boundary.signIn).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['必須欄の欠落', form({ displayId: 'Alice_1' })],
+    ['Fileの送信', form({ displayId: 'Alice_1', password: new Blob(['password123']) })],
+    ['重複キー', form({ displayId: 'Alice_1', password: ['password123', 'other-pass'] })],
+  ])('%sは一般的な入力エラーにし、認証しない', async (_label, data) => {
+    const state = await loginAction(initialLoginState, data);
+
+    expect(state).toMatchObject({
+      status: 'error',
+      code: 'INVALID_INPUT',
+      message: expect.stringContaining('入力内容'),
+      fieldErrors: {},
+    });
+    expect(JSON.stringify(state)).not.toContain('password123');
+    expect(boundary.calls).toEqual([]);
+  });
+
+  it.each([
+    ['CredentialsSigninのthrow', () => Promise.reject(new CredentialsSignin())],
+    [
+      'CredentialsSigninのエラーURL',
+      () => Promise.resolve('http://localhost:3000/login?error=CredentialsSignin&code=credentials'),
+    ],
+  ])('資格情報の不一致（%s）はINVALID_CREDENTIALSにし、IDだけを保持する', async (_label, result) => {
+    boundary.signIn.mockImplementation(result);
     const data = form({ displayId: 'Alice_1', password: 'wrong-pass' });
 
     const state = await loginAction(initialLoginState, data);
 
     expect(state).toMatchObject({
       status: 'error',
-      message: 'ユーザーIDまたはパスワードが違います',
+      code: 'INVALID_CREDENTIALS',
+      message: credentialsError,
+      fieldErrors: {},
       displayId: 'Alice_1',
     });
     expect(JSON.stringify(state)).not.toContain('wrong-pass');
     expect(boundary.calls).toEqual(['signIn']);
   });
 
-  it('認証以外の障害は資格情報の不一致と区別する', async () => {
-    boundary.signIn.mockRejectedValue(new Error('db down'));
+  it.each([
+    ['想定外の例外', () => Promise.reject(new Error('db down'))],
+    ['無効な戻り値', () => Promise.resolve(undefined)],
+    ['設定エラーのURL', () => Promise.resolve('http://localhost:3000/api/auth/error?error=Configuration')],
+  ])('%sはUNAVAILABLEにし、資格情報の不一致と区別する', async (_label, result) => {
+    boundary.signIn.mockImplementation(result);
 
-    const state = await loginAction(initialLoginState, form({ displayId: 'Alice_1', password: 'password123' }));
+    const state = await loginAction(
+      initialLoginState,
+      form({ displayId: 'Alice_1', password: 'password123' }),
+    );
 
-    expect(state).toMatchObject({ status: 'error', message: expect.stringContaining('ログインできませんでした') });
+    expect(state).toMatchObject({
+      status: 'error',
+      code: 'UNAVAILABLE',
+      message: 'ログインできませんでした。時間をおいて再度お試しください',
+      displayId: 'Alice_1',
+    });
+    expect(boundary.calls).toEqual(['signIn']);
   });
 
-  it('不正な形式の送信は認証しない', async () => {
-    const state = await loginAction(initialLoginState, form({ displayId: 'Alice_1' }));
+  it('再送のたびにattemptが増え、IDだけを保持する', async () => {
+    boundary.signIn.mockRejectedValue(new CredentialsSignin());
+    const data = form({ displayId: 'Alice_1', password: 'wrong-pass' });
 
-    expect(state.status).toBe('error');
-    expect(boundary.calls).toEqual([]);
+    const first = await loginAction(initialLoginState, data);
+    const second = await loginAction(first, data);
+
+    expect(first).toMatchObject({ attempt: 1, displayId: 'Alice_1' });
+    expect(second).toMatchObject({ attempt: 2, displayId: 'Alice_1' });
   });
 });
