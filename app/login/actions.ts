@@ -3,34 +3,62 @@
 import { CredentialsSignin } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/app/_auth/auth';
-import { isSuccessfulSignIn, readStringFields } from '@/app/lib/form-data';
-import type { LoginFormState } from './form-state';
+import { classifySignInResult, readStringFields, type SignInOutcome } from '@/app/lib/form-data';
+import { validateLoginInput, type LoginFieldErrors } from '@/domain/users/login-validation';
+import type { LoginErrorCode, LoginFormState } from './form-state';
 
-const INVALID_CREDENTIALS = 'ユーザーIDまたはパスワードが違います';
-const UNAVAILABLE = 'ログインできませんでした。時間をおいて再度お試しください';
+const MESSAGES = {
+  INVALID_REQUEST: '入力内容を確認して、もう一度お試しください',
+  INVALID_CREDENTIALS: 'ユーザーIDまたはパスワードが違います',
+  UNAVAILABLE: 'ログインできませんでした。時間をおいて再度お試しください',
+} as const;
 
 export async function loginAction(
   previous: LoginFormState,
   formData: FormData,
 ): Promise<LoginFormState> {
   const attempt = previous.status === 'error' ? previous.attempt + 1 : 1;
+  const failure = (
+    code: LoginErrorCode,
+    message: string,
+    displayId: string,
+    fieldErrors: LoginFieldErrors = {},
+  ): LoginFormState => ({ status: 'error', code, message, fieldErrors, displayId, attempt });
+
   const fields = readStringFields(formData, ['displayId', 'password']);
   if (!fields) {
-    return { status: 'error', message: INVALID_CREDENTIALS, displayId: '', attempt };
+    const displayId = formData.get('displayId');
+    return failure(
+      'INVALID_INPUT',
+      MESSAGES.INVALID_REQUEST,
+      typeof displayId === 'string' ? displayId : '',
+    );
   }
 
-  let message: string | null = null;
+  const validation = validateLoginInput(fields);
+  if (!validation.ok) {
+    return failure('INVALID_INPUT', '', fields.displayId, validation.fieldErrors);
+  }
+
+  let outcome: SignInOutcome;
   try {
-    const result = await signIn('credentials', {
-      displayId: fields.displayId,
-      password: fields.password,
-      redirect: false,
-    });
-    if (!isSuccessfulSignIn(result)) message = INVALID_CREDENTIALS;
+    outcome = classifySignInResult(
+      await signIn('credentials', {
+        displayId: fields.displayId,
+        password: fields.password,
+        redirect: false,
+      }),
+    );
   } catch (error) {
-    message = error instanceof CredentialsSignin ? INVALID_CREDENTIALS : UNAVAILABLE;
+    outcome = error instanceof CredentialsSignin ? 'invalid-credentials' : 'unavailable';
   }
-  if (message) return { status: 'error', message, displayId: fields.displayId, attempt };
+  if (outcome === 'invalid-credentials') {
+    return failure('INVALID_CREDENTIALS', MESSAGES.INVALID_CREDENTIALS, fields.displayId);
+  }
+  if (outcome === 'unavailable') {
+    return failure('UNAVAILABLE', MESSAGES.UNAVAILABLE, fields.displayId);
+  }
 
+  // redirectは例外で遷移するため、try/catchの外で呼ぶ。遷移先はクライアントから受け取らない。
   redirect('/');
 }

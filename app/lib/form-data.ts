@@ -20,12 +20,26 @@ export function readStringFields<R extends string, O extends string>(
   return result as Record<R, string> & Partial<Record<O, string>>;
 }
 
+export type SignInOutcome = 'success' | 'invalid-credentials' | 'unavailable';
+
+/**
+ * Auth.jsのsignIn(redirect: false)の戻り値を分類する。
+ * 資格情報の不一致を示すエラーURLだけをinvalid-credentialsとし、
+ * それ以外のエラーや想定外の戻り値は成功扱いにしない。
+ */
+export function classifySignInResult(result: unknown): SignInOutcome {
+  if (typeof result !== 'string') return 'unavailable';
+  let error: string | null;
+  try {
+    error = new URL(result, 'http://localhost').searchParams.get('error');
+  } catch {
+    return 'unavailable';
+  }
+  if (error === null) return 'success';
+  return error === 'CredentialsSignin' ? 'invalid-credentials' : 'unavailable';
+}
+
 /** Auth.jsのsignIn(redirect: false)の結果が成功を示しているか。 */
 export function isSuccessfulSignIn(result: unknown): boolean {
-  if (typeof result !== 'string') return false;
-  try {
-    return !new URL(result, 'http://localhost').searchParams.has('error');
-  } catch {
-    return false;
-  }
+  return classifySignInResult(result) === 'success';
 }

@@ -27,7 +27,9 @@ describe('LoginForm', () => {
   it('失敗時はメッセージを表示し、IDだけを保持する', async () => {
     const action = vi.fn<Action>().mockResolvedValue({
       status: 'error',
+      code: 'INVALID_CREDENTIALS',
       message: 'ユーザーIDまたはパスワードが違います',
+      fieldErrors: {},
       displayId: 'Alice_1',
       attempt: 1,
     });
