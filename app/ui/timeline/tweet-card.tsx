@@ -1,4 +1,6 @@
+import Link from 'next/link';
 import type { TimelineItem } from '@/application/timeline/timeline';
+import { profileHref } from '@/app/lib/profile-query';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
   timeZone: 'Asia/Tokyo',
@@ -24,10 +26,23 @@ export function TweetCard({ item }: { item: TimelineItem }) {
   return (
     <article className="border-b border-gray-200 px-4 py-3">
       {retweetedBy && (
-        <p className="mb-1 text-sm font-bold text-gray-500">{retweetedBy.name}さんがリツイート</p>
+        <p className="mb-1 text-sm font-bold text-gray-500">
+          <Link
+            href={profileHref({ displayId: retweetedBy.displayId, tab: 'tweets' })}
+            className="hover:underline"
+          >
+            {retweetedBy.name}
+          </Link>
+          さんがリツイート
+        </p>
       )}
       <header className="flex flex-wrap items-baseline gap-x-2 text-sm">
-        <span className="font-bold text-gray-900">{tweet.author.name}</span>
+        <Link
+          href={profileHref({ displayId: tweet.author.displayId, tab: 'tweets' })}
+          className="font-bold text-gray-900 hover:underline"
+        >
+          {tweet.author.name}
+        </Link>
         <span className="text-gray-500">@{tweet.author.displayId}</span>
         <time dateTime={tweet.createdAt} className="text-gray-500">
           {formatTimelineDate(tweet.createdAt)}
