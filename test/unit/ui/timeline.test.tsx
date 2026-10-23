@@ -142,6 +142,16 @@ describe('TimelineFilter', () => {
     expect(router.push).toHaveBeenCalledWith('/?follow=true');
   });
 
+  it('遷移の完了を待たず、操作した時点でチェック状態を切り替えて表示する', async () => {
+    // 遷移が終わらない状態を再現する。
+    router.push.mockImplementation(() => new Promise(() => {}));
+    render(<TimelineFilter loggedIn followingOnly={false} toggleHref="/?follow=true" />);
+
+    await userEvent.setup().click(screen.getByRole('checkbox', { name: 'フォローのみ' }));
+
+    expect(screen.getByRole('checkbox', { name: 'フォローのみ' })).toBeChecked();
+  });
+
   it('フォロー一覧ではチェック済みで表示する', () => {
     render(<TimelineFilter loggedIn followingOnly toggleHref="/" />);
 
