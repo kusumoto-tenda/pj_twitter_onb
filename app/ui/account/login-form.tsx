@@ -12,8 +12,9 @@ export function LoginForm({ action }: { action: LoginAction }) {
   const failed = state.status === 'error' ? state : null;
 
   return (
+    // 失敗のたびに再マウントし、IDだけを再表示する（パスワードは空にする）。
     <form key={failed?.attempt ?? 0} action={formAction} noValidate className="space-y-5">
-      <FormField id="displayId" label="ユーザーID">
+      <FormField id="displayId" label="ユーザーID" errors={failed?.fieldErrors.displayId}>
         {(props) => (
           <input
             {...props}
@@ -24,24 +25,24 @@ export function LoginForm({ action }: { action: LoginAction }) {
           />
         )}
       </FormField>
-      <FormField id="password" label="パスワード">
+      <FormField id="password" label="パスワード" errors={failed?.fieldErrors.password}>
         {(props) => (
           <input {...props} name="password" type="password" autoComplete="current-password" />
         )}
       </FormField>
-      {failed && (
+      {failed?.message && (
         <p role="alert" className="text-sm text-red-600">
           {failed.message}
         </p>
       )}
-      <div className="flex items-center gap-6 pt-2">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-3 pt-2">
         <button
           type="submit"
           disabled={pending}
           aria-busy={pending}
           className="rounded-lg border-2 border-gray-900 px-10 py-3 font-bold hover:bg-gray-100 disabled:cursor-wait disabled:opacity-50"
         >
-          ログイン
+          {pending ? 'ログイン中…' : 'ログイン'}
         </button>
         <span className="text-gray-700">または</span>
         <Link
