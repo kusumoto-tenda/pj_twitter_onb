@@ -24,6 +24,12 @@ export class TimelineFixtures {
     return person;
   }
 
+  /** 別の手段で作った利用者を後片付けの対象に加える。 */
+  track(person: TimelinePerson): TimelinePerson {
+    this.userIds.push(person.id);
+    return person;
+  }
+
   async tweet(
     owner: TimelinePerson,
     content: string,
