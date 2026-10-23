@@ -80,6 +80,13 @@ describe('parseProfileEditForm', () => {
     });
   });
 
+  it('ブラウザが送るCRLFの改行をLFに揃える（前後の空白は保持する）', () => {
+    expect(parseProfileEditForm(form({ name: 'a', displayId: 'Alice_1', bio: ' 一行目\r\n二行目\r ' }))).toEqual({
+      ok: true,
+      input: { name: 'a', displayId: 'Alice_1', bio: ' 一行目\n二行目\n ' },
+    });
+  });
+
   it('bioの欠落は空文字にする', () => {
     expect(parseProfileEditForm(form({ name: 'a', displayId: 'Alice_1' }))).toEqual({
       ok: true,

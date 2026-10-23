@@ -78,6 +78,12 @@ describe('parseCreateAccountForm', () => {
     expect(parseCreateAccountForm(data)).toEqual({ ok: true, input: validInput });
   });
 
+  it('ブラウザが送るCRLFの改行をLFに揃える', () => {
+    const data = form({ name: 'a', displayId: 'Alice_1', bio: '一行目\r\n二行目', password: 'password123' });
+
+    expect(parseCreateAccountForm(data)).toMatchObject({ ok: true, input: { bio: '一行目\n二行目' } });
+  });
+
   it('bioの欠落は空文字として扱う', () => {
     const data = form({ name: 'a', displayId: 'Alice_1', password: 'password123' });
 
