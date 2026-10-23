@@ -14,12 +14,19 @@ export class TimelineFixtures {
 
   constructor(private readonly sql: postgres.Sql) {}
 
-  async user(name = 'タイムライン太郎', prefix = 'Tl'): Promise<TimelinePerson> {
+  async user(
+    name = 'タイムライン太郎',
+    prefix = 'Tl',
+    { bio = '', createdAt }: { bio?: string; createdAt?: string } = {},
+  ): Promise<TimelinePerson> {
     const person = { id: randomUUID(), name, displayId: uniqueDisplayId(prefix) };
     this.userIds.push(person.id);
     await this.sql`
       INSERT INTO twitter.users (id, name, display_id, bio, password_hash, created_at)
-      VALUES (${person.id}, ${person.name}, ${person.displayId}, '', 'fixture-hash', now())
+      VALUES (
+        ${person.id}, ${person.name}, ${person.displayId}, ${bio}, 'fixture-hash',
+        COALESCE(${createdAt ?? null}::text::timestamptz, now())
+      )
     `;
     return person;
   }
@@ -67,11 +74,20 @@ export class TimelineFixtures {
     return rows.map((row) => row.id);
   }
 
-  async follow(follower: TimelinePerson, followee: TimelinePerson): Promise<void> {
+  async follow(
+    follower: TimelinePerson,
+    followee: TimelinePerson,
+    createdAt?: string,
+    id: string = randomUUID(),
+  ): Promise<string> {
     await this.sql`
       INSERT INTO twitter.follows (id, follower_id, follow_id, created_at)
-      VALUES (${randomUUID()}, ${follower.id}, ${followee.id}, now())
+      VALUES (
+        ${id}, ${follower.id}, ${followee.id},
+        COALESCE(${createdAt ?? null}::text::timestamptz, now())
+      )
     `;
+    return id;
   }
 
   async retweet(
