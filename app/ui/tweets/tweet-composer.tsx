@@ -39,9 +39,15 @@ type ComposerContext = {
   open: () => void;
   openEdit: (tweetId: string, returnFocusKey: string) => void;
   openDelete: (tweetId: string, returnFocusKey: string) => void;
-  /** 準備中、またはダイアログを開いている間はtrue。 */
+  /** 準備中、ダイアログを開いている間、ログアウト処理中はtrue。 */
   busy: boolean;
   opening: boolean;
+  /**
+   * ログアウトの送信前に同期的に呼ぶ。準備中・表示中のダイアログがあればfalseを返して送信を止め、
+   * trueなら解除するまでダイアログを準備しない（ログアウト後のログイン画面を古いダイアログで覆わない）。
+   */
+  claimLogout: () => boolean;
+  releaseLogout: () => void;
 };
 
 const Context = createContext<ComposerContext | null>(null);
@@ -80,8 +86,21 @@ export function TweetComposerProvider({
   deleteAction?: DeleteTweetAction;
   uploader?: ImageUploader;
 }) {
-  const [state, setState] = useState<ComposerState>(null);
-  const [opening, setOpening] = useState(false);
+  const [state, setDialogState] = useState<ComposerState>(null);
+  const [opening, setOpeningState] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  // 再描画を待たずに、ダイアログの準備・表示とログアウトを排他にする。
+  const stateRef = useRef<ComposerState>(null);
+  const openingRef = useRef(false);
+  const loggingOutRef = useRef(false);
+  const setState = useCallback((next: ComposerState) => {
+    stateRef.current = next;
+    setDialogState(next);
+  }, []);
+  const setOpening = useCallback((next: boolean) => {
+    openingRef.current = next;
+    setOpeningState(next);
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [deletedAt, setDeletedAt] = useState<number | null>(null);
@@ -97,6 +116,7 @@ export function TweetComposerProvider({
 
   const prepare = useCallback(
     async <T,>(begin: () => Promise<T>, toState: (result: T) => ComposerState | string) => {
+      if (loggingOutRef.current) return;
       stopFocusRestore.current?.();
       setOpening(true);
       setError(null);
@@ -111,8 +131,20 @@ export function TweetComposerProvider({
         setOpening(false);
       }
     },
-    [],
+    [setOpening, setState],
   );
+
+  const claimLogout = useCallback(() => {
+    if (loggingOutRef.current || openingRef.current || stateRef.current !== null) return false;
+    loggingOutRef.current = true;
+    setLoggingOut(true);
+    return true;
+  }, []);
+
+  const releaseLogout = useCallback(() => {
+    loggingOutRef.current = false;
+    setLoggingOut(false);
+  }, []);
 
   const open = useCallback(
     () =>
@@ -149,7 +181,7 @@ export function TweetComposerProvider({
     restoreFocus(
       result === 'cancelled' ? () => document.querySelector<HTMLElement>(menuSelector(returnFocusKey)) : mainHeading,
     );
-  }, [restoreFocus]);
+  }, [restoreFocus, setState]);
 
   const onClosed = useCallback(
     (selector: string, updated = false) => {
@@ -158,11 +190,21 @@ export function TweetComposerProvider({
       // 閉じたら起動元へフォーカスを戻す。再取得でボタンが作り直される・一時的に消える場合も、再表示を待って戻す。
       restoreFocus(() => document.querySelector<HTMLElement>(selector));
     },
-    [restoreFocus],
+    [restoreFocus, setState],
   );
 
   return (
-    <Context.Provider value={{ open, openEdit, openDelete, opening, busy: opening || state !== null }}>
+    <Context.Provider
+      value={{
+        open,
+        openEdit,
+        openDelete,
+        opening,
+        busy: opening || state !== null || loggingOut,
+        claimLogout,
+        releaseLogout,
+      }}
+    >
       {children}
       {error && (
         <p

@@ -10,6 +10,13 @@ import { ProfileRetry } from '@/app/ui/profile/profile-retry';
 import { ProfileTabs } from '@/app/ui/profile/profile-tabs';
 
 // お気に入りボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+// ルートのProviderを使う操作は、プロフィールから渡される本人UUIDだけを検証する。
+vi.mock('@/app/ui/auth/logout-button', () => ({
+  LogoutButton: ({ expectedActorId }: { expectedActorId: string }) => (
+    <span data-testid="logout-button" data-actor={expectedActorId} />
+  ),
+}));
+
 vi.mock('@/app/ui/favorites/favorite-button', () => ({
   FavoriteButton: ({ tweetId, active, expectedActorId }: { tweetId: string; active: boolean; expectedActorId: string | null }) => (
     <span data-testid="favorite-button" data-tweet={tweetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
@@ -111,7 +118,7 @@ describe('ProfileHeader', () => {
     expect(screen.getByRole('region', { name: 'プロフィール' }).querySelector('[data-bio]')).toBeNull();
   });
 
-  it('自分なら「自分のプロフィール」と編集リンクを表示し、操作ボタンは出さない', () => {
+  it('自分なら編集・削除・ログアウトを表示し、フォロー操作は出さない', () => {
     render(<ProfileHeader profile={{ ...profile, followedByViewer: false }} isSelf viewerId={profile.id} tab="tweets" />);
 
     expect(screen.getByText('自分のプロフィール')).toBeInTheDocument();
@@ -124,7 +131,8 @@ describe('ProfileHeader', () => {
       '/profile/Alice_1/delete',
     );
     expect(screen.queryByTestId('follow-button')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByTestId('logout-button')).toHaveAttribute('data-actor', profile.id);
+    expect(screen.queryByRole('button', { name: /^フォロー/ })).not.toBeInTheDocument();
   });
 
   it('フォロー済みの他人なら、対象のUUID・状態・閲覧者をフォローボタンへ渡す', () => {

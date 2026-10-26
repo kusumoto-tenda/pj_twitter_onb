@@ -12,6 +12,9 @@ const boundary = vi.hoisted(() => ({
   favoriteDeps: undefined as unknown,
 }));
 
+// RSCの認証境界は専用テストで検証し、jsdomでは同期の目印に置き換える。
+vi.mock('@/app/ui/auth/session-logout-control', () => ({ SessionLogoutControl: () => null }));
+
 vi.mock('next/navigation', () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`);

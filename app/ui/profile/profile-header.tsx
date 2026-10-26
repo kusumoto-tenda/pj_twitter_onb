@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ProfileSummary, ProfileTab } from '@/application/profile/profile';
 import { profileHref } from '@/app/lib/profile-query';
+import { LogoutButton } from '@/app/ui/auth/logout-button';
 import { FollowButton } from '@/app/ui/profile/follow-button';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -57,6 +58,8 @@ export function ProfileHeader({
             >
               アカウント削除
             </Link>
+            {/* ナビと同じActionを使う。送るのは検証済みのprofile.id（本人と一致済み）。 */}
+            <LogoutButton expectedActorId={profile.id} />
           </div>
         ) : (
           // 未ログインでも表示し、押したらActionの案内を通知する。対象は表示IDではなくUUIDで固定する。

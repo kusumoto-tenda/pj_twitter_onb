@@ -18,6 +18,16 @@ const boundary = vi.hoisted(() => ({
   profileDeps: undefined as unknown,
 }));
 
+// RSCの認証境界は専用テストで検証し、jsdomでは同期の目印に置き換える。
+vi.mock('@/app/ui/auth/session-logout-control', () => ({ SessionLogoutControl: () => null }));
+
+// ルートのProviderを使う操作は、プロフィールから渡される本人UUIDだけを検証する。
+vi.mock('@/app/ui/auth/logout-button', () => ({
+  LogoutButton: ({ expectedActorId }: { expectedActorId: string }) => (
+    <span data-testid="logout-button" data-actor={expectedActorId} />
+  ),
+}));
+
 vi.mock('next/navigation', () => ({
   notFound: vi.fn(() => {
     throw new Error('NEXT_HTTP_ERROR_FALLBACK;404');

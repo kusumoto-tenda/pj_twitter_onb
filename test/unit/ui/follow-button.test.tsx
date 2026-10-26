@@ -9,6 +9,13 @@ import { FollowButton } from '@/app/ui/profile/follow-button';
 import { ProfileHeader } from '@/app/ui/profile/profile-header';
 import type { ProfileSummary } from '@/application/profile/profile';
 
+// ルートのProviderを使う操作は、プロフィールから渡される本人UUIDだけを検証する。
+vi.mock('@/app/ui/auth/logout-button', () => ({
+  LogoutButton: ({ expectedActorId }: { expectedActorId: string }) => (
+    <span data-testid="logout-button" data-actor={expectedActorId} />
+  ),
+}));
+
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
@@ -257,12 +264,13 @@ describe('ProfileHeaderのフォロー', () => {
     expect(screen.getByRole('button', { name: 'フォローする' })).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('自分のプロフィールにはボタンを出さない', () => {
+  it('自分のプロフィールにはフォローボタンを出さず、本人のログアウトを表示する', () => {
     render(
       <ActionFeedbackProvider>
         <ProfileHeader profile={{ ...profile, id: ME }} isSelf viewerId={ME} tab="tweets" />
       </ActionFeedbackProvider>,
     );
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^フォロー/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('logout-button')).toHaveAttribute('data-actor', ME);
   });
 });
