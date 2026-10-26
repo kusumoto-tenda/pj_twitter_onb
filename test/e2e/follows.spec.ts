@@ -211,8 +211,8 @@ test('表示後に相手がユーザーIDを変え、旧IDを別人が使って�
   const reuserId = randomUUID();
   tracked.push(reuserId);
   await sql`
-    INSERT INTO twitter.users (id, name, display_id, bio, password_hash)
-    VALUES (${reuserId}, '旧IDを使う人', ${oldDisplayId.toUpperCase()}, '', 'fixture-hash')
+    INSERT INTO twitter.users (id, name, display_id, bio, password_hash, created_at)
+    VALUES (${reuserId}, '旧IDを使う人', ${oldDisplayId.toUpperCase()}, '', 'fixture-hash', CURRENT_TIMESTAMP)
   `;
 
   await followButton(page).click();
