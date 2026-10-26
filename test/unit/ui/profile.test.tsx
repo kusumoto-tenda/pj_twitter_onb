@@ -15,6 +15,12 @@ vi.mock('@/app/ui/favorites/favorite-button', () => ({
     <span data-testid="favorite-button" data-tweet={tweetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
   ),
 }));
+// いいねボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/likes/like-button', () => ({
+  LikeButton: ({ tweetId, active, count }: { tweetId: string; active: boolean; count: number }) => (
+    <span data-testid="like-button" data-tweet={tweetId} data-active={String(active)} data-count={count} />
+  ),
+}));
 
 const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 const transition = vi.hoisted(() => ({ forcePending: false }));

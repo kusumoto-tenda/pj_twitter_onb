@@ -5,9 +5,10 @@ import { profileHref } from '@/app/lib/profile-query';
 const TABS = [
   { tab: 'tweets', label: 'ツイート' },
   { tab: 'retweets', label: 'リツイート' },
+  { tab: 'likes', label: 'いいね' },
 ] as const;
 
-/** 投稿・リツイートのタブ。選択状態はURLのタブに従い、切り替えではカーソルを外す。 */
+/** 投稿・リツイート・公開いいねのタブ。選択状態はURLのタブに従い、切り替えではカーソルを外す。 */
 export function ProfileTabs({ displayId, tab }: { displayId: string; tab: ProfileTab }) {
   return (
     <nav aria-label="プロフィールのタブ" className="flex border-b border-gray-200">
