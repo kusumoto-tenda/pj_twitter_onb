@@ -124,12 +124,35 @@ async function abortNextActionBeforeSend(page: Page, marker: string) {
 }
 
 /**
- * アプリの画面がエラー境界へ置き換わっていないことを確かめるため、ページ内の未処理例外を記録する。
- * 切断したリクエスト由来の「Failed to load resource」のconsole出力は、ブラウザの通信エラーとして区別して許容する。
+ * markerを含むServer ActionのPOSTを1回だけ、実際にサーバーへ送って応答を受け取ってから、ブラウザへは渡さずに切断する。
+ * （サーバーでは確定したが応答だけを失った状態。重複リクエストを自前で送り直すことはしない。）
+ */
+async function dropNextActionResponseAfterCommit(page: Page, marker: string) {
+  const state: { response: null | { ok: boolean; status: number; redirect: string | undefined } } = { response: null };
+  await page.route('**/*', async (route) => {
+    const request = route.request();
+    if (state.response === null && request.method() === 'POST' && request.headers()['next-action'] && request.postData()?.includes(marker)) {
+      const response = await route.fetch({ maxRedirects: 0 });
+      state.response = { ok: response.ok(), status: response.status(), redirect: response.headers()['x-action-redirect'] };
+      return route.abort('failed');
+    }
+    return route.continue();
+  });
+  return state;
+}
+
+/**
+ * アプリの画面がエラー境界へ置き換わっていないことを確かめるため、ページ内の未処理例外とconsoleのエラーを記録する。
+ * 切断したリクエスト由来の「Failed to load resource」だけは、ブラウザ側の通信エラーとして区別して除外する。
  */
 function watchPageErrors(page: Page) {
   const errors: string[] = [];
-  page.on('pageerror', (error) => errors.push(error.message));
+  page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
+  page.on('console', (message) => {
+    if (message.type() !== 'error') return;
+    if (/^Failed to load resource: net::ERR_FAILED/.test(message.text())) return;
+    errors.push(`console: ${message.text()}`);
+  });
   return errors;
 }
 
@@ -146,6 +169,14 @@ async function imagesOf(tweetId: string) {
   return sql<{ upload_id: string; width: number }[]>`
     SELECT upload_id, width FROM twitter.images WHERE tweet_id = ${tweetId} ORDER BY position
   `;
+}
+
+async function uploadsOf(draftId: string) {
+  return sql<{ id: string; status: string }[]>`SELECT id, status FROM twitter.media_uploads WHERE draft_id = ${draftId} ORDER BY created_at`;
+}
+
+async function deleteJobsFor(storageKeys: string[]) {
+  return sql<{ storage_key: string }[]>`SELECT storage_key FROM twitter.media_delete_jobs WHERE storage_key = ANY(${storageKeys})`;
 }
 
 /** 利用者・下書き・予約・削除予約・画像の実体を後片付けする。 */
@@ -271,4 +302,251 @@ test('削除：送信前に通信が切れても、元の投稿と画像を残�
   await expect(card(page, `削除する投稿 ${t}`)).toHaveCount(0);
   expect(await tweetRow(tweetId)).toBeUndefined();
   expect(errors).toEqual([]);
+});
+
+test('作成：確定後に応答だけ失っても、同じ下書きの再送で投稿は1件・画像も重複せず、/へ移動して投稿を通知する', async ({ page }) => {
+  const me = await loginableUser('作成の応答喪失');
+  const errors = watchPageErrors(page);
+  const content = `応答を失った投稿 ${token()}`;
+
+  await login(page, me);
+  await launcher(page).click();
+  const d = createDialog(page);
+  await expect(d).toBeVisible();
+  await d.getByLabel('本文').fill(content);
+  await attach(d, [await png(30)]);
+  const lost = await dropNextActionResponseAfterCommit(page, content);
+  await d.getByRole('button', { name: 'ツイートする' }).click();
+
+  await expect(d.getByText(UNCONFIRMED)).toBeVisible();
+  await expect(alertToast(page, NETWORK_TOAST)).toBeVisible();
+  // サーバーでは確定済み（/への移動を返した）で、ブラウザだけが応答を受け取れなかった。
+  expect(lost.response).toMatchObject({ redirect: expect.stringMatching(/^\/(;|$)/) });
+  expect(lost.response!.status).toBeLessThan(400);
+  const [draft] = await sql`SELECT id, status FROM twitter.tweet_drafts WHERE owner_id = ${me.id}`;
+  expect(draft.status).toBe('published');
+  expect(await tweetsOf(me)).toEqual([{ id: draft.id, content }]);
+  await expect(d).toBeVisible();
+  await expect(d.getByLabel('本文')).toHaveValue(content);
+  await expect(toast(page, 'ツイートしました')).toHaveCount(0);
+
+  await d.getByRole('button', { name: 'ツイートする' }).click();
+
+  await expect(page).toHaveURL('/');
+  await expect(toast(page, 'ツイートしました')).toBeVisible();
+  await expect(createDialog(page)).toBeHidden();
+  await expect(card(page, content)).toHaveCount(1);
+  expect(await tweetsOf(me)).toEqual([{ id: draft.id, content }]);
+  expect((await imagesOf(draft.id)).map((i) => i.width)).toEqual([30]);
+  expect((await uploadsOf(draft.id)).map((u) => u.status)).toEqual(['attached']);
+  expect(await sql`SELECT id FROM twitter.tweet_drafts WHERE owner_id = ${me.id}`).toHaveLength(1);
+  expect(errors).toEqual([]);
+});
+
+test('編集：確定後に応答だけ失っても、再送で版は進まず画像・削除予約も重複しない。URLとページ位置を保つ', async ({ page }) => {
+  const me = await loginableUser('編集の応答喪失');
+  const errors = watchPageErrors(page);
+  const t = token();
+  const tweetId = await post(me, `編集前 ${t}`, [10, 20]);
+  // 対象を一覧の下の方に置き、スクロールした位置を保つことを確かめる。
+  for (let i = 0; i < 8; i++) await post(me, `後の投稿 ${i} ${t}`);
+  const [removed] = await imagesOf(tweetId);
+  const [{ storage_key: removedKey }] = await sql`SELECT storage_key FROM twitter.images WHERE upload_id = ${removed.upload_id}`;
+
+  await page.setViewportSize({ width: 1280, height: 600 });
+  await login(page, me);
+  await page.goto(`/profile/${me.displayId}`);
+  const target = card(page, `編集前 ${t}`);
+  await target.scrollIntoViewIfNeeded();
+  const scrollBefore = await page.evaluate(() => window.scrollY);
+  expect(scrollBefore).toBeGreaterThan(0);
+  await openMenu(page, target, '編集する');
+  const d = editDialog(page);
+  await expect(d).toBeVisible();
+  await d.getByLabel('本文').fill(`編集後 ${t}`);
+  await d.getByRole('button', { name: '添付済みの画像1を解除' }).click();
+  await attach(d, [await png(40)]);
+  const lost = await dropNextActionResponseAfterCommit(page, `編集後 ${t}`);
+  await d.getByRole('button', { name: '更新', exact: true }).click();
+
+  await expect(d.getByText(UNCONFIRMED)).toBeVisible();
+  expect(lost.response?.ok).toBe(true);
+  expect(await tweetRow(tweetId)).toMatchObject({ content: `編集後 ${t}`, revision: '1' });
+  const committed = await imagesOf(tweetId);
+  expect(committed.map((i) => i.width)).toEqual([20, 40]);
+  expect(await deleteJobsFor([removedKey])).toHaveLength(1);
+  await expect(toast(page, 'ツイートを更新しました')).toHaveCount(0);
+
+  await d.getByRole('button', { name: '更新', exact: true }).click();
+
+  await expect(toast(page, 'ツイートを更新しました')).toBeVisible();
+  await expect(editDialog(page)).toBeHidden();
+  await expect(page).toHaveURL(`/profile/${me.displayId}`);
+  await expect(card(page, `編集後 ${t}`)).toBeVisible();
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
+  expect(await tweetRow(tweetId)).toMatchObject({ content: `編集後 ${t}`, revision: '1' });
+  expect(await imagesOf(tweetId)).toEqual(committed);
+  expect(await deleteJobsFor([removedKey])).toHaveLength(1);
+  expect(errors).toEqual([]);
+});
+
+test('削除：確定後に応答だけ失っても、再送は既に削除済みの案内になり、削除成功とは通知せず一覧を更新する', async ({ page }) => {
+  const me = await loginableUser('削除の応答喪失');
+  const errors = watchPageErrors(page);
+  const t = token();
+  const tweetId = await post(me, `消える投稿 ${t}`, [10]);
+  await post(me, `残る投稿 ${t}`);
+
+  await login(page, me);
+  await openMenu(page, card(page, `消える投稿 ${t}`), '削除する');
+  const d = deleteDialog(page);
+  await expect(d).toBeVisible();
+  const lost = await dropNextActionResponseAfterCommit(page, tweetId);
+  await d.getByRole('button', { name: 'はい', exact: true }).click();
+
+  await expect(d.getByText(UNCONFIRMED)).toBeVisible();
+  expect(lost.response?.ok).toBe(true);
+  expect(await tweetRow(tweetId)).toBeUndefined();
+  await expect(toast(page, 'ツイートを削除しました')).toHaveCount(0);
+
+  await d.getByRole('button', { name: 'はい', exact: true }).click();
+
+  await expect(toast(page, 'このツイートは既に削除されています')).toBeVisible();
+  await expect(deleteDialog(page)).toBeHidden();
+  await expect(toast(page, 'ツイートを削除しました')).toHaveCount(0);
+  await expect(card(page, `消える投稿 ${t}`)).toHaveCount(0);
+  await expect(card(page, `残る投稿 ${t}`)).toBeVisible();
+  await expect(page).toHaveURL('/');
+  expect(errors).toEqual([]);
+});
+
+test.describe('未ログインでの開始・保存はログイン画面へ移動し、通信失敗や成功と誤って通知しない', () => {
+  const misleading = (page: Page) =>
+    page.getByText(new RegExp(`${NETWORK_TOAST}|処理結果を確認できませんでした|ツイートしました$|ツイートを更新しました|ツイートを削除しました`));
+
+  async function expectLogin(page: Page, guide: string) {
+    await expect(page).toHaveURL('/login');
+    await expect(toast(page, guide)).toBeVisible();
+    await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.getByLabel('ユーザーID')).toBeVisible();
+    await expect(misleading(page)).toHaveCount(0);
+  }
+
+  test('作成の開始・投稿', async ({ page }) => {
+    const me = await loginableUser('作成の未ログイン');
+    const errors = watchPageErrors(page);
+    await page.goto('/');
+    await launcher(page).click();
+    await expectLogin(page, 'ツイートするにはログインしてください');
+
+    await login(page, me);
+    await launcher(page).click();
+    const d = createDialog(page);
+    await d.getByLabel('本文').fill(`未ログインの投稿 ${token()}`);
+    await page.context().clearCookies();
+    await d.getByRole('button', { name: 'ツイートする' }).click();
+    await expectLogin(page, 'ツイートするにはログインしてください');
+    expect(await tweetsOf(me)).toEqual([]);
+    expect(errors).toEqual([]);
+  });
+
+  test('編集の開始・保存', async ({ page }) => {
+    const me = await loginableUser('編集の未ログイン');
+    const errors = watchPageErrors(page);
+    const t = token();
+    const tweetId = await post(me, `編集されない ${t}`);
+    await login(page, me);
+    await page.context().clearCookies();
+    await openMenu(page, card(page, `編集されない ${t}`), '編集する');
+    await expectLogin(page, 'ツイートを編集するにはログインしてください');
+
+    await login(page, me);
+    await openMenu(page, card(page, `編集されない ${t}`), '編集する');
+    const d = editDialog(page);
+    await d.getByLabel('本文').fill(`編集後 ${t}`);
+    await page.context().clearCookies();
+    await d.getByRole('button', { name: '更新', exact: true }).click();
+    await expectLogin(page, 'ツイートを編集するにはログインしてください');
+    expect(await tweetRow(tweetId)).toMatchObject({ content: `編集されない ${t}`, revision: '0' });
+    expect(errors).toEqual([]);
+  });
+
+  test('削除の開始・確定', async ({ page }) => {
+    const me = await loginableUser('削除の未ログイン');
+    const errors = watchPageErrors(page);
+    const t = token();
+    const tweetId = await post(me, `削除されない ${t}`);
+    await login(page, me);
+    await page.context().clearCookies();
+    await openMenu(page, card(page, `削除されない ${t}`), '削除する');
+    await expectLogin(page, 'ツイートを削除するにはログインしてください');
+
+    await login(page, me);
+    await openMenu(page, card(page, `削除されない ${t}`), '削除する');
+    const d = deleteDialog(page);
+    await expect(d).toBeVisible();
+    await page.context().clearCookies();
+    await d.getByRole('button', { name: 'はい', exact: true }).click();
+    await expectLogin(page, 'ツイートを削除するにはログインしてください');
+    expect(await tweetRow(tweetId)).toBeDefined();
+    expect(errors).toEqual([]);
+  });
+});
+
+test('通常のエラー（欄エラー・競合・期限切れ・別の利用者への切替）は既存の説明で表示し、通信の失敗と混同しない', async ({ page }) => {
+  const me = await loginableUser('通常エラー');
+  const other = await loginableUser('別の利用者');
+  const t = token();
+  const conflicted = await post(me, `競合する投稿 ${t}`);
+  const expiring = await post(me, `期限切れの投稿 ${t}`);
+  const kept = await post(me, `切替後も残る投稿 ${t}`);
+  const confused = (d: Locator) => d.getByText(UNCONFIRMED);
+
+  await login(page, me);
+  // 欄エラー
+  await launcher(page).click();
+  let d = createDialog(page);
+  await d.getByLabel('本文').fill('あ'.repeat(281));
+  await d.getByRole('button', { name: 'ツイートする' }).click();
+  await expect(d.getByText('本文は280文字以下で入力してください')).toBeVisible();
+  await expect(alertToast(page, 'ツイートに失敗しました')).toBeVisible();
+  await expect(confused(d)).toHaveCount(0);
+  await expect(alertToast(page, NETWORK_TOAST)).toHaveCount(0);
+  await d.getByRole('button', { name: '閉じる' }).click();
+
+  // 競合（開いた後に他の画面で版が進んだ）
+  await openMenu(page, card(page, `競合する投稿 ${t}`), '編集する');
+  d = editDialog(page);
+  await sql`UPDATE twitter.tweets SET revision = revision + 1 WHERE id = ${conflicted}`;
+  await d.getByLabel('本文').fill(`競合後 ${t}`);
+  await d.getByRole('button', { name: '更新', exact: true }).click();
+  await expect(d.getByText('他の画面で更新されています。閉じて開き直してください')).toBeVisible();
+  await expect(alertToast(page, 'ツイートの更新に失敗しました')).toBeVisible();
+  await expect(confused(d)).toHaveCount(0);
+  await d.getByRole('button', { name: '閉じる' }).click();
+
+  // 編集の準備の期限切れ
+  await openMenu(page, card(page, `期限切れの投稿 ${t}`), '編集する');
+  d = editDialog(page);
+  await sql`
+    UPDATE twitter.tweet_drafts SET expires_at = now() - interval '1 minute'
+    WHERE owner_id = ${me.id} AND purpose = 'edit' AND target_tweet_id = ${expiring} AND status = 'open'
+  `;
+  await d.getByRole('button', { name: '更新', exact: true }).click();
+  await expect(d.getByText('編集の準備が切れました。閉じて開き直してください')).toBeVisible();
+  await expect(confused(d)).toHaveCount(0);
+  await d.getByRole('button', { name: '閉じる' }).click();
+
+  // 削除の確認中に別の利用者へ切り替わった
+  await openMenu(page, card(page, `切替後も残る投稿 ${t}`), '削除する');
+  d = deleteDialog(page);
+  await expect(d).toBeVisible();
+  const second = await page.context().newPage();
+  await page.context().clearCookies();
+  await login(second, other);
+  await d.getByRole('button', { name: 'はい', exact: true }).click();
+  await expect(d.getByText('ログイン中の利用者が変わりました。画面を開き直してください')).toBeVisible();
+  await expect(alertToast(page, 'ツイートの削除に失敗しました')).toBeVisible();
+  await expect(confused(d)).toHaveCount(0);
+  expect(await tweetRow(kept)).toBeDefined();
 });

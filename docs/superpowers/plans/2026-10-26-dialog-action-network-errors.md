@@ -8,7 +8,7 @@
 
 **Tech Stack:** 導入済みNext.js 16.4.2、React、TypeScript、Vitest、Playwright。新規依存・migration・ストレージ設定なし。
 
-**Status:** 実装前。現在の `feat/favorites` の `5feae35` を前提とする。お気に入りの修正とは別コミット群で実施し、いいね実装より先に完了させる。今回の作業は計画書のみ。既存の未コミット資料を変更・コミットに巻き込まない。
+**Status:** Task 1〜6を `worktree-remaining-core` に実装済み（`da810e8` の後）。単体・UI・型チェックはPASS。E2E（Redの確認を含む）・結合・本番ビルドは未確認で、コーディネーターの外部リソースでの確認待ち。完了条件はその確認後に更新する。
 
 ## 1. 現状と判断
 
@@ -96,9 +96,9 @@ const result = outcome.value;
 
 **Create:** `app/ui/tweets/invoke-dialog-action.ts`、`test/unit/app/invoke-dialog-action.test.ts`、`test/e2e/dialog-network-errors.spec.ts`。
 
-- [ ] 共通アダプターのテストを先に書く。通常成功、通常エラー値、互換用undefinedはそのまま返し、TypeError/Errorのrejectはok:false。制御例外は再throwする。
-- [ ] `pnpm exec vitest run --project unit test/unit/app/invoke-dialog-action.test.ts` → FAILを確認してから上記の最小アダプターを実装する。
-- [ ] 制御例外テストは実際の公開API `redirect('/login')`、`redirect('/')`、`notFound()` が投げた値を捕捉して使う。単なる `new Error('NEXT_REDIRECT')` や、unstable_rethrowをno-opへmockしたテストでは代用しない。
+- [x] 共通アダプターのテストを先に書く。通常成功、通常エラー値、互換用undefinedはそのまま返し、TypeError/Errorのrejectはok:false。制御例外は再throwする。
+- [x] `pnpm exec vitest run --project unit test/unit/app/invoke-dialog-action.test.ts` → FAILを確認してから上記の最小アダプターを実装する。
+- [x] 制御例外テストは実際の公開API `redirect('/login')`、`redirect('/')`、`notFound()` が投げた値を捕捉して使う。単なる `new Error('NEXT_REDIRECT')` や、unstable_rethrowをno-opへmockしたテストでは代用しない。
 
 ```ts
 let control: unknown;
@@ -108,49 +108,49 @@ expect(await invokeDialogAction(() => Promise.reject(new TypeError('Failed to fe
   .toEqual({ ok: false });
 ```
 
-- [ ] UI修正より前にE2Eを追加する。作成・編集・削除それぞれの「送信前に通信切断→画面保持→再試行」を書き、画面がエラー境界へ進むため失敗することを確認する。
-- [ ] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` → 未対応FAILを記録する。失敗目的は通信処理の未実装であり、DBやBlob資格情報不足でのFAILをRed扱いしない。
-- [ ] helperテストと型チェックをPASS。コミット：`test: 投稿操作の通信失敗と遷移の契約を追加`。この時点のE2E未実装FAILだけは計画上のものとして記録する。
+- [ ] UI修正より前にE2Eを追加する。作成・編集・削除それぞれの「送信前に通信切断→画面保持→再試行」を書き、画面がエラー境界へ進むため失敗することを確認する。（3件は `8825f4f` でUI修正より前に追加済み。失敗の確認は未実施：実装worktreeにはテスト専用DB/Blobがなく、コーディネーターの確認待ち。UI修正後のコミットからは `8825f4f` をcheckoutして確認する）
+- [ ] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` → 未対応FAILを記録する。失敗目的は通信処理の未実装であり、DBやBlob資格情報不足でのFAILをRed扱いしない。（未実施・コーディネーターの確認待ち）
+- [x] helperテストと型チェックをPASS。コミット：`test: 投稿操作の通信失敗と遷移の契約を追加`。この時点のE2E未実装FAILだけは計画上のものとして記録する。
 
 ### Task 2: 作成の通信失敗・入力保持・再送
 
 **Modify:** `app/ui/tweets/create-tweet-dialog.tsx`、`app/tweets/form-state.ts`、`app/ui/notifications/flash.ts`、`test/unit/ui/create-tweet-dialog.test.tsx`。
 
-- [ ] `mockRejectedValueOnce` のテストを先に書く。本文と準備済み画像を入力し、reject後も同じdialog・content・draftId・uploadIdsを保持し、通信Toast、固定案内、submit/閉じる再有効化、破棄呼出しなしを検証する。
-- [ ] `pnpm exec vitest run --project ui test/unit/ui/create-tweet-dialog.test.tsx` → FAILを確認。
-- [ ] helperを使いNETWORK_ERROR状態を返す。通信失敗でfinish(true/false)を呼ばず、textareaにreadOnly={pending}を追加する。Toastを通信／既存エラーで切り替える。
-- [ ] 同じフォームを再送するテストと連続rejectのattempt／Toast再表示、通常の欄エラー→rejectで古い欄エラーを残さないこと、StrictModeでも二重送信しないことを確認する。
-- [ ] 実際の投稿成功redirectが通信エラーにならないことはTask6のE2Eで確認する。単体・型チェックをPASS。コミット：`fix: 投稿作成の通信失敗時に入力を保って再試行できるようにする`。
+- [x] `mockRejectedValueOnce` のテストを先に書く。本文と準備済み画像を入力し、reject後も同じdialog・content・draftId・uploadIdsを保持し、通信Toast、固定案内、submit/閉じる再有効化、破棄呼出しなしを検証する。
+- [x] `pnpm exec vitest run --project ui test/unit/ui/create-tweet-dialog.test.tsx` → FAILを確認。
+- [x] helperを使いNETWORK_ERROR状態を返す。通信失敗でfinish(true/false)を呼ばず、textareaにreadOnly={pending}を追加する。Toastを通信／既存エラーで切り替える。
+- [x] 同じフォームを再送するテストと連続rejectのattempt／Toast再表示、通常の欄エラー→rejectで古い欄エラーを残さないこと、StrictModeでも二重送信しないことを確認する。
+- [x] 実際の投稿成功redirectが通信エラーにならないことはTask6のE2Eで確認する。単体・型チェックをPASS。コミット：`fix: 投稿作成の通信失敗時に入力を保って再試行できるようにする`。
 
 ### Task 3: 編集の通信失敗・画像保持・再送
 
 **Modify:** `app/ui/tweets/edit-tweet-dialog.tsx`、`app/tweets/edit-form-state.ts`、`test/unit/ui/edit-tweet-dialog.test.tsx`。
 
-- [ ] 本文変更＋既存画像解除＋新規画像追加の状態でrejectするテストを書く。保持画像IDs・新規uploadIds・draftIdを維持し、閉じず、成功通知も下書き破棄も呼ばず、更新を再試行できることを検証する。
-- [ ] `pnpm exec vitest run --project ui test/unit/ui/edit-tweet-dialog.test.tsx` → FAIL後にNETWORK_ERRORの分岐を実装する。
-- [ ] 再送に同じIDと本文が入ること、再送の通常エラー・成功を区別すること、連続rejectの通知、競合エラーの既存動作を確認する。通信失敗だけで編集成功通知を出さない。
-- [ ] 単体・型チェックをPASS。コミット：`fix: 投稿編集の通信失敗時に本文と画像を維持する`。
+- [x] 本文変更＋既存画像解除＋新規画像追加の状態でrejectするテストを書く。保持画像IDs・新規uploadIds・draftIdを維持し、閉じず、成功通知も下書き破棄も呼ばず、更新を再試行できることを検証する。
+- [x] `pnpm exec vitest run --project ui test/unit/ui/edit-tweet-dialog.test.tsx` → FAIL後にNETWORK_ERRORの分岐を実装する。
+- [x] 再送に同じIDと本文が入ること、再送の通常エラー・成功を区別すること、連続rejectの通知、競合エラーの既存動作を確認する。通信失敗だけで編集成功通知を出さない。
+- [x] 単体・型チェックをPASS。コミット：`fix: 投稿編集の通信失敗時に本文と画像を維持する`。
 
 ### Task 4: 削除の通信失敗・再確認
 
 **Modify:** `app/ui/tweets/delete-tweet-dialog.tsx`、`app/tweets/delete-form-state.ts`、`app/tweets/delete-actions.ts`、`test/unit/ui/delete-tweet-dialog.test.tsx`。
 
-- [ ] reject後も確認文・対象tweetId・expectedActorIdが残り、「はい」「いいえ」が再有効化され、成功／既に削除済みの通知を出さないテストを書く。
-- [ ] `pnpm exec vitest run --project ui test/unit/ui/delete-tweet-dialog.test.tsx` → FAIL後にhelperとNETWORK_ERRORを実装する。削除はfieldErrorsのない既存型を維持する。
-- [ ] delete-actionsの文言表は現在 `Record<DeleteTweetFailureCode,string>` のため、コード追加に合わせてサーバー側の型を `type ServerDeleteFailureCode = Exclude<DeleteTweetFailureCode,'NETWORK_ERROR'>` に絞り、文言表とfailure引数へ使う。NETWORK_ERRORはクライアント生成であり、サーバーから返す契約・認可を変更しない。
-- [ ] 再試行がsuccessならdeleted、not-foundならgone、通常エラーなら開いたままという既存契約を確認する。rejectの時点で「DBは削除されていない」と表示しない。
-- [ ] 単体・型チェックをPASS。コミット：`fix: 投稿削除の通信失敗でも確認を保って再試行できるようにする`。
+- [x] reject後も確認文・対象tweetId・expectedActorIdが残り、「はい」「いいえ」が再有効化され、成功／既に削除済みの通知を出さないテストを書く。
+- [x] `pnpm exec vitest run --project ui test/unit/ui/delete-tweet-dialog.test.tsx` → FAIL後にhelperとNETWORK_ERRORを実装する。削除はfieldErrorsのない既存型を維持する。
+- [x] delete-actionsの文言表は現在 `Record<DeleteTweetFailureCode,string>` のため、コード追加に合わせてサーバー側の型を `type ServerDeleteFailureCode = Exclude<DeleteTweetFailureCode,'NETWORK_ERROR'>` に絞り、文言表とfailure引数へ使う。NETWORK_ERRORはクライアント生成であり、サーバーから返す契約・認可を変更しない。
+- [x] 再試行がsuccessならdeleted、not-foundならgone、通常エラーなら開いたままという既存契約を確認する。rejectの時点で「DBは削除されていない」と表示しない。
+- [x] 単体・型チェックをPASS。コミット：`fix: 投稿削除の通信失敗でも確認を保って再試行できるようにする`。
 
 ### Task 5: 開始Actionの失敗と制御例外の取りこぼし確認
 
 **Modify:** `app/ui/tweets/tweet-composer.tsx`、作成・編集・削除の既存UIテスト。
 
-- [ ] beginDraft/beginEdit/beginDeleteのそれぞれをrejectさせ、エラー案内、ダイアログ非表示、opening/busy解除、再度の起動成功を先にテスト化する。
-- [ ] `pnpm exec vitest run --project ui test/unit/ui/create-tweet-dialog.test.tsx test/unit/ui/edit-tweet-dialog.test.tsx test/unit/ui/delete-tweet-dialog.test.tsx` → 開始rejectのFAILを確認する。
-- [ ] prepare内でもhelperを使い、一般例外では既存rootのerror表示へ `通信に失敗しました。もう一度お試しください` をセットする。成功後処理の例外までcatchしない。finallyのopening解除とフォーカス監視停止を保つ。
-- [ ] 開始時のエラー表示は既存のroot案内を再利用する（ダイアログ送信時の3秒Toastとは別）。再起動時に古いerrorを消す。UUIDを知らない未応答下書きを推測で破棄しない。
-- [ ] Next.jsの制御例外がhelperからそのまま抜け、未ログインの開始・送信で/loginへ移動することを検証する。既存のフォーカス復帰5件も通す。
-- [ ] 型チェック。コミット：`fix: 投稿ダイアログを開く通信失敗からも復帰できるようにする`。
+- [x] beginDraft/beginEdit/beginDeleteのそれぞれをrejectさせ、エラー案内、ダイアログ非表示、opening/busy解除、再度の起動成功を先にテスト化する。
+- [x] `pnpm exec vitest run --project ui test/unit/ui/create-tweet-dialog.test.tsx test/unit/ui/edit-tweet-dialog.test.tsx test/unit/ui/delete-tweet-dialog.test.tsx` → 開始rejectのFAILを確認する。
+- [x] prepare内でもhelperを使い、一般例外では既存rootのerror表示へ `通信に失敗しました。もう一度お試しください` をセットする。成功後処理の例外までcatchしない。finallyのopening解除とフォーカス監視停止を保つ。
+- [x] 開始時のエラー表示は既存のroot案内を再利用する（ダイアログ送信時の3秒Toastとは別）。再起動時に古いerrorを消す。UUIDを知らない未応答下書きを推測で破棄しない。
+- [ ] Next.jsの制御例外がhelperからそのまま抜け、未ログインの開始・送信で/loginへ移動することを検証する。既存のフォーカス復帰5件も通す。（UI：実際の `redirect()` の値が開始ではそのまま抜け、送信ではエラー境界へ同じ値で届くこと、フォーカス復帰5件はPASS。/loginへの移動はTask6のE2Eに記述済みで、コーディネーターの確認待ち）
+- [x] 型チェック。コミット：`fix: 投稿ダイアログを開く通信失敗からも復帰できるようにする`。
 
 ### Task 6: 応答だけ失われた場合のE2E・全体確認・記録
 
@@ -184,11 +184,11 @@ await page.route('**/*', async route => {
 | 未認証の開始・保存 | 作成・編集・削除それぞれ/login、専用ログイン案内、通信失敗／更新成功／削除成功の誤通知なし、dialogがloginを覆わない |
 | 通常エラー | 欄エラー、競合、期限切れ、別actorへの切替は既存の説明で、通信エラーと混同しない |
 
-- [ ] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` をPASS、連続2回通す。小さい有効なPNGで画像を確認し、不要な5MiBの反復アップロードを追加しない。
-- [ ] `pnpm test:unit`、`pnpm typecheck`、`pnpm test:integration`、`pnpm test:e2e`、`pnpm build` を実行し結果を記録する。専用DB/Blobの分離チェックを維持する。
-- [ ] ブラウザ側のネットワークエラー発生と、アプリ画面がエラー境界に置き換わることを区別する。既知のabort由来consoleエラーだけを必要な範囲で扱い、全pageerrorを無条件に無視しない。
-- [ ] READMEとfront_designへ入力保持・結果不明・同じ下書きでの再試行を記載する。ロック順やschemaの変更が不要であることを確認する。
-- [ ] コミット：`test: 投稿操作の応答喪失と再送の回帰確認を追加`。レビュー後にいいねへ進む。merge/push/デプロイは別指示による。
+- [ ] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` をPASS、連続2回通す。小さい有効なPNGで画像を確認し、不要な5MiBの反復アップロードを追加しない。（spec記述済み・未実行。コーディネーターの確認待ち）
+- [ ] `pnpm test:unit`、`pnpm typecheck`、`pnpm test:integration`、`pnpm test:e2e`、`pnpm build` を実行し結果を記録する。専用DB/Blobの分離チェックを維持する。（実装worktreeでの実測 2026-10-27: `pnpm test:unit` 61ファイル・768件PASS（変更前733件）、`pnpm typecheck` PASS。`pnpm build` はworktreeの依存配置により失敗：`node_modules/next` が元checkoutの `node_modules/.pnpm/...` を指し、Turbopackのルート（worktree）の外にあるため「Could not find the Next.js package (next/package.json)」。設定は変更していない。結合・E2E・ビルドはコーディネーターの確認待ち）
+- [x] ブラウザ側のネットワークエラー発生と、アプリ画面がエラー境界に置き換わることを区別する。既知のabort由来consoleエラーだけを必要な範囲で扱い、全pageerrorを無条件に無視しない。
+- [x] READMEとfront_designへ入力保持・結果不明・同じ下書きでの再試行を記載する。ロック順やschemaの変更が不要であることを確認する。
+- [x] コミット：`test: 投稿操作の応答喪失と再送の回帰確認を追加`。レビュー後にいいねへ進む。merge/push/デプロイは別指示による。
 
 ## 5. 完了条件
 
