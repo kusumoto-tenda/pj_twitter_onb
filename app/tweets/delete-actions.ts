@@ -5,12 +5,10 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { resolveViewer } from '@/app/_auth/viewer';
 import { getTweetDependencies } from '@/app/_composition/tweet';
-import { FLASH_MAX_AGE_SECONDS, TWEET_FLASH_COOKIE } from '@/app/ui/notifications/flash';
+import { FLASH_MAX_AGE_SECONDS, TWEET_ALREADY_DELETED_MESSAGE, TWEET_FLASH_COOKIE } from '@/app/ui/notifications/flash';
 import { beginTweetDelete } from '@/application/tweets/begin-tweet-delete';
 import { deleteTweet } from '@/application/tweets/delete-tweet';
 import type { DeleteTweetFailureCode, DeleteTweetFormState } from './delete-form-state';
-
-const ALREADY_DELETED_MESSAGE = 'このツイートは既に削除されています';
 
 const BEGIN_MESSAGES = {
   INVALID_REQUEST: 'このツイートは見つかりませんでした',
@@ -61,7 +59,7 @@ export async function beginTweetDeleteAction(
       return redirectToLogin();
     case 'NOT_FOUND':
       revalidateTweetPages();
-      return { ok: false, message: ALREADY_DELETED_MESSAGE };
+      return { ok: false, message: TWEET_ALREADY_DELETED_MESSAGE };
     default:
       return { ok: false, message: BEGIN_MESSAGES[result.code] };
   }
@@ -111,7 +109,7 @@ export async function deleteTweetAction(
       return redirectToLogin();
     case 'NOT_FOUND':
       revalidateTweetPages();
-      return { status: 'not-found', message: ALREADY_DELETED_MESSAGE, attempt };
+      return { status: 'not-found', message: TWEET_ALREADY_DELETED_MESSAGE, attempt };
     default:
       return failure(result.code);
   }

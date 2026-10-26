@@ -6,13 +6,18 @@ import { TweetComposerProvider } from '@/app/ui/tweets/tweet-composer';
 
 const TWEET = '00000000-0000-4000-8000-0000000000d1';
 
-function setup(beginEdit = vi.fn(async () => ({ ok: false as const, message: 'x' }))) {
+function setup(
+  beginEdit = vi.fn(async () => ({ ok: false as const, message: 'x' })),
+  beginDelete = vi.fn(async () => ({ ok: false as const, message: 'x' })),
+) {
   render(
     <TweetComposerProvider
       beginDraft={vi.fn()}
       action={vi.fn()}
       beginEdit={beginEdit}
       updateAction={vi.fn()}
+      beginDelete={beginDelete}
+      deleteAction={vi.fn()}
       uploader={{ upload: vi.fn(), discardUpload: vi.fn(async () => true), discardDraft: vi.fn() }}
     >
       <p>外側</p>
@@ -20,7 +25,7 @@ function setup(beginEdit = vi.fn(async () => ({ ok: false as const, message: 'x'
       <TweetActionsMenu tweetId={TWEET} menuKey="retweet:b" />
     </TweetComposerProvider>,
   );
-  return { beginEdit, user: userEvent.setup() };
+  return { beginEdit, beginDelete, user: userEvent.setup() };
 }
 
 const buttons = () => screen.getAllByRole('button', { name: 'ツイートの操作' });
@@ -39,11 +44,42 @@ describe('TweetActionsMenu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
-  it('未実装の「削除する」「報告する」は出さない', async () => {
+  it('「編集する」「削除する」を出し、未実装の「報告する」は出さない', async () => {
     const { user } = setup();
     await user.click(buttons()[0]);
 
-    expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+    expect(screen.getAllByRole('menuitem').map((item) => item.textContent)).toEqual(['編集する', '削除する']);
+  });
+
+  it('「削除する」を選ぶと投稿IDで削除の確認を始め、編集は始めない', async () => {
+    const { beginEdit, beginDelete, user } = setup();
+    await user.click(buttons()[0]);
+    await user.click(screen.getByRole('menuitem', { name: '削除する' }));
+
+    expect(beginDelete).toHaveBeenCalledWith(TWEET);
+    expect(beginEdit).not.toHaveBeenCalled();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+  });
+
+  it('上下矢印・Home・Endで項目を移動し（端では反対側へ回る）、Tabではメニューを閉じる', async () => {
+    const { user } = setup();
+    buttons()[0].focus();
+    await user.keyboard('{Enter}');
+    const item = (name: string) => screen.getByRole('menuitem', { name });
+    await waitFor(() => expect(item('編集する')).toHaveFocus());
+
+    await user.keyboard('{ArrowDown}');
+    expect(item('削除する')).toHaveFocus();
+    await user.keyboard('{ArrowDown}');
+    expect(item('編集する')).toHaveFocus();
+    await user.keyboard('{ArrowUp}');
+    expect(item('削除する')).toHaveFocus();
+    await user.keyboard('{Home}');
+    expect(item('編集する')).toHaveFocus();
+    await user.keyboard('{End}');
+    expect(item('削除する')).toHaveFocus();
+    await user.tab();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
   });
 
   it('別のカードのメニューを開くと、先に開いていたメニューを閉じる', async () => {

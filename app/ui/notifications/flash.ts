@@ -41,3 +41,4 @@ export const TWEET_UPDATE_FAILED_MESSAGE = 'ツイートの更新に失敗しま
 export const TWEET_FAILED_MESSAGE = 'ツイートに失敗しました';
 export const TWEET_DELETED_MESSAGE = 'ツイートを削除しました';
 export const TWEET_DELETE_FAILED_MESSAGE = 'ツイートの削除に失敗しました';
+export const TWEET_ALREADY_DELETED_MESSAGE = 'このツイートは既に削除されています';
