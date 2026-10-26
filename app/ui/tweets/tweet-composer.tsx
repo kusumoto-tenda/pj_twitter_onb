@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
 import { beginTweetDraftAction, createTweetAction } from '@/app/tweets/actions';
 import { beginTweetDeleteAction, deleteTweetAction } from '@/app/tweets/delete-actions';
@@ -15,6 +15,7 @@ import {
   type DeleteTweetAction,
 } from './delete-tweet-dialog';
 import { EditTweetDialog, type UpdateTweetAction } from './edit-tweet-dialog';
+import { restoreFocusWhenReady } from './dialog-focus';
 import { blobImageUploader, type ImageUploader } from './image-uploader';
 
 type BeginDraft = () => Promise<{ ok: true; draftId: string } | { ok: false; message: string }>;
@@ -42,12 +43,11 @@ const Context = createContext<ComposerContext | null>(null);
 export const LAUNCHER_SELECTOR = '[data-tweet-launcher]';
 export const menuSelector = (key: string) => `[data-tweet-menu-key="${CSS.escape(key)}"]`;
 
-/** 起動元のカードが消えた後のフォーカス先。一覧の見出し（なければmain）へスクロールせずに移す。 */
-function focusMainHeading() {
-  const target = document.querySelector<HTMLElement>('main h1') ?? document.querySelector<HTMLElement>('main');
-  if (!target) return;
-  if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
-  target.focus({ preventScroll: true });
+/** 起動元のカードが消えた後のフォーカス先。一覧の見出し（フォーカスできるようにする）。 */
+function mainHeading(): HTMLElement | null {
+  const heading = document.querySelector<HTMLElement>('main h1');
+  if (heading && !heading.hasAttribute('tabindex')) heading.setAttribute('tabindex', '-1');
+  return heading;
 }
 
 /**
@@ -81,7 +81,16 @@ export function TweetComposerProvider({
   const [deletedAt, setDeletedAt] = useState<number | null>(null);
   const [goneAt, setGoneAt] = useState<number | null>(null);
 
+  // 閉じた後のフォーカス復帰の見守り。次のダイアログを開くとき・アンマウント時にやめる。
+  const stopFocusRestore = useRef<(() => void) | null>(null);
+  const restoreFocus = useCallback((find: () => HTMLElement | null) => {
+    stopFocusRestore.current?.();
+    stopFocusRestore.current = restoreFocusWhenReady(find);
+  }, []);
+  useEffect(() => () => stopFocusRestore.current?.(), []);
+
   const prepare = useCallback(async (run: () => Promise<ComposerState | string>) => {
+    stopFocusRestore.current?.();
     setOpening(true);
     setError(null);
     try {
@@ -127,21 +136,21 @@ export function TweetComposerProvider({
     if (result === 'deleted') setDeletedAt(Date.now());
     if (result === 'gone') setGoneAt(Date.now());
     if (result === 'redirected') return;
-    requestAnimationFrame(() => {
-      // 取り消したら起動元へ戻す。削除後は起動元のカードが消えるため、一覧の見出しへ移す。
-      if (result === 'cancelled') document.querySelector<HTMLElement>(menuSelector(returnFocusKey))?.focus();
-      else focusMainHeading();
-    });
-  }, []);
+    // 取り消したら起動元へ戻す。削除後は起動元のカードが消えるため、一覧の見出しへ移す。
+    // どちらも再取得中は表示されていないことがあるため、再表示を待って移す。
+    restoreFocus(
+      result === 'cancelled' ? () => document.querySelector<HTMLElement>(menuSelector(returnFocusKey)) : mainHeading,
+    );
+  }, [restoreFocus]);
 
   const onClosed = useCallback(
     (selector: string, updated = false) => {
       setState(null);
       if (updated) setUpdatedAt(Date.now());
-      // 閉じたら起動元へフォーカスを戻す（ボタンが作り直されていても見つけられるようにする）。
-      requestAnimationFrame(() => document.querySelector<HTMLElement>(selector)?.focus());
+      // 閉じたら起動元へフォーカスを戻す。再取得でボタンが作り直される・一時的に消える場合も、再表示を待って戻す。
+      restoreFocus(() => document.querySelector<HTMLElement>(selector));
     },
-    [],
+    [restoreFocus],
   );
 
   return (
