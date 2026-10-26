@@ -25,11 +25,14 @@ export type EventRow = {
   retweeter_display_id: string | null;
   images: TimelineImage[];
   favorited_by_viewer: boolean;
+  liked_by_viewer: boolean;
+  like_count: number;
 };
 
 /**
- * ページの行を選んだ後で、その投稿の画像を表示順の配列にまとめ、閲覧者のお気に入りかを判定する。
- * 画像・お気に入りを先にJOINしないので、ページの件数が変わらず、カードごとの追加SQLも発行しない。
+ * ページの行を選んだ後で、その投稿の画像を表示順の配列にまとめ、閲覧者のお気に入り・いいねかと
+ * 公開いいね件数を求める。画像・お気に入り・いいねを先にJOINしないので、ページの件数や件数の値が
+ * 掛け合わさらず、カードごとの追加SQLも発行しない。
  * viewerIdはセッションで確認した閲覧者（プロフィールの対象者ではない）。未ログインならnull。
  */
 export function withImages<Row extends EventRow = EventRow>(
@@ -43,6 +46,10 @@ export function withImages<Row extends EventRow = EventRow>(
       (${viewerId}::uuid IS NOT NULL AND EXISTS (
         SELECT 1 FROM twitter.favorites fv WHERE fv.user_id = ${viewerId}::uuid AND fv.tweet_id = page.tweet_id
       )) AS favorited_by_viewer,
+      (${viewerId}::uuid IS NOT NULL AND EXISTS (
+        SELECT 1 FROM twitter.likes lk WHERE lk.executor_id = ${viewerId}::uuid AND lk.tweet_id = page.tweet_id
+      )) AS liked_by_viewer,
+      (SELECT count(*) FROM twitter.likes lk WHERE lk.tweet_id = page.tweet_id)::int AS like_count,
       COALESCE((
         SELECT json_agg(
           json_build_object('id', i.id, 'position', i.position, 'width', i.width, 'height', i.height)
@@ -65,6 +72,8 @@ export function toTimelineItem(row: EventRow): TimelineItem {
       createdAt: row.tweet_created_at,
       images: row.images.map(({ id, position, width, height }) => ({ id, position, width, height })),
       favoritedByViewer: row.favorited_by_viewer,
+      likedByViewer: row.liked_by_viewer,
+      likeCount: Number(row.like_count),
     },
     retweetedBy:
       row.retweeter_id === null

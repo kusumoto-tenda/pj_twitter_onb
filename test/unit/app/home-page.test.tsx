@@ -63,6 +63,8 @@ const page: TimelinePage = {
         createdAt: cursor.eventAt,
         images: [],
         favoritedByViewer: false,
+        likedByViewer: false,
+        likeCount: 0,
       },
       retweetedBy: null,
     },

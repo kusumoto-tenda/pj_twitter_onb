@@ -2,6 +2,7 @@ import type {
   ActivityTab,
   ConnectionCursor,
   ConnectionDirection,
+  LikeCursor,
   ProfileTab,
 } from '@/application/profile/profile';
 import type { TimelineCursor } from '@/application/timeline/timeline';
@@ -16,6 +17,7 @@ import { toTimelineCursor } from './timeline-query';
 
 const OTHER_TABS: readonly ProfileTab[] = ['retweets', 'following', 'followers'];
 const KIND_BY_TAB = { tweets: 'tweet', retweets: 'retweet' } as const;
+const LIKES_TAB = 'likes';
 
 /** 単一の既知の値だけを受け付け、それ以外（未知・重複）は投稿タブにする。 */
 export function parseProfileTab(value: SearchParamValue): ProfileTab {
@@ -44,7 +46,12 @@ export function encodeConnectionCursor(
   return encodeCursorParts([subjectId, tab, cursor.createdAt, cursor.relationId]);
 }
 
-function belongsTo(parts: unknown[], subjectId: string, tab: ProfileTab): boolean {
+/** 公開いいね一覧のカーソル。対象者とlikesタブに結び付ける（投稿・リツイートのカーソルとは混ぜない）。 */
+export function encodeLikeCursor(subjectId: string, cursor: LikeCursor): string {
+  return encodeCursorParts([subjectId, LIKES_TAB, cursor.createdAt, cursor.likeId]);
+}
+
+function belongsTo(parts: unknown[], subjectId: string, tab: ProfileTab | typeof LIKES_TAB): boolean {
   return (
     isUuid(parts[0]) && parts[0].toLowerCase() === subjectId.toLowerCase() && parts[1] === tab
   );
@@ -74,6 +81,18 @@ export function parseConnectionCursor(
   const [, , createdAt, relationId] = parts;
   if (!isUtcMicros(createdAt) || !isUuid(relationId)) return { ok: false };
   return { ok: true, cursor: { createdAt, relationId: relationId.toLowerCase() } };
+}
+
+export function parseLikeCursor(
+  value: SearchParamValue,
+  subjectId: string,
+): { ok: true; cursor: LikeCursor | null } | { ok: false } {
+  const parts = decodeCursorParts(value, 4);
+  if (parts === null) return { ok: true, cursor: null };
+  if (parts === undefined || !belongsTo(parts, subjectId, LIKES_TAB)) return { ok: false };
+  const [, , createdAt, likeId] = parts;
+  if (!isUtcMicros(createdAt) || !isUuid(likeId)) return { ok: false };
+  return { ok: true, cursor: { createdAt, likeId: likeId.toLowerCase() } };
 }
 
 /** プロフィールのURL。投稿タブはtabを付けず、カーソルは指定時だけ付ける。 */

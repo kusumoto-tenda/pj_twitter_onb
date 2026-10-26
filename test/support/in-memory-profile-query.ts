@@ -10,7 +10,7 @@ type Requests = {
 };
 
 /** 受け取った条件を記録し、指定した結果を返すテスト用Query。 */
-export class InMemoryProfileQuery implements ProfileQuery, ProfileLikesQuery {
+export class InMemoryProfileQuery implements ProfileQuery {
   readonly requests: Requests = { summary: [], activity: [], connections: [], liked: [] };
   summary: ProfileSummary | null = null;
   activityPage: TimelinePage = { items: [], nextCursor: null };

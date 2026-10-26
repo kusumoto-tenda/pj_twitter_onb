@@ -64,13 +64,16 @@ async function scenario() {
   const aFavoritesB = await fixtures.favorite(a, bTweet, at(7));
   const bFavoritesA = await fixtures.favorite(b, aTweet, at(8));
   const cFavoritesB = await fixtures.favorite(c, bTweet, at(9));
+  const aLikesB = await fixtures.like(a, bTweet, at(10));
+  const bLikesA = await fixtures.like(b, aTweet, at(11));
+  const cLikesB = await fixtures.like(c, bTweet, at(12));
   return {
     a, b, c, aTweet, bTweet, cTweet, aFollowsB, bFollowsA, bFollowsC, aRetweetsB, bRetweetsA, cRetweetsB,
-    aFavoritesB, bFavoritesA, cFavoritesB,
+    aFavoritesB, bFavoritesA, cFavoritesB, aLikesB, bLikesA, cLikesB,
   };
 }
 
-async function existing(table: 'users' | 'tweets' | 'follows' | 'retweets' | 'favorites', ids: string[]) {
+async function existing(table: 'users' | 'tweets' | 'follows' | 'retweets' | 'favorites' | 'likes', ids: string[]) {
   const rows = await sql`SELECT id FROM ${sql('twitter.' + table)} WHERE id = ANY(${ids}::uuid[])`;
   return new Set(rows.map((r) => r.id as string));
 }
@@ -115,6 +118,8 @@ describe('PostgresUserRepository.deleteById', () => {
     );
     // Aの保存と、削除されたAの投稿への保存が消え、無関係な保存は残る（お気に入りが退会を妨げない）
     expect(await existing('favorites', [s.aFavoritesB, s.bFavoritesA, s.cFavoritesB])).toEqual(new Set([s.cFavoritesB]));
+    // Aのいいねと、削除されたAの投稿へのいいねが消え、他人のいいねは残る（いいねが退会を妨げない）
+    expect(await existing('likes', [s.aLikesB, s.bLikesA, s.cLikesB])).toEqual(new Set([s.cLikesB]));
   });
 
   it('削除後は公開プロフィールがなく、一覧・件数にも反映される', async () => {

@@ -126,11 +126,13 @@ describe('PostgresTweetEditor.prepare', () => {
 });
 
 describe('PostgresTweetEditor.commit', () => {
-  it('本文を更新し、版と編集日時を進める。UUID・所有者・投稿日・リツイートは変えない', async () => {
+  it('本文を更新し、版と編集日時を進める。UUID・所有者・投稿日・リツイート・いいねは変えない', async () => {
     const alice = await users.user('アリス', 'Ed');
     const bob = await users.user('ボブ', 'Ed');
     const tweetId = await postWithImages(alice, '元の本文');
     const retweet = await users.retweet(bob, tweetId, later(10).toISOString());
+    const like = await users.like(bob, tweetId, later(20).toISOString());
+    const likeBefore = await sql`SELECT id, executor_id, tweet_id, created_at FROM twitter.likes WHERE id = ${like}`;
     const before = await tweetRow(tweetId);
     const value = await ready(alice, tweetId);
 
@@ -146,6 +148,7 @@ describe('PostgresTweetEditor.commit', () => {
     expect(after.updated_at.getTime()).toBeGreaterThan(before.updated_at.getTime());
     const [rt] = await sql`SELECT tweet_id, executor_id FROM twitter.retweets WHERE id = ${retweet}`;
     expect(rt).toEqual({ tweet_id: tweetId, executor_id: bob.id });
+    expect(await sql`SELECT id, executor_id, tweet_id, created_at FROM twitter.likes WHERE id = ${like}`).toEqual(likeBefore);
   });
 
   it('先頭・中間の画像を解除し、保持した画像のID・実体はそのまま位置だけ詰め、新規画像を末尾に追加する', async () => {

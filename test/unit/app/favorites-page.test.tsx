@@ -57,6 +57,8 @@ const entry: FavoriteEntry = {
       createdAt: '2026-10-23T03:04:05.123456Z',
       images: [],
       favoritedByViewer: true,
+      likedByViewer: false,
+      likeCount: 0,
     },
     retweetedBy: null,
   },

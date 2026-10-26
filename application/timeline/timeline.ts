@@ -27,6 +27,10 @@ export type TimelineItem = {
     images: TimelineImage[];
     /** 閲覧者本人がこの元投稿をお気に入りに保存しているか。未ログインはfalse。 */
     favoritedByViewer: boolean;
+    /** 閲覧者本人がこの元投稿にいいねしているか。未ログインはfalse。 */
+    likedByViewer: boolean;
+    /** この元投稿の公開いいね件数。 */
+    likeCount: number;
   };
   /** リツイートの場合の実行者。通常投稿はnull。 */
   retweetedBy: TimelinePerson | null;

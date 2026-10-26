@@ -20,6 +20,8 @@ const page: TimelinePage = {
         createdAt: '2026-10-23T03:00:00.000000Z',
         images: [],
         favoritedByViewer: false,
+        likedByViewer: false,
+        likeCount: 0,
       },
       retweetedBy: null,
     },

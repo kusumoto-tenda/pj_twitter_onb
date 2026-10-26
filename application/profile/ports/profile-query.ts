@@ -21,13 +21,13 @@ export interface ProfileLikesQuery {
 }
 
 /** プロフィール画面用の読み取り。取得障害はthrowする。 */
-export interface ProfileQuery {
+export interface ProfileQuery extends ProfileLikesQuery {
   /** 大文字小文字を区別せずに検索する。未登録ならnull。 */
   findSummary(input: { displayId: string; viewerId: string | null }): Promise<ProfileSummary | null>;
   /** tweetは対象者の通常投稿、retweetは対象者が実行したリツイート。 */
   findActivityPage(input: {
     subjectId: string;
-    /** お気に入りの判定に使う閲覧者（対象者とは別）。未ログインならnull。 */
+    /** お気に入り・いいねの判定に使う閲覧者（対象者とは別）。未ログインならnull。 */
     viewerId: string | null;
     kind: TimelineEventKind;
     after: TimelineCursor | null;

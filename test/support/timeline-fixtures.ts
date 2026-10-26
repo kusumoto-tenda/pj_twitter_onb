@@ -5,7 +5,7 @@ import { uniqueDisplayId } from './test-db';
 
 /**
  * タイムライン用のデータをSQLで直接作るfixture（未実装の投稿UIに依存しない）。
- * 作成した利用者だけを削除し、投稿・フォロー・リツイートはcascadeで消える。
+ * 作成した利用者だけを削除し、投稿・フォロー・リツイート・お気に入り・いいねはcascadeで消える。
  * PlaywrightのCJS変換でも読めるよう、import.meta.urlを使うモジュールは読まない。
  * 時刻はマイクロ秒まで保つため、postgres.jsのDate変換を避けて文字列からDBで変換する。
  */
@@ -119,6 +119,20 @@ export class TimelineFixtures {
     await this.sql`
       INSERT INTO twitter.favorites (id, user_id, tweet_id, created_at)
       VALUES (${id}, ${user.id}, ${tweetId}, ${createdAt}::text::timestamptz)
+    `;
+    return id;
+  }
+
+  /** いいねを直接作る（日時はマイクロ秒まで保つ）。 */
+  async like(
+    executor: TimelinePerson,
+    tweetId: string,
+    createdAt: string,
+    id: string = randomUUID(),
+  ): Promise<string> {
+    await this.sql`
+      INSERT INTO twitter.likes (id, executor_id, tweet_id, created_at)
+      VALUES (${id}, ${executor.id}, ${tweetId}, ${createdAt}::text::timestamptz)
     `;
     return id;
   }

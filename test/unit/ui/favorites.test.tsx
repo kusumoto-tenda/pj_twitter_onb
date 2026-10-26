@@ -168,6 +168,8 @@ describe('FavoriteList', () => {
                   createdAt: '2026-10-25T03:00:00.000000Z',
                   images: [],
                   favoritedByViewer: true,
+                  likedByViewer: false,
+                  likeCount: 0,
                 },
                 retweetedBy: null,
               },

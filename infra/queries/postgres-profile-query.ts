@@ -4,6 +4,8 @@ import type {
   ConnectionCursor,
   ConnectionDirection,
   ConnectionPage,
+  LikeCursor,
+  ProfileLikesPage,
   ProfileSummary,
 } from '@/application/profile/profile';
 import type {
@@ -12,7 +14,7 @@ import type {
   TimelinePage,
 } from '@/application/timeline/timeline';
 import { normalizeDisplayId } from '@/domain/users/account-validation';
-import { KIND_ORDER, UTC_MICROS, toTimelineItem, withImages } from './timeline-rows';
+import { KIND_ORDER, UTC_MICROS, toTimelineItem, withImages, type EventRow } from './timeline-rows';
 
 type SummaryRow = {
   id: string;
@@ -24,6 +26,8 @@ type SummaryRow = {
   follower_count: number;
   followed_by_viewer: boolean;
 };
+
+type LikedRow = EventRow & { like_id: string; liked_at: string };
 
 type ConnectionRow = {
   id: string;
@@ -152,6 +156,63 @@ export class PostgresProfileQuery implements ProfileQuery {
 
     const items = rows.slice(0, limit).map(toTimelineItem);
     return { items, nextCursor: rows.length > limit ? items[limit - 1].key : null };
+  }
+
+  async findLikedPage({
+    subjectId,
+    viewerId,
+    after,
+    limit,
+  }: {
+    subjectId: string;
+    viewerId: string | null;
+    after: LikeCursor | null;
+    limit: number;
+  }): Promise<ProfileLikesPage> {
+    const sql = this.sql;
+    // 対象者のいいねでページを先に選び、画像・件数・本人状態はその後で集約する。
+    const page = sql`
+      SELECT
+        l.created_at AS sort_at,
+        l.id AS like_id,
+        to_char(l.created_at AT TIME ZONE 'UTC', ${UTC_MICROS}) AS liked_at,
+        to_char(t.created_at AT TIME ZONE 'UTC', ${UTC_MICROS}) AS event_at,
+        0 AS kind,
+        t.id AS event_id,
+        t.id AS tweet_id,
+        t.content,
+        to_char(t.created_at AT TIME ZONE 'UTC', ${UTC_MICROS}) AS tweet_created_at,
+        author.id AS author_id,
+        author.name AS author_name,
+        author.display_id AS author_display_id,
+        NULL::uuid AS retweeter_id,
+        NULL::text AS retweeter_name,
+        NULL::text AS retweeter_display_id
+      FROM twitter.likes l
+      JOIN twitter.tweets t ON t.id = l.tweet_id
+      JOIN twitter.users author ON author.id = t.owner_id
+      WHERE l.executor_id = ${subjectId}::uuid
+        ${
+          after
+            ? // 境界の日時はマイクロ秒を保つため文字列で渡してDBで変換する。
+              sql`AND (l.created_at, l.id) < (${after.createdAt}::text::timestamptz, ${after.likeId}::uuid)`
+            : sql``
+        }
+      ORDER BY l.created_at DESC, l.id DESC
+      LIMIT ${limit + 1}
+    `;
+    // 本人状態（いいね・お気に入り）は閲覧者について判定する。対象者の保存状態は返さない。
+    const rows = await withImages<LikedRow>(sql, page, sql`page.sort_at DESC, page.like_id DESC`, viewerId);
+    const items = rows.slice(0, limit).map((row) => ({
+      likeId: row.like_id,
+      likedAt: row.liked_at,
+      item: toTimelineItem(row),
+    }));
+    const last = items[limit - 1];
+    return {
+      items,
+      nextCursor: rows.length > limit ? { createdAt: last.likedAt, likeId: last.likeId } : null,
+    };
   }
 
   async findConnectionsPage({
