@@ -72,7 +72,7 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
     uploads.forEach((u, position) => {
       u!.status = 'attached';
       this.images.push({
-        id: `image-${++this.imageSeq}`,
+        id: this.nextImageId(),
         tweetId: draftId,
         uploadId: u!.id,
         storageKey: u!.storageKey,
@@ -200,6 +200,11 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
   }
 
   // ---- テスト補助 ----
+  /** 実DBと同じくUUID形式の画像IDを振る。 */
+  nextImageId() {
+    return `00000000-0000-4000-9000-${String(++this.imageSeq).padStart(12, '0')}`;
+  }
+
   /** 利用者削除のCASCADE・SET NULLを再現する。 */
   deleteUser(userId: string, now = new Date()) {
     for (const tweet of [...this.tweets.values()].filter((t) => t.ownerId === userId)) {
@@ -213,7 +218,7 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
     for (const upload of this.uploads.values()) if (upload.ownerId === userId) upload.ownerId = null;
   }
 
-  private closeDraft(draft: Draft, now: Date) {
+  closeDraft(draft: Draft, now: Date) {
     draft.status = 'discarded';
     for (const upload of this.uploads.values()) {
       if (upload.draftId === draft.id && (upload.status === 'reserved' || upload.status === 'verified')) {
@@ -222,13 +227,13 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
     }
   }
 
-  private discard(upload: Upload, now: Date) {
+  discard(upload: Upload, now: Date) {
     upload.status = 'discarded';
     // トークンが有効な間は遅れて届くアップロードで実体が再生成され得るため、期限後に削除する。
     this.schedule(upload.storageKey, upload.tokenValidUntil > now ? upload.tokenValidUntil : now);
   }
 
-  private schedule(storageKey: string, notBefore: Date) {
+  schedule(storageKey: string, notBefore: Date) {
     if (!this.deleteJobs.has(storageKey)) {
       this.deleteJobs.set(storageKey, { storageKey, notBefore, attempts: 0, nextAttemptAt: notBefore, lastErrorCode: null });
     }
