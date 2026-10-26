@@ -95,6 +95,30 @@ describe('createTweet', () => {
     ]);
   });
 
+  it('投稿に使わなかった予約・検証済みの画像は、確定と同時に破棄して削除を予約する', async () => {
+    const { store, deps } = setup();
+    const draftId = await draftFor(deps);
+    const used = await verifiedUpload(store, draftId, 1);
+    const unusedVerified = await verifiedUpload(store, draftId, 2);
+    const unusedReserved = uuid(960);
+    await store.reserveUpload({
+      actorId: ALICE,
+      draftId,
+      uploadId: unusedReserved,
+      storageKey: `tweet-uploads/${draftId}/${unusedReserved}`,
+      tokenValidUntil: new Date(NOW.getTime() + 15 * 60 * 1000),
+      now: NOW,
+    });
+
+    await createTweet(deps, { actorId: ALICE, draftId, input: { content: '', uploadIds: [used] } });
+
+    expect(store.uploads.get(used)?.status).toBe('attached');
+    for (const uploadId of [unusedVerified, unusedReserved]) {
+      expect(store.uploads.get(uploadId)?.status).toBe('discarded');
+      expect(store.deleteJobs.has(store.uploads.get(uploadId)!.storageKey)).toBe(true);
+    }
+  });
+
   it('無効な入力は保存せずINVALID_INPUTを返す', async () => {
     const { store, deps } = setup();
     const draftId = await draftFor(deps);

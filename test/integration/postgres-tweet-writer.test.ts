@@ -79,6 +79,33 @@ describe('PostgresTweetWriter.publish', () => {
     expect(statuses.map((r) => r.status)).toEqual(['attached']);
   });
 
+  it('投稿に使わなかった予約・検証済みの画像を、確定と同じトランザクションで破棄し、トークン期限後の削除を予約する', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const draftId = await media.draft(alice.id);
+    const used = await media.verified(alice.id, draftId);
+    const unusedVerified = await media.verified(alice.id, draftId);
+    const unusedReserved = await media.reserved(alice.id, draftId);
+
+    expect(await publish(alice, draftId, '1枚だけ使う', [used.uploadId])).toMatchObject({ status: 'published' });
+
+    const rows = await sql`
+      SELECT u.id, u.status, u.token_valid_until, j.not_before
+      FROM twitter.media_uploads u
+      LEFT JOIN twitter.media_delete_jobs j ON j.storage_key = u.storage_key
+      WHERE u.draft_id = ${draftId}
+    `;
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    expect(byId.get(used.uploadId)).toMatchObject({ status: 'attached', not_before: null });
+    for (const upload of [unusedVerified, unusedReserved]) {
+      const row = byId.get(upload.uploadId)!;
+      expect(row.status).toBe('discarded');
+      expect(row.not_before).toEqual(row.token_valid_until);
+    }
+    // 回収の保持対象（公開中・有効な下書きで使用中）からも外れる
+    const kept = await media.media.findKeptStorageKeys([used.storageKey, unusedVerified.storageKey, unusedReserved.storageKey]);
+    expect([...kept]).toEqual([used.storageKey]);
+  });
+
   it('本文が空で画像もない投稿は、コミット時にDBが拒否する', async () => {
     const alice = await users.user('アリス', 'Tw');
 

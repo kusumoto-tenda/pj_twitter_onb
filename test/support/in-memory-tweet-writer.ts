@@ -80,6 +80,12 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
         ...u!.image!,
       });
     });
+    // 投稿に使わなかった予約・検証済みの画像は破棄して削除を予約する（実DBと同じ）。
+    for (const upload of this.uploads.values()) {
+      if (upload.draftId === draftId && (upload.status === 'reserved' || upload.status === 'verified')) {
+        this.discard(upload, now);
+      }
+    }
     Object.assign(draft, { status: 'published', fingerprint, publishedTweetId: draftId });
     return { status: 'published', tweetId: draftId, replayed: false };
   }

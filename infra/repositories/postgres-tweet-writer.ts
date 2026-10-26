@@ -97,6 +97,9 @@ export class PostgresTweetWriter implements TweetWriter {
       if (ids.length > 0) {
         await tx`UPDATE twitter.media_uploads SET status = 'attached' WHERE id = ANY(${ids}::uuid[])`;
       }
+      // 投稿に使わなかった予約・検証済みの画像は、投稿済みの下書きでは期限切れの回収対象にならないため、
+      // 同じトランザクションで破棄して削除を予約する。
+      await discardOpenUploads(tx, { draftIds: [draftId], now });
       await tx`
         UPDATE twitter.tweet_drafts
         SET status = 'published', fingerprint = ${fingerprint}, published_tweet_id = ${draftId}
