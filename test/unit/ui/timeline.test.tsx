@@ -36,6 +36,12 @@ vi.mock('@/app/ui/likes/like-button', () => ({
     <span data-testid="like-button" data-tweet={tweetId} data-active={String(active)} data-count={count} data-actor={expectedActorId ?? ''} />
   ),
 }));
+// リツイートボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/retweets/retweet-button', () => ({
+  RetweetButton: ({ tweetId, active, count, expectedActorId }: { tweetId: string; active: boolean; count: number; expectedActorId: string | null }) => (
+    <span data-testid="retweet-button" data-tweet={tweetId} data-active={String(active)} data-count={count} data-actor={expectedActorId ?? ''} />
+  ),
+}));
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
   TweetActionsMenu: ({ tweetId, menuKey }: { tweetId: string; menuKey: string }) => (
     <button type="button" data-tweet-id={tweetId} data-menu-key={menuKey}>
@@ -159,6 +165,25 @@ describe('TweetCard', () => {
     expect(screen.getByTestId('like-button')).toHaveAttribute('data-active', 'false');
     expect(screen.getByTestId('like-button')).toHaveAttribute('data-count', '0');
     expect(screen.getByTestId('like-button')).toHaveAttribute('data-actor', '');
+  });
+
+  it('どのカードにも元投稿のリツイートボタンを出し、閲覧者本人の状態・公開件数・画面の利用者を渡す（リツイート行ではなく元投稿）', () => {
+    const retweeted = item({
+      key: { ...item().key, kind: 'retweet', eventId: '00000000-0000-4000-8000-0000000000bb' },
+      retweetedBy: bob,
+      tweet: { ...item().tweet, retweetedByViewer: true, retweetCount: 4 },
+    });
+    const { rerender } = render(<TweetCard item={retweeted} viewerId={bob.id} />);
+    const button = screen.getByTestId('retweet-button');
+    expect(button).toHaveAttribute('data-tweet', item().tweet.id);
+    expect(button).toHaveAttribute('data-active', 'true');
+    expect(button).toHaveAttribute('data-count', '4');
+    expect(button).toHaveAttribute('data-actor', bob.id);
+
+    rerender(<TweetCard item={item()} viewerId={null} />);
+    expect(screen.getByTestId('retweet-button')).toHaveAttribute('data-active', 'false');
+    expect(screen.getByTestId('retweet-button')).toHaveAttribute('data-count', '0');
+    expect(screen.getByTestId('retweet-button')).toHaveAttribute('data-actor', '');
   });
 
   it('投稿者名を保存済みのIDのプロフィールへのリンクにする', () => {

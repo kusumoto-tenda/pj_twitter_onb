@@ -3,6 +3,7 @@ import type { TimelineImage, TimelineItem } from '@/application/timeline/timelin
 import { profileHref } from '@/app/lib/profile-query';
 import { FavoriteButton } from '@/app/ui/favorites/favorite-button';
 import { LikeButton } from '@/app/ui/likes/like-button';
+import { RetweetButton } from '@/app/ui/retweets/retweet-button';
 import { TweetActionsMenu } from '@/app/ui/tweets/tweet-actions-menu';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -68,9 +69,17 @@ export function TweetCard({
         </p>
       )}
       {tweet.images.length > 0 && <TweetImages images={tweet.images} />}
-      {/* いいね（♡）→お気に入り（右端の旗）の順。リツイートのカードでも対象は元投稿。 */}
+      {/* リツイート→いいね（♡）→お気に入り（右端の旗）の順。リツイートのカードでも対象は元投稿。 */}
       <div className="mt-1 flex items-center justify-between">
-        <LikeButton tweetId={tweet.id} active={tweet.likedByViewer} count={tweet.likeCount} expectedActorId={viewerId} />
+        <div className="flex items-center gap-6">
+          <RetweetButton
+            tweetId={tweet.id}
+            active={tweet.retweetedByViewer}
+            count={tweet.retweetCount}
+            expectedActorId={viewerId}
+          />
+          <LikeButton tweetId={tweet.id} active={tweet.likedByViewer} count={tweet.likeCount} expectedActorId={viewerId} />
+        </div>
         <FavoriteButton tweetId={tweet.id} active={tweet.favoritedByViewer} expectedActorId={viewerId} />
       </div>
     </article>

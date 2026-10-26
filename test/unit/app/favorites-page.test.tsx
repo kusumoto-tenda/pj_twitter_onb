@@ -34,6 +34,12 @@ vi.mock('@/app/ui/likes/like-button', () => ({
     <span data-testid="like-button" data-tweet={tweetId} data-active={String(active)} data-count={count} />
   ),
 }));
+// リツイートボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/retweets/retweet-button', () => ({
+  RetweetButton: ({ tweetId, active, count }: { tweetId: string; active: boolean; count: number }) => (
+    <span data-testid="retweet-button" data-tweet={tweetId} data-active={String(active)} data-count={count} />
+  ),
+}));
 vi.mock('@/app/ui/tweets/create-tweet-launcher', () => ({ CreateTweetLauncher: () => null }));
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
