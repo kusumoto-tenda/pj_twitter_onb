@@ -1,4 +1,4 @@
-import type { TimelinePerson } from '../timeline/timeline';
+import type { TimelineItem, TimelinePerson } from '../timeline/timeline';
 
 /** 画面に出してよい利用者の公開情報。タイムラインと同じ形。 */
 export type PublicPerson = TimelinePerson;
@@ -23,5 +23,13 @@ export type ConnectionDirection = Extract<ProfileTab, 'following' | 'followers'>
 export type ConnectionCursor = { createdAt: string; relationId: string };
 
 export type ConnectionPage = { items: PublicPerson[]; nextCursor: ConnectionCursor | null };
+
+/** 公開いいね一覧の順番キー（いいねした日時の降順、同時刻はいいねUUIDの降順）。createdAtはマイクロ秒のUTC文字列。 */
+export type LikeCursor = { createdAt: string; likeId: string };
+
+/** 対象者がいいねした元投稿のカード（itemは元投稿の現在の内容。リツイートの実行者は付けない）。 */
+export type ProfileLikeEntry = { likeId: string; likedAt: string; item: TimelineItem };
+
+export type ProfileLikesPage = { items: ProfileLikeEntry[]; nextCursor: LikeCursor | null };
 
 export const PROFILE_PAGE_SIZE = 20;

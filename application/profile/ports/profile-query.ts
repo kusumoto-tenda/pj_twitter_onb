@@ -3,8 +3,22 @@ import type {
   ConnectionCursor,
   ConnectionDirection,
   ConnectionPage,
+  LikeCursor,
+  ProfileLikesPage,
   ProfileSummary,
 } from '../profile';
+
+/** 公開いいね一覧の読み取り。取得障害はthrowする。 */
+export interface ProfileLikesQuery {
+  /** subjectIdがいいねした元投稿を、いいねした日時の降順で取得する。未ログインでも取得できる。 */
+  findLikedPage(input: {
+    subjectId: string;
+    /** いいね・お気に入りの本人状態の判定に使う閲覧者（対象者とは別）。未ログインならnull。 */
+    viewerId: string | null;
+    after: LikeCursor | null;
+    limit: number;
+  }): Promise<ProfileLikesPage>;
+}
 
 /** プロフィール画面用の読み取り。取得障害はthrowする。 */
 export interface ProfileQuery {
