@@ -28,6 +28,12 @@ vi.mock('next/navigation', () => ({
 }));
 // ページの振る舞いのテストなので、投稿ボタン（ルートlayoutのProviderが必要）は空にする。
 // 三点メニュー（ルートlayoutのProviderが必要）は、表示の有無が分かる目印にする。
+// お気に入りボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/favorites/favorite-button', () => ({
+  FavoriteButton: ({ tweetId, active, expectedActorId }: { tweetId: string; active: boolean; expectedActorId: string | null }) => (
+    <span data-testid="favorite-button" data-tweet={tweetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
+  ),
+}));
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
   TweetActionsMenu: ({ tweetId }: { tweetId: string }) => <span data-testid="tweet-menu">{tweetId}</span>,
 }));

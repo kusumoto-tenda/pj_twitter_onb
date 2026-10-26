@@ -92,6 +92,7 @@ describe('FavoritesPage', () => {
     expect(findPage).toHaveBeenCalledWith({ actorId: FIXED_ID, after: null, limit: 20 });
     expect(screen.getByRole('heading', { name: 'お気に入り', level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('article')).toHaveTextContent('ボブの投稿');
+    expect(screen.getByTestId('favorite-button')).toHaveAttribute('data-active', 'true');
     expect(screen.getByRole('link', { name: 'お気に入り' })).toHaveAttribute('aria-current', 'page');
     expect(metadata).toMatchObject({ title: 'お気に入り' });
   });
