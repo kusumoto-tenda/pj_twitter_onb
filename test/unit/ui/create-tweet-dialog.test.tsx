@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { CreateTweetFormState } from '@/app/tweets/form-state';
 import type { ImageUploader } from '@/app/ui/tweets/image-uploader';
 import { CreateTweetLauncher } from '@/app/ui/tweets/create-tweet-launcher';
+import { TweetComposerProvider } from '@/app/ui/tweets/tweet-composer';
 
 type Action = (state: CreateTweetFormState, formData: FormData) => Promise<CreateTweetFormState | undefined>;
 
@@ -25,8 +26,12 @@ function setup(action: Action = vi.fn()) {
     discardDraft: vi.fn(),
   };
   const beginDraft = vi.fn(async () => ({ ok: true as const, draftId: 'draft-1' }));
-  render(<CreateTweetLauncher beginDraft={beginDraft} action={action} uploader={uploader} />);
-  return { uploader, beginDraft, action, user: userEvent.setup() };
+  const view = render(
+    <TweetComposerProvider beginDraft={beginDraft} action={action} uploader={uploader}>
+      <CreateTweetLauncher />
+    </TweetComposerProvider>,
+  );
+  return { uploader, beginDraft, action, user: userEvent.setup(), view };
 }
 
 // jsdomではモーダルの外も操作対象に残るため、起動ボタンはダイアログの外、投稿ボタンはダイアログ内で探す。
@@ -41,6 +46,20 @@ async function open(ctx: ReturnType<typeof setup>) {
 }
 
 describe('CreateTweetLauncher / CreateTweetDialog', () => {
+  it('サーバー描画の時点では無効で、操作できるようになってから有効にする', async () => {
+    const { renderToString } = await import('react-dom/server');
+    const html = renderToString(
+      <TweetComposerProvider beginDraft={vi.fn()} action={vi.fn()} uploader={{ upload: vi.fn(), discardUpload: vi.fn(), discardDraft: vi.fn() }}>
+        <CreateTweetLauncher />
+      </TweetComposerProvider>,
+    );
+    // class名の disabled: ではなく、disabled属性そのものを確認する。
+    expect(html).toMatch(/<button[^>]*\sdisabled=""/);
+
+    setup();
+    expect(launcher()).toBeEnabled();
+  });
+
   it('開く前にサーバーで下書きを作り、ダイアログを開いて本文にフォーカスする', async () => {
     const ctx = setup();
 
@@ -50,6 +69,24 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
     expect(screen.getByLabelText('本文')).toHaveFocus();
     expect(screen.getByRole('button', { name: '閉じる' })).toBeInTheDocument();
     expect(screen.getByLabelText('画像を追加')).toBeInTheDocument();
+  });
+
+  it('準備の途中でボタンが作り直されても（画面の再取得など）、下書きが返ればダイアログを開く', async () => {
+    let resolve: (r: { ok: true; draftId: string }) => void = () => {};
+    const uploader = { upload: vi.fn(), discardUpload: vi.fn(), discardDraft: vi.fn() };
+    const beginDraft = vi.fn(() => new Promise<{ ok: true; draftId: string }>((r) => (resolve = r)));
+    const tree = (launcherKey: string) => (
+      <TweetComposerProvider beginDraft={beginDraft} action={vi.fn()} uploader={uploader}>
+        <CreateTweetLauncher key={launcherKey} />
+      </TweetComposerProvider>
+    );
+    const view = render(tree('first'));
+    await userEvent.setup().click(launcher());
+
+    view.rerender(tree('remounted'));
+    await act(async () => resolve({ ok: true, draftId: 'draft-1' }));
+
+    await waitFor(() => expect(dialog()).toHaveAttribute('open'));
   });
 
   it('下書きを作れなければ開かず、理由を表示する', async () => {
@@ -113,9 +150,27 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
 
     expect(ctx.uploader.discardDraft).toHaveBeenCalledWith('draft-1');
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-    expect(launcher()).toHaveFocus();
+    await waitFor(() => expect(launcher()).toHaveFocus());
     await open(ctx);
     expect(screen.getByLabelText('本文')).toHaveValue('');
+  });
+
+  it('Tabはダイアログ内で循環し、外へ出ない（Shift+Tabも同様）', async () => {
+    const ctx = setup();
+    await open(ctx);
+    const focusables = within(dialog())
+      .getAllByRole('button')
+      .concat(within(dialog()).getByLabelText('本文'));
+    expect(focusables.length).toBeGreaterThan(1);
+    const closeButton = within(dialog()).getByRole('button', { name: '閉じる' });
+    const submit = submitButton();
+    await ctx.user.type(screen.getByLabelText('本文'), 'a');
+
+    submit.focus();
+    await ctx.user.tab();
+    expect(closeButton).toHaveFocus();
+    await ctx.user.tab({ shift: true });
+    expect(submit).toHaveFocus();
   });
 
   it('Escキー（cancelイベント）でも同じようにキャンセルする', async () => {
