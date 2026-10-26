@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { TimelineImage, TimelineItem } from '@/application/timeline/timeline';
 import { profileHref } from '@/app/lib/profile-query';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -48,10 +48,36 @@ export function TweetCard({ item }: { item: TimelineItem }) {
           {formatTimelineDate(tweet.createdAt)}
         </time>
       </header>
-      {/* 本文はプレーンテキスト。改行を保ち、長いURLなども折り返す。 */}
-      <p className="mt-1 whitespace-pre-wrap text-base text-gray-900 [overflow-wrap:anywhere]">
-        {tweet.content}
-      </p>
+      {/* 本文はプレーンテキスト。改行を保ち、長いURLなども折り返す。画像だけの投稿では段落を出さない。 */}
+      {(tweet.content.trim() !== '' || tweet.images.length === 0) && (
+        <p data-content className="mt-1 whitespace-pre-wrap text-base text-gray-900 [overflow-wrap:anywhere]">
+          {tweet.content}
+        </p>
+      )}
+      {tweet.images.length > 0 && <TweetImages images={tweet.images} />}
     </article>
+  );
+}
+
+/**
+ * 添付画像。投稿済みの画像はアプリの /media から配信する（画像最適化のキャッシュを通さない）。
+ */
+function TweetImages({ images }: { images: TimelineImage[] }) {
+  const ordered = [...images].sort((a, b) => a.position - b.position);
+  return (
+    <div className={`mt-2 grid gap-1 ${ordered.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      {ordered.map((image, index) => (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          key={image.id}
+          src={`/media/${image.id}`}
+          alt={`添付画像${index + 1}`}
+          width={image.width}
+          height={image.height}
+          loading="lazy"
+          className="h-auto max-h-80 w-full rounded-lg border border-gray-200 bg-gray-100 object-contain"
+        />
+      ))}
+    </div>
   );
 }

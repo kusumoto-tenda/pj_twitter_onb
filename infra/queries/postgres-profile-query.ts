@@ -12,7 +12,7 @@ import type {
   TimelinePage,
 } from '@/application/timeline/timeline';
 import { normalizeDisplayId } from '@/domain/users/account-validation';
-import { KIND_ORDER, UTC_MICROS, toTimelineItem, type EventRow } from './timeline-rows';
+import { KIND_ORDER, UTC_MICROS, toTimelineItem, withImages } from './timeline-rows';
 
 type SummaryRow = {
   id: string;
@@ -98,10 +98,11 @@ export class PostgresProfileQuery implements ProfileQuery {
         : sql``;
 
     // 種類ごとに固定のSQLを選ぶ。クライアント由来の値を識別子として連結しない。
-    const rows =
+    const page =
       kind === 'tweet'
-        ? await sql<EventRow[]>`
+        ? sql`
             SELECT
+              t.created_at AS sort_at,
               to_char(t.created_at AT TIME ZONE 'UTC', ${UTC_MICROS}) AS event_at,
               0 AS kind,
               t.id AS event_id,
@@ -121,8 +122,9 @@ export class PostgresProfileQuery implements ProfileQuery {
             ORDER BY t.created_at DESC, t.id DESC
             LIMIT ${limit + 1}
           `
-        : await sql<EventRow[]>`
+        : sql`
             SELECT
+              r.created_at AS sort_at,
               to_char(r.created_at AT TIME ZONE 'UTC', ${UTC_MICROS}) AS event_at,
               1 AS kind,
               r.id AS event_id,
@@ -144,6 +146,7 @@ export class PostgresProfileQuery implements ProfileQuery {
             ORDER BY r.created_at DESC, r.id DESC
             LIMIT ${limit + 1}
           `;
+    const rows = await withImages(sql, page, sql`page.sort_at DESC, page.event_id DESC`);
 
     const items = rows.slice(0, limit).map(toTimelineItem);
     return { items, nextCursor: rows.length > limit ? items[limit - 1].key : null };

@@ -49,6 +49,7 @@ const page: TimelinePage = {
         content: 'タイムラインの投稿',
         author: { id: FIXED_ID, name: 'アリス', displayId: 'Alice_1' },
         createdAt: cursor.eventAt,
+        images: [],
       },
       retweetedBy: null,
     },

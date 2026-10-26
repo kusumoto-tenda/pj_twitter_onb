@@ -66,6 +66,7 @@ const item: TimelineItem = {
     content: 'ボブの投稿',
     author: { id: OTHER_ID, name: 'ボブ', displayId: 'Bob_12' },
     createdAt: cursor.eventAt,
+    images: [],
   },
   retweetedBy: null,
 };

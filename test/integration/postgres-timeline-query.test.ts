@@ -59,6 +59,7 @@ describe('PostgresTimelineQuery', () => {
         content: 'こんにちは\n世界',
         author: alice,
         createdAt: at(1, 123456),
+        images: [],
       },
       retweetedBy: null,
     });

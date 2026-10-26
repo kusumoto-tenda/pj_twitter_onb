@@ -4,7 +4,7 @@ import type {
   TimelineQuery,
 } from '@/application/timeline/ports/timeline-query';
 import type { TimelineCursor, TimelinePage } from '@/application/timeline/timeline';
-import { KIND_ORDER, UTC_MICROS, toTimelineItem, type EventRow } from './timeline-rows';
+import { KIND_ORDER, UTC_MICROS, toTimelineItem, withImages } from './timeline-rows';
 
 /** 投稿とリツイートをUNION ALLで1つの出来事の列にし、キーセットでページングする。 */
 export class PostgresTimelineQuery implements TimelineQuery {
@@ -35,7 +35,7 @@ export class PostgresTimelineQuery implements TimelineQuery {
           )`
         : sql``;
 
-    const rows = await sql<EventRow[]>`
+    const page = sql`
       SELECT * FROM (
         (
           SELECT
@@ -90,6 +90,7 @@ export class PostgresTimelineQuery implements TimelineQuery {
       ORDER BY event_at_value DESC, kind DESC, event_id DESC
       LIMIT ${fetchSize}
     `;
+    const rows = await withImages(sql, page, sql`page.event_at_value DESC, page.kind DESC, page.event_id DESC`);
 
     const items = rows.slice(0, limit).map(toTimelineItem);
     const nextCursor: TimelineCursor | null = rows.length > limit ? items[limit - 1].key : null;
