@@ -128,4 +128,31 @@ describe('TweetImagePicker', () => {
     await waitFor(() => expect(pending[0].signal.aborted).toBe(true));
     expect(revoke).toHaveBeenCalledTimes(1);
   });
+
+  it('アップロード中に解除した画像も、後から分かった予約を破棄する（予約枠を残さない）', async () => {
+    const { uploader, pending } = controllableUploader();
+    renderPicker(uploader);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    await act(async () =>
+      pending[0].resolve({ ok: false, uploadId: '00000000-0000-4000-8000-0000000000aa', message: '中断しました' }),
+    );
+
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000aa');
+  });
+
+  it('アップロード中に解除した画像が後から成功しても、その予約を破棄する', async () => {
+    const { uploader, pending } = controllableUploader();
+    renderPicker(uploader);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    await act(async () => pending[0].resolve({ ok: true, uploadId: '00000000-0000-4000-8000-0000000000bb' }));
+
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000bb');
+    expect(screen.queryAllByRole('img')).toHaveLength(0);
+  });
 });

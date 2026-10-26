@@ -39,6 +39,8 @@ async function postJson(path: string, body: unknown, init: RequestInit = {}) {
  */
 export const blobImageUploader: ImageUploader = {
   async upload({ draftId, file, signal, onStage }) {
+    // 予約が取れた後の失敗・中断では、呼び出し側が予約を解放できるよう必ずuploadIdを返す。
+    let uploadId: string | undefined;
     try {
       const reserved = await postJson(
         '/api/tweet-images/upload',
@@ -46,17 +48,18 @@ export const blobImageUploader: ImageUploader = {
         { signal },
       );
       if (!reserved.ok) return { ok: false, message: String(reserved.json.message ?? GENERIC_ERROR) };
-      const { uploadId, pathname, token } = reserved.json as { uploadId: string; pathname: string; token: string };
+      const body = reserved.json as { uploadId: string; pathname: string; token: string };
+      uploadId = body.uploadId;
 
       onStage('uploading');
-      await put(pathname, file, { access: 'private', token, contentType: file.type, abortSignal: signal });
+      await put(body.pathname, file, { access: 'private', token: body.token, contentType: file.type, abortSignal: signal });
 
       onStage('verifying');
       const verified = await postJson('/api/tweet-images/verify', { uploadId }, { signal });
       if (!verified.ok) return { ok: false, uploadId, message: String(verified.json.message ?? GENERIC_ERROR) };
       return { ok: true, uploadId };
     } catch {
-      return { ok: false, message: GENERIC_ERROR };
+      return { ok: false, uploadId, message: GENERIC_ERROR };
     }
   },
   discardUpload(uploadId) {

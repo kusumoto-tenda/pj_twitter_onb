@@ -71,7 +71,11 @@ export function TweetImagePicker({
         onStage: (stage) => update(attachment.localId, { status: stage }),
       })
       .then((result) => {
-        if (attachment.controller.signal.aborted) return;
+        if (attachment.controller.signal.aborted) {
+          // 解除・閉じる・再試行で中断した画像は、後から分かった予約も破棄して枠を残さない。
+          if (result.uploadId) uploader.discardUpload(result.uploadId);
+          return;
+        }
         update(
           attachment.localId,
           result.ok
