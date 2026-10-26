@@ -6,6 +6,12 @@ export const FLASH_MAX_AGE_SECONDS = 60;
 export const ACCOUNT_CREATED_MESSAGE = 'アカウントを作成しました';
 export const ACCOUNT_CREATE_FAILED_MESSAGE = 'アカウントの作成に失敗しました';
 
+/** 通常ログアウトの完了を渡す表示専用Cookie。アカウント削除の通知と区別する。 */
+export const LOGGED_OUT_COOKIE = 'flash_session';
+export const LOGGED_OUT_FLASH = 'logged-out';
+export const LOGGED_OUT_MESSAGE = 'ログアウトしました';
+export const LOGOUT_FAILED_MESSAGE = 'ログアウトできませんでした。もう一度お試しください';
+
 /** プロフィール更新後の通知用Cookie。登録用の FLASH_COOKIE とは分け、上書き・流用しない。 */
 export const PROFILE_UPDATED_COOKIE = 'flash_profile';
 export const PROFILE_UPDATED_FLASH = 'profile-updated';

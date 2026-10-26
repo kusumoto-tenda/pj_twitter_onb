@@ -97,4 +97,13 @@ describe('LoginPage', () => {
 
     expect(await screen.findByRole('status')).toHaveTextContent('アカウントを削除しました');
   });
+
+  it('ログアウト後の通知を一度表示する', async () => {
+    document.cookie = 'flash_session=logged-out; path=/';
+
+    await renderPage();
+
+    expect(await screen.findByRole('status')).toHaveTextContent('ログアウトしました');
+    expect(document.cookie).not.toContain('flash_session=');
+  });
 });
