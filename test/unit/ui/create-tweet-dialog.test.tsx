@@ -22,7 +22,7 @@ function failure(overrides: Partial<Extract<CreateTweetFormState, { status: 'err
 function setup(action: Action = vi.fn()) {
   const uploader: ImageUploader = {
     upload: vi.fn(async () => ({ ok: true as const, uploadId: '00000000-0000-4000-8000-000000000001' })),
-    discardUpload: vi.fn(),
+    discardUpload: vi.fn(async () => true),
     discardDraft: vi.fn(),
   };
   const beginDraft = vi.fn(async () => ({ ok: true as const, draftId: 'draft-1' }));
@@ -49,7 +49,7 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
   it('サーバー描画の時点では無効で、操作できるようになってから有効にする', async () => {
     const { renderToString } = await import('react-dom/server');
     const html = renderToString(
-      <TweetComposerProvider beginDraft={vi.fn()} action={vi.fn()} uploader={{ upload: vi.fn(), discardUpload: vi.fn(), discardDraft: vi.fn() }}>
+      <TweetComposerProvider beginDraft={vi.fn()} action={vi.fn()} uploader={{ upload: vi.fn(), discardUpload: vi.fn(async () => true), discardDraft: vi.fn() }}>
         <CreateTweetLauncher />
       </TweetComposerProvider>,
     );
@@ -73,7 +73,7 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
 
   it('準備の途中でボタンが作り直されても（画面の再取得など）、下書きが返ればダイアログを開く', async () => {
     let resolve: (r: { ok: true; draftId: string }) => void = () => {};
-    const uploader = { upload: vi.fn(), discardUpload: vi.fn(), discardDraft: vi.fn() };
+    const uploader = { upload: vi.fn(), discardUpload: vi.fn(async () => true), discardDraft: vi.fn() };
     const beginDraft = vi.fn(() => new Promise<{ ok: true; draftId: string }>((r) => (resolve = r)));
     const tree = (launcherKey: string) => (
       <TweetComposerProvider beginDraft={beginDraft} action={vi.fn()} uploader={uploader}>

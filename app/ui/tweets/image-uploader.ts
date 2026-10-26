@@ -16,7 +16,8 @@ export interface ImageUploader {
     signal: AbortSignal;
     onStage: (stage: UploadStage) => void;
   }): Promise<UploadResult>;
-  discardUpload(uploadId: string): void;
+  /** 予約を破棄する。解放できた（予約がもう無い場合を含む）ときだけtrue。 */
+  discardUpload(uploadId: string): Promise<boolean>;
   discardDraft(draftId: string): void;
 }
 
@@ -62,9 +63,20 @@ export const blobImageUploader: ImageUploader = {
       return { ok: false, uploadId, message: GENERIC_ERROR };
     }
   },
-  discardUpload(uploadId) {
-    // ページ遷移中でも届くようkeepaliveで送る。失敗しても期限切れの回収で消える。
-    void postJson('/api/tweet-images/discard', { uploadId }, { keepalive: true }).catch(() => {});
+  async discardUpload(uploadId) {
+    try {
+      // ページ遷移中でも届くようkeepaliveで送る。
+      const response = await fetch('/api/tweet-images/discard', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ uploadId }),
+        keepalive: true,
+      });
+      // 404は予約がもう無い（解放済み）ことを示す。それ以外の失敗では予約が残っている可能性がある。
+      return response.ok || response.status === 404;
+    } catch {
+      return false;
+    }
   },
   discardDraft(draftId) {
     void postJson('/api/tweet-images/discard', { draftId }, { keepalive: true }).catch(() => {});

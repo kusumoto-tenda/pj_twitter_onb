@@ -73,3 +73,17 @@ describe('blobImageUploader.upload', () => {
     expect(blob.put).not.toHaveBeenCalled();
   });
 });
+
+describe('blobImageUploader.discardUpload', () => {
+  it.each([
+    ['成功（200）', () => Promise.resolve(json(200, { ok: true })), true],
+    ['予約がもうない（404）', () => Promise.resolve(json(404, { code: 'NOT_FOUND' })), true],
+    ['サーバー障害（503）', () => Promise.resolve(json(503, { code: 'UNAVAILABLE' })), false],
+    ['未ログイン（401）', () => Promise.resolve(json(401, { code: 'UNAUTHENTICATED' })), false],
+    ['通信エラー', () => Promise.reject(new TypeError('Failed to fetch')), false],
+  ])('%s', async (_label, response, expected) => {
+    fetchMock.mockImplementationOnce(response);
+
+    expect(await blobImageUploader.discardUpload(UPLOAD_ID)).toBe(expected);
+  });
+});

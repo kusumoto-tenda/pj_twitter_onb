@@ -15,7 +15,7 @@ function controllableUploader() {
       ({ signal, onStage }) =>
         new Promise<UploadResult>((resolve) => pending.push({ resolve, signal, stage: onStage })),
     ),
-    discardUpload: vi.fn(),
+    discardUpload: vi.fn(async () => true),
     discardDraft: vi.fn(),
   };
   const succeed = async (index: number) => {
@@ -24,8 +24,12 @@ function controllableUploader() {
       pending[index].resolve({ ok: true, uploadId: `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}` });
     });
   };
-  const fail = async (index: number, message = '画像をアップロードできませんでした。再試行してください') => {
-    await act(async () => pending[index].resolve({ ok: false, message }));
+  const fail = async (
+    index: number,
+    message = '画像をアップロードできませんでした。再試行してください',
+    uploadId: string | undefined = '00000000-0000-4000-8000-0000000000f1',
+  ) => {
+    await act(async () => pending[index].resolve({ ok: false, message, uploadId }));
   };
   return { uploader, pending, succeed, fail };
 }
@@ -92,6 +96,8 @@ describe('TweetImagePicker', () => {
 
     await user.click(screen.getByRole('button', { name: '画像2を削除' }));
     expect(pending[1].signal.aborted).toBe(true);
+    // 中断されたアップロードの結果（予約前に中断）が返ってから画面から外れる
+    await act(async () => pending[1].resolve({ ok: false, message: '中断しました' }));
     await user.click(screen.getByRole('button', { name: '画像1を削除' }));
 
     expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001');
@@ -154,5 +160,73 @@ describe('TweetImagePicker', () => {
 
     expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000bb');
     expect(screen.queryAllByRole('img')).toHaveLength(0);
+  });
+
+  it('再試行は予約の破棄が成功してから新しく予約し、破棄に失敗したら元の予約IDを保って再度試せる', async () => {
+    const { uploader, fail, succeed } = controllableUploader();
+    renderPicker(uploader);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+    await act(async () => {
+      await fail(0);
+    });
+    // 失敗した予約のIDを持たせる
+    const failedId = '00000000-0000-4000-8000-0000000000f1';
+    vi.mocked(uploader.upload).mockClear();
+    vi.mocked(uploader.discardUpload).mockResolvedValueOnce(false);
+
+    // 1回目の再試行：破棄が失敗 → 新しい予約はしない
+    await user.click(screen.getByRole('button', { name: '画像1を再試行' }));
+    expect(uploader.upload).not.toHaveBeenCalled();
+    expect(await screen.findByText('画像の解除に失敗しました。もう一度お試しください')).toBeInTheDocument();
+
+    // 2回目の再試行：同じ予約IDの破棄に成功してから、新しく予約する
+    await user.click(screen.getByRole('button', { name: '画像1を再試行' }));
+    await waitFor(() => expect(uploader.upload).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(uploader.discardUpload).mock.calls.map((c) => c[0])).toEqual([failedId, failedId]);
+    await succeed(1);
+    expect(screen.queryByText('画像の解除に失敗しました。もう一度お試しください')).not.toBeInTheDocument();
+  });
+
+  it('解除は予約の破棄が成功してから画面から外し、失敗したら画像と予約IDを残す', async () => {
+    const { uploader, succeed } = controllableUploader();
+    renderPicker(uploader);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+    await succeed(0);
+    vi.mocked(uploader.discardUpload).mockResolvedValueOnce(false);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    expect(await screen.findByText('画像の解除に失敗しました。もう一度お試しください')).toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    await waitFor(() => expect(screen.queryAllByRole('img')).toHaveLength(0));
+    expect(vi.mocked(uploader.discardUpload).mock.calls.map((c) => c[0])).toEqual([
+      '00000000-0000-4000-8000-000000000001',
+      '00000000-0000-4000-8000-000000000001',
+    ]);
+  });
+
+  it('アップロード中に解除した画像の予約を破棄できなければ、画像と予約IDを残して解除をやり直せる', async () => {
+    const { uploader, pending } = controllableUploader();
+    renderPicker(uploader);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+    vi.mocked(uploader.discardUpload).mockResolvedValueOnce(false);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    await act(async () =>
+      pending[0].resolve({ ok: false, uploadId: '00000000-0000-4000-8000-0000000000cc', message: '中断しました' }),
+    );
+    expect(await screen.findByText('画像の解除に失敗しました。もう一度お試しください')).toBeInTheDocument();
+    expect(screen.getAllByRole('img')).toHaveLength(1);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    await waitFor(() => expect(screen.queryAllByRole('img')).toHaveLength(0));
+    expect(vi.mocked(uploader.discardUpload).mock.calls.map((c) => c[0])).toEqual([
+      '00000000-0000-4000-8000-0000000000cc',
+      '00000000-0000-4000-8000-0000000000cc',
+    ]);
   });
 });
