@@ -5,6 +5,7 @@ import { getTimelineDependencies } from '@/app/_composition/timeline';
 import { profileHref } from '@/app/lib/profile-query';
 import { parseCursorParam, parseFollowParam, timelineHref } from '@/app/lib/timeline-query';
 import { AccountCreatedFlash } from '@/app/ui/notifications/account-created-flash';
+import { TweetFlash } from '@/app/ui/notifications/tweet-flash';
 import { TimelineFilter } from '@/app/ui/timeline/timeline-filter';
 import { InvalidCursorNotice, TimelineList } from '@/app/ui/timeline/timeline-list';
 import { TimelinePagination } from '@/app/ui/timeline/timeline-pagination';
@@ -58,6 +59,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   return (
     <HomeShell profileHref={ownDisplayId ? profileHref({ displayId: ownDisplayId, tab: 'tweets' }) : null}>
       <AccountCreatedFlash />
+      <TweetFlash />
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-4 py-3">
         <h1 className="text-xl font-bold">最新ツイート</h1>
         <TimelineFilter

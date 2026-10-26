@@ -4,6 +4,7 @@ import { auth } from '@/app/_auth/auth';
 import { getAccountDependencies } from '@/app/_composition/account';
 import { LoginForm } from '@/app/ui/account/login-form';
 import { AccountDeletedFlash } from '@/app/ui/notifications/account-deleted-flash';
+import { TweetFlash } from '@/app/ui/notifications/tweet-flash';
 import { XLogo } from '@/app/ui/x-logo';
 import { findAccountProfile } from '@/application/users/find-account-profile';
 import { loginAction } from './actions';
@@ -30,6 +31,7 @@ export default async function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center gap-16 bg-gray-50 px-4 py-8 sm:p-8">
       <AccountDeletedFlash />
+      <TweetFlash />
       <div className="w-full max-w-md">
         <h1 className="mb-8 text-3xl font-black sm:text-4xl">すべての話題が、ここに。</h1>
         <LoginForm action={loginAction} />

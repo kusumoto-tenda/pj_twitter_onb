@@ -25,3 +25,13 @@ export const ACCOUNT_DELETED_MESSAGES: Record<AccountDeletedFlash, string> = {
   'signout-failed': 'アカウントは削除済みですが、ログアウト処理を完了できませんでした',
   'account-missing': 'アカウントを確認できません。再度ログインしてください',
 };
+
+/** 投稿後・未ログインでの投稿時に表示する通知用Cookie。他の通知Cookieとは分ける。 */
+export const TWEET_FLASH_COOKIE = 'flash_tweet';
+export const TWEET_FLASHES = ['posted', 'login-required'] as const;
+export type TweetFlashValue = (typeof TWEET_FLASHES)[number];
+export const TWEET_FLASH_MESSAGES: Record<TweetFlashValue, string> = {
+  posted: 'ツイートしました',
+  'login-required': 'ツイートするにはログインしてください',
+};
+export const TWEET_FAILED_MESSAGE = 'ツイートに失敗しました';
