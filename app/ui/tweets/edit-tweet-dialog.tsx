@@ -3,12 +3,17 @@
 import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
 import { initialEditTweetState, type EditTweetFormState } from '@/app/tweets/edit-form-state';
-import { TWEET_UPDATE_FAILED_MESSAGE } from '@/app/ui/notifications/flash';
+import {
+  ACTION_NETWORK_FAILED_MESSAGE,
+  DIALOG_NETWORK_UNCONFIRMED_MESSAGE,
+  TWEET_UPDATE_FAILED_MESSAGE,
+} from '@/app/ui/notifications/flash';
 import { Toast } from '@/app/ui/notifications/toast';
 import { MAX_IMAGES_PER_TWEET, TWEET_CONTENT_MAX_LENGTH } from '@/domain/tweets/tweet-validation';
 import { trapFocus } from './dialog-focus';
 import { EditTweetImages } from './edit-tweet-images';
 import type { ImageUploader } from './image-uploader';
+import { invokeDialogAction } from './invoke-dialog-action';
 import { TweetImagePicker, type PickerState } from './tweet-image-picker';
 
 export type UpdateTweetAction = (
@@ -52,8 +57,19 @@ export function EditTweetDialog({
   );
 
   const [state, formAction, pending] = useActionState(
-    async (previous: EditTweetFormState, formData: FormData) => {
-      const result = await action(previous, formData);
+    async (previous: EditTweetFormState, formData: FormData): Promise<EditTweetFormState> => {
+      const outcome = await invokeDialogAction(() => action(previous, formData));
+      // 通信の失敗では閉じず、下書きも破棄しない。確定済みでも同じ下書きの再送は既存の再送判定で成功になる。
+      if (!outcome.ok) {
+        return {
+          status: 'error',
+          code: 'NETWORK_ERROR',
+          message: DIALOG_NETWORK_UNCONFIRMED_MESSAGE,
+          fieldErrors: {},
+          attempt: previous.status === 'idle' ? 1 : previous.attempt + 1,
+        };
+      }
+      const result = outcome.value;
       // 未ログインでログイン画面へ移動した場合は結果が返らない。残ったダイアログは閉じる。
       if (!result) {
         finish(true);
@@ -90,7 +106,11 @@ export function EditTweetDialog({
       }}
       className="w-[calc(100%-2rem)] max-w-xl rounded-2xl p-0 backdrop:bg-black/40"
     >
-      <Toast message={TWEET_UPDATE_FAILED_MESSAGE} tone="error" trigger={failed?.attempt ?? null} />
+      <Toast
+        message={failed?.code === 'NETWORK_ERROR' ? ACTION_NETWORK_FAILED_MESSAGE : TWEET_UPDATE_FAILED_MESSAGE}
+        tone="error"
+        trigger={failed?.attempt ?? null}
+      />
       <form action={formAction} className="flex max-h-[85vh] flex-col">
         <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
           <button

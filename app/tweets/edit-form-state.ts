@@ -8,7 +8,9 @@ export type EditTweetErrorCode =
   | 'DRAFT_EXPIRED'
   | 'CONFLICT'
   | 'UPLOAD_NOT_READY'
-  | 'UNAVAILABLE';
+  | 'UNAVAILABLE'
+  /** Action呼び出し自体の失敗（ダイアログ側で作る。サーバーからは返さない）。 */
+  | 'NETWORK_ERROR';
 
 /** 本文や画像は返さない（ダイアログ側で保持する）。成功しても画面は移動しない。 */
 export type EditTweetFormState =

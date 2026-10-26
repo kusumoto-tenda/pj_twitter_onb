@@ -216,4 +216,140 @@ describe('EditTweetDialog', () => {
     await waitFor(() => expect(ctx.updateAction).toHaveBeenCalledTimes(1));
     expect(ctx.updateAction.mock.calls[0][1].getAll('uploadIds')).toEqual([]);
   });
+
+  describe('Action自体のreject（通信の失敗など）', () => {
+    const NETWORK_TOAST = '通信に失敗しました。もう一度お試しください';
+    const UNCONFIRMED = '通信に失敗し、処理結果を確認できませんでした。入力を変更せず、もう一度お試しください';
+    const entries = (data: FormData) => Array.from(data.entries());
+
+    /** 本文の変更・既存画像の解除・新規画像の追加をした状態にする。 */
+    async function editEverything(ctx: ReturnType<typeof setup>) {
+      await open(ctx);
+      await ctx.user.clear(inDialog().getByLabelText('本文'));
+      await ctx.user.type(inDialog().getByLabelText('本文'), '編集した本文');
+      await ctx.user.click(inDialog().getByRole('button', { name: '添付済みの画像2を解除' }));
+      await addImages(ctx, 1);
+    }
+
+    it('本文・保持する既存画像・新規画像・下書きを保ち、閉じずに通信の通知と結果不明の案内を出す', async () => {
+      const updateAction = vi.fn<UpdateAction>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ updateAction });
+      await editEverything(ctx);
+
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+
+      expect(await inDialog().findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+      expect(inDialog().getByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(screen.queryByText('ツイートの更新に失敗しました')).not.toBeInTheDocument();
+      expect(screen.queryByText('ツイートを更新しました')).not.toBeInTheDocument();
+      expect(dialog()).toHaveAttribute('open');
+      expect(inDialog().getByLabelText('本文')).toHaveValue('編集した本文');
+      const kept = inDialog().getAllByRole('img').map((i) => i.getAttribute('src')).filter((src) => src?.startsWith('/media/'));
+      expect(kept).toEqual([`/media/${img(1).id}`, `/media/${img(3).id}`]);
+      expect(inDialog().getByRole('button', { name: '添付済みの画像1を解除' })).toBeEnabled();
+      expect(inDialog().getByRole('button', { name: '画像1を削除' })).toBeEnabled();
+      expect(inDialog().getByRole('button', { name: '更新' })).toBeEnabled();
+      expect(inDialog().getByRole('button', { name: '閉じる' })).toBeEnabled();
+      expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+      expect(ctx.uploader.discardUpload).not.toHaveBeenCalled();
+      expect(ctx.beginEdit).toHaveBeenCalledTimes(1);
+    });
+
+    it('再試行では同じ下書き・本文・画像IDを送り、成功したときだけ閉じて更新を通知する', async () => {
+      const updateAction = vi
+        .fn<UpdateAction>()
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce({ status: 'success', tweetId: TWEET, attempt: 2 });
+      const ctx = setup({ updateAction });
+      await editEverything(ctx);
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+      await inDialog().findByText(UNCONFIRMED);
+
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(await screen.findByRole('status')).toHaveTextContent('ツイートを更新しました');
+      const [first, second] = updateAction.mock.calls.map((call) => call[1]);
+      expect(entries(second)).toEqual(entries(first));
+      expect(second.get('draftId')).toBe('edit-draft-1');
+      expect(second.get('content')).toBe('編集した本文');
+      expect(second.getAll('keepImageIds')).toEqual([img(1).id, img(3).id]);
+      expect(second.getAll('uploadIds')).toEqual(['00000000-0000-4000-8000-000000000101']);
+      expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+      expect(ctx.beginEdit).toHaveBeenCalledTimes(1);
+    });
+
+    it('通信の失敗が続けば通知を出し直し、その後の競合などの通常エラーは既存の説明で表示する', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const updateAction = vi
+          .fn<UpdateAction>()
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockResolvedValueOnce(failure({ code: 'CONFLICT', message: '他の画面で更新されています。閉じて開き直してください', attempt: 3 }));
+        const ctx = setup({ updateAction });
+        await open(ctx);
+
+        await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+        expect(await inDialog().findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(3000));
+        expect(inDialog().queryByRole('alert')).not.toBeInTheDocument();
+
+        await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+        expect(await inDialog().findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+
+        await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+        expect(await inDialog().findByText('他の画面で更新されています。閉じて開き直してください')).toBeInTheDocument();
+        expect(inDialog().queryByText(UNCONFIRMED)).not.toBeInTheDocument();
+        expect(inDialog().getByRole('alert')).toHaveTextContent('ツイートの更新に失敗しました');
+        expect(dialog()).toHaveAttribute('open');
+        expect(updateAction).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('通常の欄エラーの後に通信が失敗したら、古い欄エラーを残さない', async () => {
+      const updateAction = vi
+        .fn<UpdateAction>()
+        .mockResolvedValueOnce(failure({ fieldErrors: { content: ['本文は280文字以下で入力してください'] } }))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ updateAction });
+      await open(ctx);
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+      expect(await inDialog().findByText('本文は280文字以下で入力してください')).toBeInTheDocument();
+
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+
+      expect(await inDialog().findByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(inDialog().queryByText('本文は280文字以下で入力してください')).not.toBeInTheDocument();
+      expect(inDialog().getByLabelText('本文')).toHaveAttribute('aria-invalid', 'false');
+    });
+
+    it('通信の失敗後に閉じたら、そのときだけ編集用の下書きを破棄し、更新は通知しない', async () => {
+      const updateAction = vi.fn<UpdateAction>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ updateAction });
+      await open(ctx);
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+      await inDialog().findByText(UNCONFIRMED);
+
+      await ctx.user.click(inDialog().getByRole('button', { name: '閉じる' }));
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(ctx.uploader.discardDraft).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('ツイートを更新しました')).not.toBeInTheDocument();
+      await waitFor(() => expect(menuButton()).toHaveFocus());
+    });
+
+    it('StrictModeでも1回の操作で1回だけ送信し、通信の失敗を表示する', async () => {
+      const updateAction = vi.fn<UpdateAction>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ updateAction, strict: true });
+      await open(ctx);
+
+      await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+
+      expect(await inDialog().findByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(updateAction).toHaveBeenCalledTimes(1);
+    });
+  });
 });
