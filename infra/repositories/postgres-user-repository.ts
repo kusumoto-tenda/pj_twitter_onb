@@ -100,7 +100,9 @@ export class PostgresUserRepository implements UserRepository {
     }
   }
 
-  async deleteById(_id: string): Promise<DeleteUserOutcome> {
-    throw new Error('未実装');
+  async deleteById(id: string): Promise<DeleteUserOutcome> {
+    // 単一のDELETEで本人の行を消し、投稿・フォロー・リツイートは既存FKのCASCADEに任せる。
+    const rows = await this.sql`DELETE FROM twitter.users WHERE id = ${id} RETURNING id`;
+    return rows.length === 1 ? 'deleted' : 'not-found';
   }
 }
