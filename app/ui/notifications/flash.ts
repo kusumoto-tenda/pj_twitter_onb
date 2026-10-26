@@ -28,10 +28,13 @@ export const ACCOUNT_DELETED_MESSAGES: Record<AccountDeletedFlash, string> = {
 
 /** 投稿後・未ログインでの投稿時に表示する通知用Cookie。他の通知Cookieとは分ける。 */
 export const TWEET_FLASH_COOKIE = 'flash_tweet';
-export const TWEET_FLASHES = ['posted', 'login-required'] as const;
+export const TWEET_FLASHES = ['posted', 'login-required', 'edit-login-required'] as const;
 export type TweetFlashValue = (typeof TWEET_FLASHES)[number];
 export const TWEET_FLASH_MESSAGES: Record<TweetFlashValue, string> = {
   posted: 'ツイートしました',
   'login-required': 'ツイートするにはログインしてください',
+  'edit-login-required': 'ツイートを編集するにはログインしてください',
 };
+export const TWEET_UPDATED_MESSAGE = 'ツイートを更新しました';
+export const TWEET_UPDATE_FAILED_MESSAGE = 'ツイートの更新に失敗しました';
 export const TWEET_FAILED_MESSAGE = 'ツイートに失敗しました';

@@ -22,6 +22,7 @@ describe('TweetFlash', () => {
   it.each([
     ['posted', 'ツイートしました'],
     ['login-required', 'ツイートするにはログインしてください'],
+    ['edit-login-required', 'ツイートを編集するにはログインしてください'],
   ])('%s の通知を3秒だけ表示し、Cookieを消費する', (value, message) => {
     document.cookie = `flash_tweet=${value}; path=/`;
 
