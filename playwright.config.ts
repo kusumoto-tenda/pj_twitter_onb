@@ -1,9 +1,12 @@
 import { defineConfig, devices } from '@playwright/test';
+import { requireTestBlobEnvironment } from './test/support/blob-environment';
 import { assertDedicatedTestDatabase, loadLocalEnv } from './test/support/database-url';
 
 // .env.local・.env の値を補完する（既存の環境変数を優先）。テスト内の検証でも同じ値を使う。
 Object.assign(process.env, loadLocalEnv());
 const testDatabaseUrl = assertDedicatedTestDatabase(process.env);
+// 画像はテスト専用の非公開Blobストアだけを使う（アプリ用ストアと同じなら起動前に失敗する）。
+const testBlob = requireTestBlobEnvironment(process.env);
 
 const PORT = 3100;
 const baseURL = `http://localhost:${PORT}`;
@@ -34,6 +37,9 @@ export default defineConfig({
       POSTGRES_URL_NON_POOLING: '',
       AUTH_URL: `${baseURL}/api/auth`,
       AUTH_SECRET: process.env.E2E_AUTH_SECRET ?? 'e2e-only-secret-do-not-use-in-production',
+      BLOB_READ_WRITE_TOKEN: testBlob.token,
+      BLOB_STORE_ID: testBlob.storeId,
+      CRON_SECRET: 'e2e-only-cron-secret',
     },
   },
 });
