@@ -253,4 +253,16 @@ describe('TweetImagePicker', () => {
     expect(screen.getByRole('button', { name: '画像1を削除' })).toBeEnabled();
     expect(onChange).toHaveBeenLastCalledWith({ uploadIds: ['00000000-0000-4000-8000-000000000001'], busy: false });
   });
+
+  it('maxImagesで新規画像の枠を制限できる（編集で既存画像を保持している場合）', async () => {
+    const { uploader } = controllableUploader();
+    render(<TweetImagePicker draftId="draft-1" uploader={uploader} disabled={false} onChange={vi.fn()} maxImages={1} />);
+    const user = userEvent.setup();
+
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png'), png('2.png')]);
+
+    expect(uploader.upload).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('画像を追加')).toBeDisabled();
+    expect(screen.getByText('画像は4枚まで添付できます')).toBeInTheDocument();
+  });
 });

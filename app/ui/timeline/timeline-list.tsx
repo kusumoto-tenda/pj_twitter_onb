@@ -5,9 +5,12 @@ import { TweetCard } from './tweet-card';
 export function TimelineList({
   items,
   followingOnly,
+  viewerId = null,
 }: {
   items: TimelineItem[];
   followingOnly: boolean;
+  /** 確認済みのログイン中の利用者。本人の投稿にだけ三点メニューを出すために使う。 */
+  viewerId?: string | null;
 }) {
   if (items.length === 0) {
     return (
@@ -19,7 +22,7 @@ export function TimelineList({
   return (
     <div>
       {items.map((item) => (
-        <TweetCard key={`${item.key.kind}:${item.key.eventId}`} item={item} />
+        <TweetCard key={`${item.key.kind}:${item.key.eventId}`} item={item} viewerId={viewerId} />
       ))}
     </div>
   );

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { TimelineImage, TimelineItem } from '@/application/timeline/timeline';
 import { profileHref } from '@/app/lib/profile-query';
+import { TweetActionsMenu } from '@/app/ui/tweets/tweet-actions-menu';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
   timeZone: 'Asia/Tokyo',
@@ -21,8 +22,17 @@ export function formatTimelineDate(utc: string): string {
   return `${part('year')}/${part('month')}/${part('day')} ${part('hour')}:${part('minute')}`;
 }
 
-export function TweetCard({ item }: { item: TimelineItem }) {
+export function TweetCard({
+  item,
+  viewerId = null,
+}: {
+  item: TimelineItem;
+  /** 確認済みのログイン中の利用者。表示の制御だけに使い、認可はActionとDBで改めて行う。 */
+  viewerId?: string | null;
+}) {
   const { tweet, retweetedBy } = item;
+  // 編集できるのは元投稿者だけ（リツイートしただけの人は編集できない）。
+  const editable = viewerId !== null && viewerId === tweet.author.id;
   return (
     <article className="border-b border-gray-200 px-4 py-3">
       {retweetedBy && (
@@ -47,6 +57,7 @@ export function TweetCard({ item }: { item: TimelineItem }) {
         <time dateTime={tweet.createdAt} className="text-gray-500">
           {formatTimelineDate(tweet.createdAt)}
         </time>
+        {editable && <TweetActionsMenu tweetId={tweet.id} menuKey={`${item.key.kind}:${item.key.eventId}`} />}
       </header>
       {/* 本文はプレーンテキスト。改行を保ち、長いURLなども折り返す。画像だけの投稿では段落を出さない。 */}
       {(tweet.content.trim() !== '' || tweet.images.length === 0) && (

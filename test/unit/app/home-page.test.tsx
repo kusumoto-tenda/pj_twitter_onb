@@ -19,6 +19,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 // ページの振る舞いのテストなので、投稿ボタン（ルートlayoutのProviderが必要）は空にする。
+// 三点メニュー（ルートlayoutのProviderが必要）は、表示の有無が分かる目印にする。
+vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
+  TweetActionsMenu: ({ tweetId }: { tweetId: string }) => <span data-testid="tweet-menu">{tweetId}</span>,
+}));
 vi.mock('@/app/ui/tweets/create-tweet-launcher', () => ({ CreateTweetLauncher: () => null }));
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
@@ -91,6 +95,15 @@ describe('HomePage', () => {
     expect(screen.getByRole('link', { name: 'アカウントを作成' })).toHaveAttribute('href', '/signin');
     expect(screen.getByRole('link', { name: 'ホーム' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
+  });
+
+  it('閲覧者本人の投稿にだけ三点メニューを出す', async () => {
+    await renderHome();
+    expect(screen.queryByTestId('tweet-menu')).not.toBeInTheDocument();
+
+    signIn();
+    await renderHome();
+    expect(screen.getByTestId('tweet-menu')).toHaveTextContent(page.items[0].tweet.id);
   });
 
   it('ログイン中は利用者の名前・IDと未チェックの切り替えを表示し、viewerIdで取得する', async () => {

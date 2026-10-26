@@ -185,6 +185,7 @@ test('既存画像の保持・解除と新規追加で合計4枚を守り、保�
   const tweetId = await post(me, `画像の投稿 ${t}`, [10, 20, 30]);
 
   await login(page, me);
+  await expect(card(page, `画像の投稿 ${t}`).getByRole('img')).toHaveCount(3);
   const before = await card(page, `画像の投稿 ${t}`).getByRole('img').evaluateAll((els) => els.map((el) => el.getAttribute('src')));
   const d = await openEdit(page, card(page, `画像の投稿 ${t}`));
   await expect.poll(() => naturalWidths(d)).toEqual([10, 20, 30]);
@@ -311,12 +312,15 @@ test('フォロー条件・ページ位置・プロフィールのタブを保�
   );
 
   await login(page, me);
+  // スクロールできる高さにして、スクロール位置が保たれることを確かめる
+  await page.setViewportSize({ width: 1280, height: 320 });
   await page.goto('/?follow=true');
   await page.getByRole('link', { name: '次の20件' }).click();
   await expect(page).toHaveURL(/follow=true.*cursor=|cursor=.*follow=true/);
   const url = page.url();
   await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
   const scrollBefore = await page.evaluate(() => window.scrollY);
+  expect(scrollBefore).toBeGreaterThan(0);
   const d = await openEdit(page, card(page, `2ページ目の投稿 ${t}`));
   await d.getByLabel('本文').fill(`2ページ目で編集 ${t}`);
   await updateButton(d).click();
@@ -333,6 +337,7 @@ test('フォロー条件・ページ位置・プロフィールのタブを保�
 
   await page.goto(`/profile/${me.displayId}`);
   await page.getByRole('link', { name: '次の20件' }).click();
+  await expect(page).toHaveURL(/\/profile\/.+\?cursor=/);
   const profileUrl = page.url();
   const d2 = await openEdit(page, card(page, `2ページ目で編集 ${t}`));
   await d2.getByLabel('本文').fill(`プロフィール2ページ目 ${t}`);

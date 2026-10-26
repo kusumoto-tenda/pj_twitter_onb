@@ -27,6 +27,10 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
 // ページの振る舞いのテストなので、投稿ボタン（ルートlayoutのProviderが必要）は空にする。
+// 三点メニュー（ルートlayoutのProviderが必要）は、表示の有無が分かる目印にする。
+vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
+  TweetActionsMenu: ({ tweetId }: { tweetId: string }) => <span data-testid="tweet-menu">{tweetId}</span>,
+}));
 vi.mock('@/app/ui/tweets/create-tweet-launcher', () => ({ CreateTweetLauncher: () => null }));
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
@@ -174,6 +178,25 @@ describe('ProfilePage', () => {
 
     expect(screen.getByRole('heading', { name: 'ボブ' })).toBeInTheDocument();
     expect(screen.getByText('まだ投稿がありません')).toBeInTheDocument();
+  });
+
+  it('閲覧者本人の投稿にだけ三点メニューを出す（他人のプロフィールでは出さない）', async () => {
+    signIn();
+    await renderPage('Bob_12');
+    expect(screen.queryByTestId('tweet-menu')).not.toBeInTheDocument();
+  });
+
+  it('自分の投稿には三点メニューを出す', async () => {
+    signIn();
+    query.summary = { ...other, id: FIXED_ID, name: 'アリス', displayId: 'Alice_1' };
+    query.activityPage = {
+      items: [{ ...item, tweet: { ...item.tweet, author: { id: FIXED_ID, name: 'アリス', displayId: 'Alice_1' } } }],
+      nextCursor: null,
+    };
+
+    await renderPage('Alice_1');
+
+    expect(screen.getByTestId('tweet-menu')).toHaveTextContent(item.tweet.id);
   });
 
   it('リツイートタブは対象者のリツイートを取得する', async () => {

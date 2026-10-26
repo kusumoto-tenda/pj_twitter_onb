@@ -34,12 +34,15 @@ export function TweetImagePicker({
   disabled,
   onChange,
   errors = [],
+  maxImages = MAX_IMAGES_PER_TWEET,
 }: {
   draftId: string;
   uploader: ImageUploader;
   disabled: boolean;
   onChange: (state: PickerState) => void;
   errors?: string[];
+  /** 新規画像の枠。編集では保持する既存画像の数を引いた値を渡す（最終的な合計枚数はサーバーで確認する）。 */
+  maxImages?: number;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -102,7 +105,7 @@ export function TweetImagePicker({
 
   const add = (files: File[]) => {
     setSelectionError(null);
-    const room = MAX_IMAGES_PER_TWEET - live.current.length;
+    const room = maxImages - live.current.length;
     if (files.length > room) setSelectionError(`画像は${MAX_IMAGES_PER_TWEET}枚まで添付できます`);
     const added: Attachment[] = [];
     for (const file of files.slice(0, Math.max(room, 0))) {
@@ -177,7 +180,7 @@ export function TweetImagePicker({
     start(next);
   };
 
-  const full = attachments.length >= MAX_IMAGES_PER_TWEET;
+  const full = attachments.length >= maxImages;
   const messages = [...(selectionError ? [selectionError] : []), ...errors];
 
   return (
