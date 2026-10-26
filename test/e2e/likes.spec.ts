@@ -324,8 +324,12 @@ test('公開いいねタブは20件ずつ表示し、次の20件・戻る・進�
   await expect(page).toHaveURL(`/profile/${me.displayId}?tab=likes`);
   await expect(page.getByRole('article')).toHaveCount(20);
 
-  // 他のタブのカーソルを持ち込むと先頭へ戻す
-  await page.goto(second.replace('tab=likes', 'tab=retweets'));
+  // 他のタブのカーソルは不正として案内し、そのタブの先頭へ戻るリンクを出す。
+  const wrongTab = second.replace('tab=likes', 'tab=retweets');
+  await page.goto(wrongTab);
+  await expect(page).toHaveURL(wrongTab);
+  await expect(page.getByText('表示する位置を読み込めませんでした')).toBeVisible();
+  await page.getByRole('link', { name: '最新に戻る' }).click();
   await expect(page).toHaveURL(`/profile/${me.displayId}?tab=retweets`);
 });
 
