@@ -261,7 +261,10 @@ test('幅375pxとPC幅でナビのログアウトが見え、横スクロール�
 
   await page.setViewportSize({ width: 375, height: 700 });
   await page.goto('/');
+  // SSR直後はhydration前のボタンが無効なので、実際にキーボード操作できる状態を待つ。
+  await expect(navLogout(page)).toBeEnabled();
   await navLogout(page).focus();
+  await expect(navLogout(page)).toBeFocused();
   await page.keyboard.press('Enter');
   await expectLoggedOutOnLoginPage(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
