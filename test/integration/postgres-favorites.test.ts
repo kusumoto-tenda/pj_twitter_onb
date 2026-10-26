@@ -110,6 +110,23 @@ describe('PostgresFavoriteRepository.set', () => {
     }
   });
 
+  it('登録・解除で元投稿の画像を複製・削除せず、削除予約も作らない', async () => {
+    const alice = await fixtures.user('アリス', 'Fv');
+    const draftId = await media.draft(alice.id, new Date());
+    const upload = await media.verified(alice.id, draftId, new Date());
+    await media.writer.publish({ actorId: alice.id, draftId, value: { content: '画像', uploadIds: [upload.uploadId] }, fingerprint: 'c', now: new Date() });
+    const imagesOf = () => sql`SELECT id, storage_key, position FROM twitter.images WHERE tweet_id = ${draftId}`;
+    const before = await imagesOf();
+
+    await set(alice.id, draftId, true);
+    await set(alice.id, draftId, false);
+    await set(alice.id, draftId, true);
+
+    expect(await imagesOf()).toEqual(before);
+    expect(await sql`SELECT 1 FROM twitter.images WHERE storage_key = ${upload.storageKey}`).toHaveLength(1);
+    expect(await sql`SELECT 1 FROM twitter.media_delete_jobs WHERE storage_key = ${upload.storageKey}`).toHaveLength(0);
+  });
+
   it('無関係なDBエラーは成功扱いせずthrowする', async () => {
     const alice = await fixtures.user('アリス', 'Fv');
     await expect(favorites.set({ actorId: alice.id, tweetId: 'not-a-uuid', active: true, id: randomUUID(), now: new Date() })).rejects.toThrow();
