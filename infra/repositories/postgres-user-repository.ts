@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import type {
   CreateUserOutcome,
+  DeleteUserOutcome,
   UpdateProfileOutcome,
   UserRepository,
 } from '@/application/users/ports/user-repository';
@@ -97,5 +98,11 @@ export class PostgresUserRepository implements UserRepository {
       if (isDisplayIdConflict(error)) return { status: 'display-id-taken' };
       throw error;
     }
+  }
+
+  async deleteById(id: string): Promise<DeleteUserOutcome> {
+    // 単一のDELETEで本人の行を消し、投稿・フォロー・リツイートは既存FKのCASCADEに任せる。
+    const rows = await this.sql`DELETE FROM twitter.users WHERE id = ${id} RETURNING id`;
+    return rows.length === 1 ? 'deleted' : 'not-found';
   }
 }

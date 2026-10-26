@@ -48,6 +48,12 @@ export function ProfileHeader({
             >
               プロフィール編集
             </Link>
+            <Link
+              href={`${profileHref({ displayId: profile.displayId, tab: 'tweets' })}/delete`}
+              className="rounded-full border border-red-300 px-4 py-1 text-sm font-bold text-red-600 hover:bg-red-50"
+            >
+              アカウント削除
+            </Link>
           </div>
         ) : (
           profile.followedByViewer && (

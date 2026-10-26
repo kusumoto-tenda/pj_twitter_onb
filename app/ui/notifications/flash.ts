@@ -10,3 +10,18 @@ export const ACCOUNT_CREATE_FAILED_MESSAGE = 'アカウントの作成に失敗�
 export const PROFILE_UPDATED_COOKIE = 'flash_profile';
 export const PROFILE_UPDATED_FLASH = 'profile-updated';
 export const PROFILE_UPDATED_MESSAGE = 'プロフィールを更新しました';
+
+/**
+ * アカウント削除後にログイン画面で表示する通知用Cookie。他の通知Cookieとは分ける。
+ * deleted: 削除成功（3秒のToast）
+ * signout-failed: 削除済みだがログアウト処理を完了できなかった（固定表示）
+ * account-missing: 削除しようとした時点で対象を確認できなかった（固定表示）
+ */
+export const ACCOUNT_DELETED_COOKIE = 'flash_account';
+export const ACCOUNT_DELETED_FLASHES = ['deleted', 'signout-failed', 'account-missing'] as const;
+export type AccountDeletedFlash = (typeof ACCOUNT_DELETED_FLASHES)[number];
+export const ACCOUNT_DELETED_MESSAGES: Record<AccountDeletedFlash, string> = {
+  deleted: 'アカウントを削除しました',
+  'signout-failed': 'アカウントは削除済みですが、ログアウト処理を完了できませんでした',
+  'account-missing': 'アカウントを確認できません。再度ログインしてください',
+};

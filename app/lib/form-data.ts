@@ -45,6 +45,16 @@ export function isSuccessfulSignIn(result: unknown): boolean {
 }
 
 /**
+ * Auth.jsのsignOut(redirect: false)の結果が成功を示しているか。
+ * 結果の遷移先URLがエラーを含まない文字列のときだけ成功とする（throwしなかっただけでは成功としない）。
+ */
+export function isSuccessfulSignOut(result: unknown): boolean {
+  const redirectTo =
+    typeof result === 'object' && result !== null ? (result as { redirect?: unknown }).redirect : undefined;
+  return classifySignInResult(redirectTo) === 'success';
+}
+
+/**
  * フォーム送信でブラウザがCRLFに変換する改行をLFに揃える。
  * 文字数の上限を改行1つで2文字と数えたり、保存値に\rが混ざったりしないようにする。
  */

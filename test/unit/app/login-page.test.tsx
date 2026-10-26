@@ -89,4 +89,12 @@ describe('LoginPage', () => {
     expect(consoleError).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
+
+  it('アカウント削除後の通知を表示する', async () => {
+    document.cookie = 'flash_account=deleted; path=/';
+
+    await renderPage();
+
+    expect(await screen.findByRole('status')).toHaveTextContent('アカウントを削除しました');
+  });
 });

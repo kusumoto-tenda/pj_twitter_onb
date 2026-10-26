@@ -1,5 +1,6 @@
 import type {
   CreateUserOutcome,
+  DeleteUserOutcome,
   UpdateProfileOutcome,
   UserRepository,
 } from '@/application/users/ports/user-repository';
@@ -33,5 +34,12 @@ export class InMemoryUserRepository implements UserRepository {
     if (taken) return { status: 'display-id-taken' };
     this.accounts[index] = { ...this.accounts[index], ...input };
     return { status: 'updated', profile: toAccountProfile(this.accounts[index]) };
+  }
+
+  async deleteById(id: string): Promise<DeleteUserOutcome> {
+    const index = this.accounts.findIndex((a) => a.id === id);
+    if (index === -1) return 'not-found';
+    this.accounts.splice(index, 1);
+    return 'deleted';
   }
 }

@@ -85,3 +85,11 @@ pnpm dev
 - 保存後は `revalidatePath` でメイン・プロフィール・編集画面の表示を無効化し、表示用Cookie `flash_profile` で更新通知を出す（登録通知の `flash` とは別）。
 - `textarea` の改行はブラウザがCRLFで送るため、自己紹介はサーバーでLFに揃えてから検証・保存する（登録画面も同様）。
 - 新しいマイグレーションはない。
+
+## アカウント削除の仕様メモ
+
+- `/profile/{ユーザーID}/delete` は本人だけが使える。ページ表示（GET）では削除せず、Server Actionで毎回セッションのUUIDを確認し、`actorId === targetId` かつ現在のパスワードが一致したときだけ削除する。
+- 削除は `DELETE FROM twitter.users WHERE id = ...` の1文だけで行い、投稿・フォロー・リツイートは既存FKのON DELETE CASCADEで消える（論理削除・復元はなし）。
+- 削除後は表示を `revalidatePath` で無効化し、Auth.jsの `signOut({ redirect: false })` で認証Cookieを無効化してから `/login` へ移動する。通知は表示用Cookie `flash_account`（`deleted` / `signout-failed` / `account-missing`）で出す。
+- DB削除とCookieの変更は1つのトランザクションにできないため、signOutに失敗しても削除は戻さず、その旨をログイン画面に固定表示する。他のブラウザに残ったセッションは、利用者の実在確認で未ログインとして扱われる。
+- 新しいマイグレーションはない。
