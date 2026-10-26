@@ -143,15 +143,21 @@ async function dropNextActionResponseAfterCommit(page: Page, marker: string) {
 
 /**
  * アプリの画面がエラー境界へ置き換わっていないことを確かめるため、ページ内の未処理例外とconsoleのエラーを記録する。
- * 切断したリクエスト由来の「Failed to load resource」だけは、ブラウザ側の通信エラーとして区別して除外する。
+ * 意図した切断と、共有タイムライン上の古い画像の404はブラウザのリソースエラーとして区別する。
+ * 対象投稿の画像はnaturalWidthを別途検証する。pageerror・アプリのconsole.error・画像の500等は除外しない。
  */
 function watchPageErrors(page: Page) {
   const errors: string[] = [];
   page.on('pageerror', (error) => errors.push(`pageerror: ${error.message}`));
   page.on('console', (message) => {
     if (message.type() !== 'error') return;
-    if (/^Failed to load resource: net::ERR_FAILED/.test(message.text())) return;
-    errors.push(`console: ${message.text()}`);
+    const text = message.text();
+    if (/^Failed to load resource: net::ERR_FAILED/.test(text)) return;
+    if (
+      text === 'Failed to load resource: the server responded with a status of 404 (Not Found)' &&
+      /\/media\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(message.location().url)
+    ) return;
+    errors.push(`console: ${text}`);
   });
   return errors;
 }
@@ -234,6 +240,7 @@ test('作成：送信前に通信が切れても、本文と準備済みの画�
   // 下書きのUUIDがそのまま投稿のUUIDになる（新しい下書きを作り直していない）。
   expect(tweets).toEqual([{ id: draft.id, content }]);
   expect((await imagesOf(draft.id)).map((i) => i.width)).toEqual([30]);
+  await expect.poll(() => naturalWidths(card(page, content))).toEqual([30]);
   expect(errors).toEqual([]);
 });
 
@@ -270,6 +277,7 @@ test('編集：送信前に通信が切れても、元の投稿は変えず、�
   await expect(page).toHaveURL('/');
   expect(await tweetRow(tweetId)).toMatchObject({ content: `編集後 ${t}`, revision: '1' });
   expect((await imagesOf(tweetId)).map((i) => i.width)).toEqual([20, 40]);
+  await expect.poll(() => naturalWidths(card(page, `編集後 ${t}`))).toEqual([20, 40]);
   expect(errors).toEqual([]);
 });
 
@@ -281,6 +289,7 @@ test('削除：送信前に通信が切れても、元の投稿と画像を残�
 
   await login(page, me);
   await openMenu(page, card(page, `削除する投稿 ${t}`), '削除する');
+  await expect.poll(() => naturalWidths(card(page, `削除する投稿 ${t}`))).toEqual([10]);
   const d = deleteDialog(page);
   await expect(d).toBeVisible();
   await abortNextActionBeforeSend(page, tweetId);
@@ -338,6 +347,7 @@ test('作成：確定後に応答だけ失っても、同じ下書きの再送�
   await expect(card(page, content)).toHaveCount(1);
   expect(await tweetsOf(me)).toEqual([{ id: draft.id, content }]);
   expect((await imagesOf(draft.id)).map((i) => i.width)).toEqual([30]);
+  await expect.poll(() => naturalWidths(card(page, content))).toEqual([30]);
   expect((await uploadsOf(draft.id)).map((u) => u.status)).toEqual(['attached']);
   expect(await sql`SELECT id FROM twitter.tweet_drafts WHERE owner_id = ${me.id}`).toHaveLength(1);
   expect(errors).toEqual([]);
@@ -347,7 +357,8 @@ test('編集：確定後に応答だけ失っても、再送で版は進まず�
   const me = await loginableUser('編集の応答喪失');
   const errors = watchPageErrors(page);
   const t = token();
-  const tweetId = await post(me, `編集前 ${t}`, [10, 20]);
+  // 保持する正方形の画像で行の高さを保ち、画像の縦横比変更による最下部のscrollY補正を避ける。
+  const tweetId = await post(me, `編集前 ${t}`, [20, 10]);
   // 対象を一覧の下の方に置き、スクロールした位置を保つことを確かめる。
   for (let i = 0; i < 8; i++) await post(me, `後の投稿 ${i} ${t}`);
   const [removed] = await imagesOf(tweetId);
@@ -373,7 +384,7 @@ test('編集：確定後に応答だけ失っても、再送で版は進まず�
   expect(lost.response?.ok).toBe(true);
   expect(await tweetRow(tweetId)).toMatchObject({ content: `編集後 ${t}`, revision: '1' });
   const committed = await imagesOf(tweetId);
-  expect(committed.map((i) => i.width)).toEqual([20, 40]);
+  expect(committed.map((i) => i.width)).toEqual([10, 40]);
   expect(await deleteJobsFor([removedKey])).toHaveLength(1);
   await expect(toast(page, 'ツイートを更新しました')).toHaveCount(0);
 
@@ -386,6 +397,7 @@ test('編集：確定後に応答だけ失っても、再送で版は進まず�
   expect(await page.evaluate(() => window.scrollY)).toBe(scrollBefore);
   expect(await tweetRow(tweetId)).toMatchObject({ content: `編集後 ${t}`, revision: '1' });
   expect(await imagesOf(tweetId)).toEqual(committed);
+  await expect.poll(() => naturalWidths(card(page, `編集後 ${t}`))).toEqual([10, 40]);
   expect(await deleteJobsFor([removedKey])).toHaveLength(1);
   expect(errors).toEqual([]);
 });
@@ -399,6 +411,7 @@ test('削除：確定後に応答だけ失っても、再送は既に削除済�
 
   await login(page, me);
   await openMenu(page, card(page, `消える投稿 ${t}`), '削除する');
+  await expect.poll(() => naturalWidths(card(page, `消える投稿 ${t}`))).toEqual([10]);
   const d = deleteDialog(page);
   await expect(d).toBeVisible();
   const lost = await dropNextActionResponseAfterCommit(page, tweetId);
@@ -517,6 +530,7 @@ test('通常のエラー（欄エラー・競合・期限切れ・別の利用�
   // 競合（開いた後に他の画面で版が進んだ）
   await openMenu(page, card(page, `競合する投稿 ${t}`), '編集する');
   d = editDialog(page);
+  await expect(d).toBeVisible();
   await sql`UPDATE twitter.tweets SET revision = revision + 1 WHERE id = ${conflicted}`;
   await d.getByLabel('本文').fill(`競合後 ${t}`);
   await d.getByRole('button', { name: '更新', exact: true }).click();
@@ -528,6 +542,7 @@ test('通常のエラー（欄エラー・競合・期限切れ・別の利用�
   // 編集の準備の期限切れ
   await openMenu(page, card(page, `期限切れの投稿 ${t}`), '編集する');
   d = editDialog(page);
+  await expect(d).toBeVisible();
   await sql`
     UPDATE twitter.tweet_drafts SET expires_at = now() - interval '1 minute'
     WHERE owner_id = ${me.id} AND purpose = 'edit' AND target_tweet_id = ${expiring} AND status = 'open'
