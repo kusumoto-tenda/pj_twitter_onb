@@ -9,6 +9,8 @@ import { MAX_IMAGES_PER_TWEET, type ValidTweetInput } from '@/domain/tweets/twee
 
 type Draft = {
   id: string;
+  /** 編集用の下書きは 'edit'（作成用の確定では受け付けない）。 */
+  purpose?: 'create' | 'edit';
   ownerId: string | null;
   status: 'open' | 'published' | 'discarded';
   expiresAt: Date;
@@ -52,7 +54,7 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
     now: Date;
   }): Promise<PublishOutcome> {
     const draft = this.drafts.get(draftId);
-    if (!draft) return { status: 'draft-not-found' };
+    if (!draft || draft.purpose === 'edit') return { status: 'draft-not-found' };
     if (draft.ownerId !== actorId) return { status: 'forbidden' };
     if (draft.status === 'published') {
       return draft.fingerprint === fingerprint

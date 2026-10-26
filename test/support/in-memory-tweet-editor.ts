@@ -25,6 +25,7 @@ export class InMemoryTweetEditor implements TweetEditor {
     if (tweet.ownerId !== actorId) return { status: 'forbidden' };
     this.store.drafts.set(draftId, {
       id: draftId,
+      purpose: 'edit',
       ownerId: actorId,
       status: 'open',
       expiresAt,

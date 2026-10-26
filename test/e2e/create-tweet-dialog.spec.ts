@@ -336,7 +336,8 @@ test('アカウント削除後は画像URLが404になり、回収で実体が�
   expect((await page.request.get(mySrc!)).status()).toBe(404);
   expect((await page.request.get(otherSrc!)).status()).toBe(200);
   await cleanupMedia(
-    { media: new PostgresMediaRepository(sql), storage, now: () => new Date(Date.now() + 10 * 60_000) },
+    // 削除予約は画像のトークンの期限（15分）以降になる。
+    { media: new PostgresMediaRepository(sql), storage, now: () => new Date(Date.now() + 20 * 60_000) },
     { limit: 1000 },
   );
   expect(await storage.inspect(myKey)).toBeNull();

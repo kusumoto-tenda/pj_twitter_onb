@@ -211,4 +211,14 @@ describe('編集の流れ（テスト用の実装で状態遷移を確認）', a
       }),
     ).toEqual({ ok: false, code: 'INVALID_INPUT', fieldErrors: { images: ['添付画像を確認してください'] } });
   });
+
+  it('作成用の確定（publish）は編集用の下書きを受け付けない', async () => {
+    const { store, deps } = await published('元', 0);
+    const begun = await beginTweetEdit(deps, { actorId: ACTOR, tweetId: TWEET });
+    if (!begun.ok) throw new Error(begun.code);
+
+    expect(
+      await store.publish({ actorId: ACTOR, draftId: begun.value.draftId, value: { content: 'x', uploadIds: [] }, fingerprint: 'x', now: NOW }),
+    ).toEqual({ status: 'draft-not-found' });
+  });
 });

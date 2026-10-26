@@ -133,6 +133,7 @@ describe('PostgresMediaRepository（回収）', () => {
     await new PostgresUserRepository(sql).deleteById(alice.id);
     expect(await media.media.findPublishedImage(imageId)).toBeNull();
     // 削除予約の時刻はDBサーバーのnow()で入るため、手元の時計とのずれを見込んで十分先の時刻で確認する。
-    expect(await media.media.claimDueDeleteJobs({ now: later(10 * 60_000), limit: 1000 })).toContain(upload.storageKey);
+    // 削除予約は画像のトークンの期限（15分）以降になる。
+    expect(await media.media.claimDueDeleteJobs({ now: later(20 * 60_000), limit: 1000 })).toContain(upload.storageKey);
   });
 });
