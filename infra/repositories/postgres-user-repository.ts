@@ -1,6 +1,7 @@
 import postgres from 'postgres';
 import type {
   CreateUserOutcome,
+  DeleteUserOutcome,
   UpdateProfileOutcome,
   UserRepository,
 } from '@/application/users/ports/user-repository';
@@ -97,5 +98,9 @@ export class PostgresUserRepository implements UserRepository {
       if (isDisplayIdConflict(error)) return { status: 'display-id-taken' };
       throw error;
     }
+  }
+
+  async deleteById(_id: string): Promise<DeleteUserOutcome> {
+    throw new Error('未実装');
   }
 }
