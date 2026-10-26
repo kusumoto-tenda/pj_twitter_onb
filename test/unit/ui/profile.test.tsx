@@ -28,6 +28,13 @@ vi.mock('@/app/ui/retweets/retweet-button', () => ({
   ),
 }));
 
+// フォローボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/profile/follow-button', () => ({
+  FollowButton: ({ targetId, active, expectedActorId }: { targetId: string; active: boolean; expectedActorId: string | null }) => (
+    <span data-testid="follow-button" data-target={targetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
+  ),
+}));
+
 const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 const transition = vi.hoisted(() => ({ forcePending: false }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
@@ -60,6 +67,8 @@ const profile: ProfileSummary = {
   followedByViewer: false,
 };
 
+const VIEWER = '00000000-0000-4000-8000-0000000000f1';
+
 beforeEach(() => {
   router.refresh.mockReset();
 });
@@ -72,7 +81,7 @@ describe('formatJoinedDate', () => {
 
 describe('ProfileHeader', () => {
   it('名前・ID・bio・利用開始日・件数を表示し、件数を一覧へのリンクにする', () => {
-    render(<ProfileHeader profile={profile} isSelf={false} tab="tweets" />);
+    render(<ProfileHeader profile={profile} isSelf={false} viewerId={VIEWER} tab="tweets" />);
 
     const header = screen.getByRole('region', { name: 'プロフィール' });
     expect(screen.getByRole('heading', { name: 'アリス' })).toBeInTheDocument();
@@ -89,7 +98,7 @@ describe('ProfileHeader', () => {
   });
 
   it('bioの改行を保ち、HTML風の文字列をDOMとして解釈しない', () => {
-    render(<ProfileHeader profile={profile} isSelf={false} tab="tweets" />);
+    render(<ProfileHeader profile={profile} isSelf={false} viewerId={VIEWER} tab="tweets" />);
 
     const bio = screen.getByText(/よろしく/);
     expect(bio.textContent).toBe('よろしく\n<b>二行目</b>');
@@ -97,13 +106,13 @@ describe('ProfileHeader', () => {
   });
 
   it('bioが空なら段落を出さない', () => {
-    render(<ProfileHeader profile={{ ...profile, bio: '' }} isSelf={false} tab="tweets" />);
+    render(<ProfileHeader profile={{ ...profile, bio: '' }} isSelf={false} viewerId={VIEWER} tab="tweets" />);
 
     expect(screen.getByRole('region', { name: 'プロフィール' }).querySelector('[data-bio]')).toBeNull();
   });
 
   it('自分なら「自分のプロフィール」と編集リンクを表示し、操作ボタンは出さない', () => {
-    render(<ProfileHeader profile={{ ...profile, followedByViewer: false }} isSelf tab="tweets" />);
+    render(<ProfileHeader profile={{ ...profile, followedByViewer: false }} isSelf viewerId={profile.id} tab="tweets" />);
 
     expect(screen.getByText('自分のプロフィール')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'プロフィール編集' })).toHaveAttribute(
@@ -114,35 +123,40 @@ describe('ProfileHeader', () => {
       'href',
       '/profile/Alice_1/delete',
     );
-    expect(screen.queryByText('フォロー中')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('follow-button')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('フォロー済みの他人なら読み取り専用の「フォロー中」を表示する', () => {
-    render(<ProfileHeader profile={{ ...profile, followedByViewer: true }} isSelf={false} tab="tweets" />);
+  it('フォロー済みの他人なら、対象のUUID・状態・閲覧者をフォローボタンへ渡す', () => {
+    render(<ProfileHeader profile={{ ...profile, followedByViewer: true }} isSelf={false} viewerId={VIEWER} tab="tweets" />);
 
-    expect(screen.getByText('フォロー中')).toBeInTheDocument();
+    const follow = screen.getByTestId('follow-button');
+    expect(follow).toHaveAttribute('data-target', profile.id);
+    expect(follow).toHaveAttribute('data-active', 'true');
+    expect(follow).toHaveAttribute('data-actor', VIEWER);
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'プロフィール編集' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('未ログイン・未フォローの他人では補助表示を出さない', () => {
-    render(<ProfileHeader profile={profile} isSelf={false} tab="tweets" />);
+  it('未ログインで見た他人では、閲覧者なしの未フォローのボタンを出し、自分向けの表示は出さない', () => {
+    render(<ProfileHeader profile={profile} isSelf={false} viewerId={null} tab="tweets" />);
 
-    expect(screen.queryByText('フォロー中')).not.toBeInTheDocument();
+    const follow = screen.getByTestId('follow-button');
+    expect(follow).toHaveAttribute('data-target', profile.id);
+    expect(follow).toHaveAttribute('data-active', 'false');
+    expect(follow).toHaveAttribute('data-actor', '');
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'プロフィール編集' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
   });
 
   it('フォロー・フォロワーのタブでは対応する件数リンクを選択状態にする', () => {
-    const { rerender } = render(<ProfileHeader profile={profile} isSelf={false} tab="followers" />);
+    const { rerender } = render(<ProfileHeader profile={profile} isSelf={false} viewerId={VIEWER} tab="followers" />);
     expect(screen.getByRole('link', { name: '3 フォロワー' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: '2 フォロー' })).not.toHaveAttribute('aria-current');
 
-    rerender(<ProfileHeader profile={profile} isSelf={false} tab="following" />);
+    rerender(<ProfileHeader profile={profile} isSelf={false} viewerId={VIEWER} tab="following" />);
     expect(screen.getByRole('link', { name: '2 フォロー' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('link', { name: '3 フォロワー' })).not.toHaveAttribute('aria-current');
   });

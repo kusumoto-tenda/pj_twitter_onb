@@ -161,8 +161,12 @@ test('ログイン中は自分のナビで自分、他人のカードで他人�
     .click();
   await expect(page).toHaveURL(`/profile/${friend.displayId}`);
   await expect(profileHeader(page)).not.toContainText('自分のプロフィール');
-  await expect(profileHeader(page)).toContainText('フォロー中');
-  await expect(profileHeader(page).getByRole('button')).toHaveCount(0);
+  // フォロー済みの他人には、操作できる「フォロー解除」だけを出す
+  await expect(profileHeader(page).getByRole('button')).toHaveCount(1);
+  await expect(profileHeader(page).getByRole('button', { name: 'フォロー解除', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
   // 他人のページを見ていても、自分のナビは自分を指す
   await expect(page.getByRole('link', { name: 'プロフィール', exact: true })).toHaveAttribute(
     'href',

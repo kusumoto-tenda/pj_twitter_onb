@@ -47,6 +47,12 @@ vi.mock('@/app/ui/retweets/retweet-button', () => ({
     <span data-testid="retweet-button" data-tweet={tweetId} data-active={String(active)} data-count={count} />
   ),
 }));
+// フォローボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/profile/follow-button', () => ({
+  FollowButton: ({ targetId, active, expectedActorId }: { targetId: string; active: boolean; expectedActorId: string | null }) => (
+    <span data-testid="follow-button" data-target={targetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
+  ),
+}));
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
   TweetActionsMenu: ({ tweetId }: { tweetId: string }) => <span data-testid="tweet-menu">{tweetId}</span>,
 }));
@@ -141,6 +147,9 @@ describe('ProfilePage', () => {
       { subjectId: OTHER_ID, viewerId: null, kind: 'tweet', after: null, limit: 20 },
     ]);
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
+    // 未ログインでもフォローボタンを表示する（画面の利用者はなし）
+    expect(screen.getByTestId('follow-button')).toHaveAttribute('data-target', OTHER_ID);
+    expect(screen.getByTestId('follow-button')).toHaveAttribute('data-actor', '');
     expect(metadata).toMatchObject({ title: 'プロフィール' });
   });
 
@@ -153,7 +162,11 @@ describe('ProfilePage', () => {
     // 一覧の対象は表示中の他人、お気に入りの判定はログイン中の自分
     expect(query.requests.activity[0]).toMatchObject({ subjectId: OTHER_ID, viewerId: FIXED_ID });
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
-    expect(screen.getByText('フォロー中')).toBeInTheDocument();
+    // フォローの対象は表示中の他人のUUID、画面の利用者はログイン中の自分（取り違えない）
+    const follow = screen.getByTestId('follow-button');
+    expect(follow).toHaveAttribute('data-target', OTHER_ID);
+    expect(follow).toHaveAttribute('data-actor', FIXED_ID);
+    expect(follow).toHaveAttribute('data-active', 'true');
     const nav = screen.getByRole('link', { name: 'プロフィール' });
     expect(nav).toHaveAttribute('href', '/profile/Alice_1');
     expect(nav).not.toHaveAttribute('aria-current');
@@ -167,6 +180,7 @@ describe('ProfilePage', () => {
 
     expect(screen.getByText('自分のプロフィール')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'プロフィール' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByTestId('follow-button')).not.toBeInTheDocument();
     // 生成するリンクは保存済みの表記を使う
     expect(screen.getByRole('link', { name: 'リツイート' })).toHaveAttribute(
       'href',

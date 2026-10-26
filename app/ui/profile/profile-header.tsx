@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ProfileSummary, ProfileTab } from '@/application/profile/profile';
 import { profileHref } from '@/app/lib/profile-query';
+import { FollowButton } from '@/app/ui/profile/follow-button';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
   timeZone: 'Asia/Tokyo',
@@ -22,11 +23,14 @@ const countLinkClassName = 'hover:underline aria-[current=page]:font-bold aria-[
 export function ProfileHeader({
   profile,
   isSelf,
+  viewerId,
   tab,
 }: {
   profile: ProfileSummary;
   /** セッションのUUIDと対象のUUIDが一致するか。 */
   isSelf: boolean;
+  /** ログイン中の利用者のUUID。未ログインならnull。対象のprofile.idとは別物。 */
+  viewerId: string | null;
   tab: ProfileTab;
 }) {
   return (
@@ -36,7 +40,6 @@ export function ProfileHeader({
           <h1 className="text-xl font-bold [overflow-wrap:anywhere]">{profile.name}</h1>
           <p className="text-gray-500">@{profile.displayId}</p>
         </div>
-        {/* 操作ボタンではなく、状態の表示。 */}
         {isSelf ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-gray-100 px-3 py-1 text-sm font-bold text-gray-700">
@@ -56,11 +59,8 @@ export function ProfileHeader({
             </Link>
           </div>
         ) : (
-          profile.followedByViewer && (
-            <span className="rounded-full border border-gray-300 px-3 py-1 text-sm font-bold text-gray-700">
-              フォロー中
-            </span>
-          )
+          // 未ログインでも表示し、押したらActionの案内を通知する。対象は表示IDではなくUUIDで固定する。
+          <FollowButton targetId={profile.id} active={profile.followedByViewer} expectedActorId={viewerId} />
         )}
       </div>
       {profile.bio && (

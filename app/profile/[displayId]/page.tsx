@@ -146,7 +146,7 @@ export default async function ProfilePage({
   return (
     <PageShell activePage={isSelf ? 'profile' : null} profileHref={ownProfileHref}>
       <ProfileUpdatedFlash />
-      <ProfileHeader profile={profile} isSelf={isSelf} tab={tab} />
+      <ProfileHeader profile={profile} isSelf={isSelf} viewerId={viewerId} tab={tab} />
       <ProfileTabs displayId={profile.displayId} tab={tab} />
       {list}
     </PageShell>
