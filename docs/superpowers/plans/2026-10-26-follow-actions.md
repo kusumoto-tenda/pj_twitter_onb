@@ -8,7 +8,7 @@
 
 **Tech Stack:** 既存構成。migration・外部サービス・ライブラリ追加なし。
 
-**Status:** Task1〜6の実装・単体/UI・型チェックは済み。結合・E2E・本番ビルド・実DBでの退会CASCADE等の確認はコーディネーターの確認待ち。[全体計画](2026-10-26-remaining-core-features.md)の第5段階。リツイートを完成・レビューしてから着手する。
+**Status:** Task1〜6の実装・レビュー・最終検証は完了（2026-10-27）。単体/UI1011件、結合164件、全E2E105件、型チェック・本番ビルド成功。実行の詳細は末尾を参照。
 
 ## 仕様と契約
 
@@ -53,16 +53,16 @@ expect(deps.follows.set).not.toHaveBeenCalled();
 **Create:** `infra/repositories/postgres-follow-repository.ts`、`test/integration/postgres-follows.test.ts`、`app/_composition/follow.ts`。
 
 - [x] 同時登録・重複解除・相互フォロー・再登録日時・本人／対象退会との競合を先にテスト化する。
-- [ ] `pnpm exec vitest run --project integration test/integration/postgres-follows.test.ts` → FAIL後に既存followsを使って実装する。
-- [ ] ProfileQueryのfollowingCount/followerCount/followedByViewer、両側の一覧、TimelineQueryのfollowingOnlyが書込み後に整合することを実DBで確認する。取得の仕様を別方式へ書き換えない。
-- [ ] 自分の出来事と、フォローした実行者のリツイートが含まれ、解除した他人の出来事が除かれることを確認する。PASS・型チェック後コミット：`feat: フォロー関係を原子的に登録解除する`。
+- [x] `pnpm exec vitest run --project integration test/integration/postgres-follows.test.ts` → FAIL後に既存followsを使って実装する。
+- [x] ProfileQueryのfollowingCount/followerCount/followedByViewer、両側の一覧、TimelineQueryのfollowingOnlyが書込み後に整合することを実DBで確認する。取得の仕様を別方式へ書き換えない。
+- [x] 自分の出来事と、フォローした実行者のリツイートが含まれ、解除した他人の出来事が除かれることを確認する。PASS・型チェック後コミット：`feat: フォロー関係を原子的に登録解除する`。
 
 ### Task 3: 先行E2E
 
 **Create:** `test/e2e/follows.spec.ts`。
 
 - [x] フォロー→件数／両側一覧→フォローのみ→解除、自分には導線なし、匿名通知のみ、actor切替、他人の逆方向行維持、表示ID変更後も同じUUIDを操作、375pxをテスト化する。
-- [ ] `pnpm exec playwright test test/e2e/follows.spec.ts` → 未実装FAILを確認。コミット：`test: フォロー操作のE2Eを先に追加`。
+- [x] `pnpm exec playwright test test/e2e/follows.spec.ts` → 未実装FAILを確認。コミット：`test: フォロー操作のE2Eを先に追加`。
 
 ### Task 4: Actionと無効化
 
@@ -79,13 +79,13 @@ expect(deps.follows.set).not.toHaveBeenCalled();
 
 - [x] 未フォロー／フォロー中、自己非表示、pendingロック、失敗維持、通知、正しいtargetIdとactive、匿名の操作をUIテストにする。
 - [x] `pnpm exec vitest run --project ui test/unit/ui/follow-button.test.tsx` → FAIL後に実装する。viewer UUIDを対象profile.idと取り違えない。
-- [ ] ActionFeedbackProviderを使い、成功後はQuery由来の件数・状態を表示する。URL・タブ・スクロールを保つ。Task3 E2EをPASS。
+- [x] ActionFeedbackProviderを使い、成功後はQuery由来の件数・状態を表示する。URL・タブ・スクロールを保つ。Task3 E2EをPASS。
 - [x] コミット：`feat: プロフィールからフォローと解除を操作可能にする`。
 
 ### Task 6: 回帰と資料
 
-- [ ] `pnpm test:unit`、`pnpm typecheck`、`pnpm test:integration`、`pnpm test:e2e`、`pnpm build` を通す。新規E2Eを2回連続で通す。
-- [ ] アカウント削除による両方向CASCADE、名前・ID変更後の関係維持、全タイムラインと各プロフィールの戻る・進むを確認する。
+- [x] `pnpm test:unit`、`pnpm typecheck`、`pnpm test:integration`、`pnpm test:e2e`、`pnpm build` を通す。新規E2Eを2回連続で通す。
+- [x] アカウント削除による両方向CASCADE、名前・ID変更後の関係維持、全タイムラインと各プロフィールの戻る・進むを確認する。
 - [x] README・front_designに自己禁止、匿名通知、重複登録、一覧での導線を記載。コミット：`docs: フォロー操作の仕様と確認結果を記載`。レビュー後に第6段階のログアウトへ。
 
 ## 進捗メモ（2026-10-27、実装worktree）
@@ -95,3 +95,11 @@ expect(deps.follows.set).not.toHaveBeenCalled();
 - Task4: `test/unit/app/follow-actions.test.ts` はスタブでRed 23/23 FAIL → 実装後 23/23 PASS。
 - Task5: `test/unit/ui/follow-button.test.tsx` はスタブでRed 14 FAIL・1 PASS（自分には出さない） → 実装後、既存のプロフィールのテストと合わせて3ファイル59件PASS。`test/e2e/profile-screen.spec.ts` の読み取り専用「フォロー中」の期待を「フォロー解除」ボタンへ更新（未実行）。
 - Task6: 単体・UI 75ファイル989件PASS、型チェックPASS。結合・E2E（2回連続）・`pnpm build`・退会の両方向CASCADE・名前／ID変更後の関係維持・戻る／進むの確認はコーディネーターの確認待ち。
+
+## コーディネーターの最終確認（2026-10-27）
+
+- 全体の単体/UI1011件、結合164件、E2E105件が成功。型チェック成功、本番ビルドで起動したサーバーでE2Eを実行した。
+- この機能のE2E8件は、現行実装で連続する2回の実行に成功した。
+- 実装担当はテスト資格情報を持たず、外部DB・Blobの検証はコーディネーターが分離チェック付きで実行した。結合の初回は2ファイルでTCP接続が失敗したため失敗として記録し、全体再実行で164件すべての成功を確認した。
+- E2EはUIより先に記述した。一部のRed実行は実装後に、隔離した実装前コミット `8825f4f` のアプリで再現した。実装前に全E2Eを実行したという意味ではない。通知・ハート・リツイート・フォローが未実装のため失敗し、資格情報不足の失敗ではないことを確認した。
+- 本番への適用・デプロイ環境での画像確認は、この実装検証とは別のリリース作業として残す。

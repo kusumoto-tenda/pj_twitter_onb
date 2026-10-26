@@ -8,7 +8,7 @@
 
 **Tech Stack:** 導入済みNext.js 16.4.2、React、TypeScript、Vitest、Playwright。新規依存・migration・ストレージ設定なし。
 
-**Status:** Task 1〜6を `worktree-remaining-core` に実装済み（`da810e8` の後）。単体・UI・型チェックはPASS。E2E（Redの確認を含む）・結合・本番ビルドは未確認で、コーディネーターの外部リソースでの確認待ち。完了条件はその確認後に更新する。
+**Status:** Task1〜6の実装・レビュー・最終検証は完了（2026-10-27）。単体/UI1011件、結合164件、全E2E105件、型チェック・本番ビルド成功。実行の詳細は末尾を参照。
 
 ## 1. 現状と判断
 
@@ -108,8 +108,8 @@ expect(await invokeDialogAction(() => Promise.reject(new TypeError('Failed to fe
   .toEqual({ ok: false });
 ```
 
-- [ ] UI修正より前にE2Eを追加する。作成・編集・削除それぞれの「送信前に通信切断→画面保持→再試行」を書き、画面がエラー境界へ進むため失敗することを確認する。（3件は `8825f4f` でUI修正より前に追加済み。失敗の確認は未実施：実装worktreeにはテスト専用DB/Blobがなく、コーディネーターの確認待ち。UI修正後のコミットからは `8825f4f` をcheckoutして確認する）
-- [ ] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` → 未対応FAILを記録する。失敗目的は通信処理の未実装であり、DBやBlob資格情報不足でのFAILをRed扱いしない。（未実施・コーディネーターの確認待ち）
+- [x] UI修正より前にE2Eを追加する。作成・編集・削除それぞれの「送信前に通信切断→画面保持→再試行」を書き、画面がエラー境界へ進むため失敗することを確認する。
+- [x] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` → 未対応FAILを記録する。失敗目的は通信処理の未実装であり、DBやBlob資格情報不足でのFAILをRed扱いしない。
 - [x] helperテストと型チェックをPASS。コミット：`test: 投稿操作の通信失敗と遷移の契約を追加`。この時点のE2E未実装FAILだけは計画上のものとして記録する。
 
 ### Task 2: 作成の通信失敗・入力保持・再送
@@ -149,7 +149,7 @@ expect(await invokeDialogAction(() => Promise.reject(new TypeError('Failed to fe
 - [x] `pnpm exec vitest run --project ui test/unit/ui/create-tweet-dialog.test.tsx test/unit/ui/edit-tweet-dialog.test.tsx test/unit/ui/delete-tweet-dialog.test.tsx` → 開始rejectのFAILを確認する。
 - [x] prepare内でもhelperを使い、一般例外では既存rootのerror表示へ `通信に失敗しました。もう一度お試しください` をセットする。成功後処理の例外までcatchしない。finallyのopening解除とフォーカス監視停止を保つ。
 - [x] 開始時のエラー表示は既存のroot案内を再利用する（ダイアログ送信時の3秒Toastとは別）。再起動時に古いerrorを消す。UUIDを知らない未応答下書きを推測で破棄しない。
-- [ ] Next.jsの制御例外がhelperからそのまま抜け、未ログインの開始・送信で/loginへ移動することを検証する。既存のフォーカス復帰5件も通す。（UI：実際の `redirect()` の値が開始ではそのまま抜け、送信ではエラー境界へ同じ値で届くこと、フォーカス復帰5件はPASS。/loginへの移動はTask6のE2Eに記述済みで、コーディネーターの確認待ち）
+- [x] Next.jsの制御例外がhelperからそのまま抜け、未ログインの開始・送信で/loginへ移動することを検証する。既存のフォーカス復帰5件も通す。
 - [x] 型チェック。コミット：`fix: 投稿ダイアログを開く通信失敗からも復帰できるようにする`。
 
 ### Task 6: 応答だけ失われた場合のE2E・全体確認・記録
@@ -184,20 +184,20 @@ await page.route('**/*', async route => {
 | 未認証の開始・保存 | 作成・編集・削除それぞれ/login、専用ログイン案内、通信失敗／更新成功／削除成功の誤通知なし、dialogがloginを覆わない |
 | 通常エラー | 欄エラー、競合、期限切れ、別actorへの切替は既存の説明で、通信エラーと混同しない |
 
-- [ ] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` をPASS、連続2回通す。小さい有効なPNGで画像を確認し、不要な5MiBの反復アップロードを追加しない。（spec記述済み・未実行。コーディネーターの確認待ち）
-- [ ] `pnpm test:unit`、`pnpm typecheck`、`pnpm test:integration`、`pnpm test:e2e`、`pnpm build` を実行し結果を記録する。専用DB/Blobの分離チェックを維持する。（実装worktreeでの実測 2026-10-27: `pnpm test:unit` 61ファイル・768件PASS（変更前733件）、`pnpm typecheck` PASS。`pnpm build` はworktreeの依存配置により失敗：`node_modules/next` が元checkoutの `node_modules/.pnpm/...` を指し、Turbopackのルート（worktree）の外にあるため「Could not find the Next.js package (next/package.json)」。設定は変更していない。結合・E2E・ビルドはコーディネーターの確認待ち）
+- [x] `pnpm exec playwright test test/e2e/dialog-network-errors.spec.ts` をPASS、連続2回通す。小さい有効なPNGで画像を確認し、不要な5MiBの反復アップロードを追加しない。
+- [x] `pnpm test:unit`、`pnpm typecheck`、`pnpm test:integration`、`pnpm test:e2e`、`pnpm build` を実行し結果を記録する。専用DB/Blobの分離チェックを維持する。
 - [x] ブラウザ側のネットワークエラー発生と、アプリ画面がエラー境界に置き換わることを区別する。既知のabort由来consoleエラーだけを必要な範囲で扱い、全pageerrorを無条件に無視しない。
 - [x] READMEとfront_designへ入力保持・結果不明・同じ下書きでの再試行を記載する。ロック順やschemaの変更が不要であることを確認する。
 - [x] コミット：`test: 投稿操作の応答喪失と再送の回帰確認を追加`。レビュー後にいいねへ進む。merge/push/デプロイは別指示による。
 
 ## 5. 完了条件
 
-- [ ] 作成・編集・削除と開始Actionの一般rejectがエラー境界へ漏れない。
-- [ ] 入力・対象・画像のIDを保持し、pending解除後に利用者が再試行・キャンセルできる。
-- [ ] 通信失敗からDB未変更を断言せず、応答喪失後の再送でも重複・追加更新を起こさない。
-- [ ] Next.jsの制御例外が再throwされ、投稿成功遷移と未認証ログイン遷移を維持する。
-- [ ] 通常の欄エラー・競合・認可・画像解除中ロック・StrictMode・フォーカス復帰を壊していない。
-- [ ] 単体・UI・結合・全E2E・型チェック・本番ビルドの実測結果を記録した。
+- [x] 作成・編集・削除と開始Actionの一般rejectがエラー境界へ漏れない。
+- [x] 入力・対象・画像のIDを保持し、pending解除後に利用者が再試行・キャンセルできる。
+- [x] 通信失敗からDB未変更を断言せず、応答喪失後の再送でも重複・追加更新を起こさない。
+- [x] Next.jsの制御例外が再throwされ、投稿成功遷移と未認証ログイン遷移を維持する。
+- [x] 通常の欄エラー・競合・認可・画像解除中ロック・StrictMode・フォーカス復帰を壊していない。
+- [x] 単体・UI・結合・全E2E・型チェック・本番ビルドの実測結果を記録した。
 
 ## 6. 導入版で読む資料
 
@@ -208,3 +208,12 @@ await page.route('**/*', async route => {
 - `node_modules/next/dist/client/components/router-reducer/reducers/server-action-reducer.js`
 
 ローカルの仕様を優先する。内部実装は挙動の確認にのみ使い、アプリ本体は公開APIからimportする。
+
+## コーディネーターの最終確認（2026-10-27）
+
+- 全体の単体/UI1011件、結合164件、E2E105件が成功。型チェック成功、本番ビルドで起動したサーバーでE2Eを実行した。
+- この機能のE2E10件は、現行実装で連続する2回の実行に成功した。
+- 実装担当はテスト資格情報を持たず、外部DB・Blobの検証はコーディネーターが分離チェック付きで実行した。結合の初回は2ファイルでTCP接続が失敗したため失敗として記録し、全体再実行で164件すべての成功を確認した。
+- E2EはUIより先に記述した。一部のRed実行は実装後に、隔離した実装前コミット `8825f4f` のアプリで再現した。実装前に全E2Eを実行したという意味ではない。通知・ハート・リツイート・フォローが未実装のため失敗し、資格情報不足の失敗ではないことを確認した。
+- 作成・編集・削除の送信前切断3件は、旧実装でそれぞれ失敗することを再確認した。共有node_modulesによる最初のビルド失敗は、依存をworktree内へ配置し直して解消し、Next.js設定は変更していない。
+- 本番への適用・デプロイ環境での画像確認は、この実装検証とは別のリリース作業として残す。
