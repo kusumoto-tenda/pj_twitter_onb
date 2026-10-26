@@ -82,7 +82,9 @@ export function CreateTweetDialog({
   const failed = state.status === 'error' ? state : null;
 
   useEffect(() => {
-    dialogRef.current?.showModal();
+    // StrictModeではEffectが再実行されるため、開いていないときだけモーダルで開く。
+    const dialog = dialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
     textareaRef.current?.focus();
   }, []);
 

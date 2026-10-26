@@ -1,5 +1,6 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { ImageUploader, UploadResult } from '@/app/ui/tweets/image-uploader';
 import { TweetImagePicker } from '@/app/ui/tweets/tweet-image-picker';
@@ -228,5 +229,28 @@ describe('TweetImagePicker', () => {
       '00000000-0000-4000-8000-0000000000cc',
       '00000000-0000-4000-8000-0000000000cc',
     ]);
+  });
+
+  it('StrictMode（Effectの再実行）でも、アップロード中に削除した画像は予約の破棄後に外れ、操作が戻る', async () => {
+    const { uploader, pending, succeed } = controllableUploader();
+    const onChange = vi.fn();
+    render(
+      <StrictMode>
+        <TweetImagePicker draftId="draft-1" uploader={uploader} disabled={false} onChange={onChange} />
+      </StrictMode>,
+    );
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png'), png('2.png')]);
+    await succeed(1);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+    await act(async () =>
+      pending[0].resolve({ ok: false, uploadId: '00000000-0000-4000-8000-0000000000dd', message: '中断しました' }),
+    );
+
+    await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(1));
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000dd');
+    expect(screen.getByRole('button', { name: '画像1を削除' })).toBeEnabled();
+    expect(onChange).toHaveBeenLastCalledWith({ uploadIds: ['00000000-0000-4000-8000-000000000001'], busy: false });
   });
 });

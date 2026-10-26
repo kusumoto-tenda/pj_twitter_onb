@@ -58,16 +58,17 @@ export function TweetImagePicker({
   }, [attachments, onChange]);
 
   // 閉じる・アンマウント時は、進行中のアップロードを中断してプレビューURLを解放する。
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    // StrictModeではEffectが「実行→後始末→再実行」されるため、開始時に毎回戻す。
+    mounted.current = true;
+    return () => {
       mounted.current = false;
       for (const attachment of live.current) {
         attachment.controller.abort();
         URL.revokeObjectURL(attachment.previewUrl);
       }
-    },
-    [],
-  );
+    };
+  }, []);
 
   const update = (localId: number, patch: Partial<Attachment>) =>
     setAttachments((current) => current.map((a) => (a.localId === localId ? { ...a, ...patch } : a)));
