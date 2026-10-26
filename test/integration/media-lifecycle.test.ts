@@ -97,8 +97,8 @@ describe('画像のライフサイクル（実DB・実テスト用ストア）',
     expect(await deps.media.findPublishedImage(aliceImage)).toBeNull();
     expect(await storage.inspect(aliceUpload.pathname)).not.toBeNull();
 
-    // 削除予約はDBサーバーのnow()で入るため、少し先の時刻で回収する。
-    await cleanupMedia(depsAt(() => new Date(Date.now() + 10 * 60_000)), { limit: 1000 });
+    // 削除予約は画像のトークンの期限（15分）以降になるため、それより後の時刻で回収する。
+    await cleanupMedia(depsAt(() => new Date(Date.now() + 20 * 60_000)), { limit: 1000 });
 
     expect(await storage.inspect(aliceUpload.pathname)).toBeNull();
     expect(await storage.inspect(bobUpload.pathname)).not.toBeNull();

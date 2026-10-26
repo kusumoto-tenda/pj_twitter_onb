@@ -23,6 +23,14 @@ vi.mock('react', async (importOriginal) => {
         : actual.useTransition(),
   };
 });
+// 三点メニューの中身はメニューのテストで確認する。ここでは表示の有無だけを見る。
+vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
+  TweetActionsMenu: ({ tweetId, menuKey }: { tweetId: string; menuKey: string }) => (
+    <button type="button" data-tweet-id={tweetId} data-menu-key={menuKey}>
+      ツイートの操作
+    </button>
+  ),
+}));
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...props}>
@@ -76,6 +84,26 @@ describe('TweetCard', () => {
     expect(time).toHaveAttribute('dateTime', '2026-10-23T03:04:05.123456Z');
     expect(time).toHaveTextContent('2026/10/23 12:04');
     expect(card).not.toHaveTextContent('リツイート');
+  });
+
+  it('元投稿者が閲覧者本人のカードにだけ「ツイートの操作」を出す（リツイートでも元投稿者で判断する）', () => {
+    const retweet = item({
+      key: { ...item().key, kind: 'retweet', eventId: '00000000-0000-4000-8000-0000000000bb' },
+      retweetedBy: bob,
+    });
+    const { rerender } = render(<TweetCard item={item()} viewerId={alice.id} />);
+    expect(screen.getByRole('button', { name: 'ツイートの操作' })).toHaveAttribute('data-tweet-id', item().tweet.id);
+    expect(screen.getByRole('button', { name: 'ツイートの操作' })).toHaveAttribute('data-menu-key', `tweet:${item().key.eventId}`);
+
+    // 他人がリツイートした自分の投稿
+    rerender(<TweetCard item={retweet} viewerId={alice.id} />);
+    expect(screen.getByRole('button', { name: 'ツイートの操作' })).toBeInTheDocument();
+    // 自分（ボブ）がリツイートした他人の投稿
+    rerender(<TweetCard item={retweet} viewerId={bob.id} />);
+    expect(screen.queryByRole('button', { name: 'ツイートの操作' })).not.toBeInTheDocument();
+    // 未ログイン
+    rerender(<TweetCard item={item()} viewerId={null} />);
+    expect(screen.queryByRole('button', { name: 'ツイートの操作' })).not.toBeInTheDocument();
   });
 
   it('投稿者名を保存済みのIDのプロフィールへのリンクにする', () => {

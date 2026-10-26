@@ -264,4 +264,19 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
 
     expect(submitButton()).toBeDisabled();
   });
+
+  it('画像の削除（予約の破棄）が終わるまでは投稿できない', async () => {
+    const ctx = setup();
+    await open(ctx);
+    await ctx.user.upload(screen.getByLabelText('画像を追加'), new File([new Uint8Array(4)], 'a.png', { type: 'image/png' }));
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+    let finishRelease: (released: boolean) => void = () => {};
+    vi.mocked(ctx.uploader.discardUpload).mockImplementationOnce(() => new Promise((r) => (finishRelease = r)));
+
+    await ctx.user.click(within(dialog()).getByRole('button', { name: '画像1を削除' }));
+
+    expect(submitButton()).toBeDisabled();
+    await act(async () => finishRelease(true));
+    await waitFor(() => expect(submitButton()).toBeEnabled());
+  });
 });

@@ -4,6 +4,7 @@ import type { ValidTweetInput } from '@/domain/tweets/tweet-validation';
 import { UUID_PATTERN, discardOpenUploads } from './media-sql';
 
 type DraftRow = {
+  purpose: 'create' | 'edit';
   owner_id: string | null;
   status: 'open' | 'published' | 'discarded';
   expires_at: Date;
@@ -50,10 +51,11 @@ export class PostgresTweetWriter implements TweetWriter {
     if (!UUID_PATTERN.test(draftId)) return { status: 'draft-not-found' };
     return this.sql.begin(async (tx): Promise<PublishOutcome> => {
       const [draft] = await tx<DraftRow[]>`
-        SELECT owner_id, status, expires_at, fingerprint, published_tweet_id
+        SELECT purpose, owner_id, status, expires_at, fingerprint, published_tweet_id
         FROM twitter.tweet_drafts WHERE id = ${draftId} FOR UPDATE
       `;
-      if (!draft) return { status: 'draft-not-found' };
+      // 作成用の確定は作成用の下書きだけを受け付ける（編集用の下書きで新しい投稿を作らない）。
+      if (!draft || draft.purpose !== 'create') return { status: 'draft-not-found' };
       if (draft.owner_id !== actorId) return { status: 'forbidden' };
       if (draft.status === 'published') {
         return draft.fingerprint === fingerprint && draft.published_tweet_id

@@ -209,6 +209,8 @@ test('未ログインで投稿ボタンを押すと、ログイン画面で3秒�
 });
 
 test('281文字・空・GIF・5枚目・5MB超過は欄エラーと失敗通知で、投稿を増やさない。5MBちょうどは添付できる', async ({ page }) => {
+  // 5MBの画像を実際のテスト用ストアへアップロードするため、他のテストより時間がかかる。
+  test.setTimeout(120_000);
   const me = track(await loginableUser('失敗する人'));
 
   await login(page, me);
@@ -336,7 +338,8 @@ test('アカウント削除後は画像URLが404になり、回収で実体が�
   expect((await page.request.get(mySrc!)).status()).toBe(404);
   expect((await page.request.get(otherSrc!)).status()).toBe(200);
   await cleanupMedia(
-    { media: new PostgresMediaRepository(sql), storage, now: () => new Date(Date.now() + 10 * 60_000) },
+    // 削除予約は画像のトークンの期限（15分）以降になる。
+    { media: new PostgresMediaRepository(sql), storage, now: () => new Date(Date.now() + 20 * 60_000) },
     { limit: 1000 },
   );
   expect(await storage.inspect(myKey)).toBeNull();

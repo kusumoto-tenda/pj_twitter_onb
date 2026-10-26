@@ -26,7 +26,7 @@ const STATUS_LABEL = { uploading: 'アップロード中', verifying: '確認中
 
 /**
  * 画像の選択・プレビュー・解除・再試行。選んだ直後に直接アップロードと検証を進め、
- * 準備できた画像IDを選択順で親へ知らせる（失敗・処理中の画像があればbusy）。
+ * 準備できた画像IDを選択順で親へ知らせる（失敗・処理中・解除中の画像があればbusy）。
  */
 export function TweetImagePicker({
   draftId,
@@ -34,12 +34,15 @@ export function TweetImagePicker({
   disabled,
   onChange,
   errors = [],
+  maxImages = MAX_IMAGES_PER_TWEET,
 }: {
   draftId: string;
   uploader: ImageUploader;
   disabled: boolean;
   onChange: (state: PickerState) => void;
   errors?: string[];
+  /** 新規画像の枠。編集では保持する既存画像の数を引いた値を渡す（最終的な合計枚数はサーバーで確認する）。 */
+  maxImages?: number;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -52,8 +55,8 @@ export function TweetImagePicker({
 
   useEffect(() => {
     onChange({
-      uploadIds: attachments.filter((a) => a.status === 'ready').map((a) => a.uploadId!),
-      busy: attachments.some((a) => a.status !== 'ready'),
+      uploadIds: attachments.filter((a) => a.status === 'ready' && !a.releasing).map((a) => a.uploadId!),
+      busy: attachments.some((a) => a.status !== 'ready' || a.releasing),
     });
   }, [attachments, onChange]);
 
@@ -102,7 +105,7 @@ export function TweetImagePicker({
 
   const add = (files: File[]) => {
     setSelectionError(null);
-    const room = MAX_IMAGES_PER_TWEET - live.current.length;
+    const room = maxImages - live.current.length;
     if (files.length > room) setSelectionError(`画像は${MAX_IMAGES_PER_TWEET}枚まで添付できます`);
     const added: Attachment[] = [];
     for (const file of files.slice(0, Math.max(room, 0))) {
@@ -177,7 +180,7 @@ export function TweetImagePicker({
     start(next);
   };
 
-  const full = attachments.length >= MAX_IMAGES_PER_TWEET;
+  const full = attachments.length >= maxImages;
   const messages = [...(selectionError ? [selectionError] : []), ...errors];
 
   return (

@@ -35,7 +35,11 @@ async function loadTimelineSection(
   const { items, nextCursor } = result.page;
   return (
     <>
-      <TimelineList items={items} followingOnly={followingOnly} />
+      <TimelineList
+        items={items}
+        followingOnly={followingOnly}
+        viewerId={viewer.status === 'signed-in' ? viewer.profile.id : null}
+      />
       <TimelinePagination
         nextHref={nextCursor ? timelineHref({ followingOnly, cursor: nextCursor }) : null}
         latestHref={cursorParam.cursor ? latestHref : null}

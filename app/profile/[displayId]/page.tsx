@@ -38,6 +38,7 @@ async function loadListSection(
   profile: ProfileSummary,
   tab: ProfileTab,
   cursorParam: SearchParamValue,
+  viewerId: string | null,
 ): Promise<React.ReactNode> {
   const deps = getProfileDependencies();
   const latestHref = profileHref({ displayId: profile.displayId, tab });
@@ -60,7 +61,7 @@ async function loadListSection(
     const { items, nextCursor } = result.page;
     return (
       <>
-        <ProfileActivityList items={items} tab={tab} />
+        <ProfileActivityList items={items} tab={tab} viewerId={viewerId} />
         {pagination(
           nextCursor ? encodeActivityCursor(profile.id, tab, nextCursor) : null,
           cursor.cursor !== null,
@@ -120,7 +121,7 @@ export default async function ProfilePage({
   const { profile } = result;
   // 自分かどうかはDBの対象UUIDとセッションのUUIDで判断する（URLの綴りでは判断しない）。
   const isSelf = viewerId !== null && viewerId === profile.id;
-  const list = await loadListSection(profile, tab, query.cursor);
+  const list = await loadListSection(profile, tab, query.cursor, viewerId);
 
   return (
     <PageShell activePage={isSelf ? 'profile' : null} profileHref={ownProfileHref}>
