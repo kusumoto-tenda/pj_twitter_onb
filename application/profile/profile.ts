@@ -15,7 +15,7 @@ export type ProfileSummary = PublicPerson & {
   followedByViewer: boolean;
 };
 
-export type ProfileTab = 'tweets' | 'retweets' | 'following' | 'followers';
+export type ProfileTab = 'tweets' | 'retweets' | 'likes' | 'following' | 'followers';
 export type ActivityTab = Extract<ProfileTab, 'tweets' | 'retweets'>;
 export type ConnectionDirection = Extract<ProfileTab, 'following' | 'followers'>;
 

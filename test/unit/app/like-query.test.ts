@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeActivityCursor, encodeLikeCursor, parseLikeCursor } from '@/app/lib/profile-query';
+import { encodeActivityCursor, encodeLikeCursor, parseLikeCursor, profileHref } from '@/app/lib/profile-query';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';
 const BOB = '00000000-0000-4000-8000-0000000000b1';
@@ -33,5 +33,10 @@ describe('公開いいね一覧のカーソル', () => {
     ['重複パラメータ', ['a', 'b']],
   ])('%sは不正', (_label, value) => {
     expect(parseLikeCursor(value, ALICE)).toEqual({ ok: false });
+  });
+
+  it('likesタブのURLにはtab=likesとカーソルを付ける', () => {
+    expect(profileHref({ displayId: 'Alice_1', tab: 'likes' })).toBe('/profile/Alice_1?tab=likes');
+    expect(profileHref({ displayId: 'Alice_1', tab: 'likes', cursor: 'abc' })).toBe('/profile/Alice_1?tab=likes&cursor=abc');
   });
 });

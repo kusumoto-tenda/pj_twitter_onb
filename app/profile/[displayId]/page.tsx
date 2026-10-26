@@ -6,8 +6,10 @@ import type { SearchParamValue } from '@/app/lib/cursor-validation';
 import {
   encodeActivityCursor,
   encodeConnectionCursor,
+  encodeLikeCursor,
   parseActivityCursor,
   parseConnectionCursor,
+  parseLikeCursor,
   parseProfileTab,
   profileHref,
 } from '@/app/lib/profile-query';
@@ -16,6 +18,7 @@ import { ProfileUpdatedFlash } from '@/app/ui/notifications/profile-updated-flas
 import { ProfileActivityList } from '@/app/ui/profile/profile-activity-list';
 import { ProfileConnectionsList } from '@/app/ui/profile/profile-connections-list';
 import { ProfileHeader } from '@/app/ui/profile/profile-header';
+import { ProfileLikesList } from '@/app/ui/profile/profile-likes-list';
 import { ProfileRetry } from '@/app/ui/profile/profile-retry';
 import { ProfileTabs } from '@/app/ui/profile/profile-tabs';
 import { InvalidCursorNotice } from '@/app/ui/timeline/timeline-list';
@@ -23,6 +26,7 @@ import { TimelinePagination } from '@/app/ui/timeline/timeline-pagination';
 import { getProfile } from '@/application/profile/get-profile';
 import { getProfileActivity } from '@/application/profile/get-profile-activity';
 import { getProfileConnections } from '@/application/profile/get-profile-connections';
+import { getProfileLikes } from '@/application/profile/get-profile-likes';
 import type { ProfileSummary, ProfileTab } from '@/application/profile/profile';
 
 // タイトルのためにDBを重ねて照会しないよう、静的なタイトルにする。
@@ -67,6 +71,21 @@ async function loadListSection(
           nextCursor ? encodeActivityCursor(profile.id, tab, nextCursor) : null,
           cursor.cursor !== null,
         )}
+      </>
+    );
+  }
+
+  if (tab === 'likes') {
+    // 公開一覧なので未ログインでも取得する。viewerIdは本人状態の判定だけに使う。
+    const cursor = parseLikeCursor(cursorParam, profile.id);
+    if (!cursor.ok) return <InvalidCursorNotice latestHref={latestHref} />;
+    const result = await getProfileLikes(deps, { subjectId: profile.id, viewerId, after: cursor.cursor });
+    if (!result.ok) return <ProfileRetry scope="list" />;
+    const { items, nextCursor } = result.page;
+    return (
+      <>
+        <ProfileLikesList items={items} viewerId={viewerId} />
+        {pagination(nextCursor ? encodeLikeCursor(profile.id, nextCursor) : null, cursor.cursor !== null)}
       </>
     );
   }

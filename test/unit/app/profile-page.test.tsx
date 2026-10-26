@@ -6,6 +6,7 @@ import { createAccount } from '@/application/users/create-account';
 import {
   encodeActivityCursor,
   encodeConnectionCursor,
+  encodeLikeCursor,
 } from '@/app/lib/profile-query';
 import { encodeCursor } from '@/app/lib/timeline-query';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
@@ -288,6 +289,87 @@ describe('ProfilePage', () => {
     ).toBeInTheDocument();
     expect(screen.queryByText('まだ投稿がありません')).not.toBeInTheDocument();
     expect(document.body).not.toHaveTextContent('secret-host');
+  });
+
+  describe('公開いいねタブ', () => {
+    const likeCursor = { createdAt: '2026-10-27T03:00:00.123456Z', likeId: '00000000-0000-4000-8000-0000000000e1' };
+
+    it('未ログインでも、URLの綴りではなく解決した対象UUIDのいいね一覧を取得して表示する', async () => {
+      query.likedPage = { items: [{ likeId: likeCursor.likeId, likedAt: likeCursor.createdAt, item }], nextCursor: null };
+
+      await renderPage('BOB_12', { tab: 'likes' });
+
+      expect(query.requests.liked).toEqual([{ subjectId: OTHER_ID, viewerId: null, after: null, limit: 20 }]);
+      expect(query.requests.activity).toEqual([]);
+      expect(query.requests.connections).toEqual([]);
+      expect(screen.getByRole('heading', { name: 'ボブ' })).toBeInTheDocument();
+      expect(screen.getByRole('article')).toHaveTextContent('ボブの投稿');
+    });
+
+    it('本人状態の判定にはログイン中の閲覧者を渡す（対象者と取り違えない）', async () => {
+      signIn();
+
+      await renderPage('Bob_12', { tab: 'likes' });
+
+      expect(query.requests.liked).toEqual([{ subjectId: OTHER_ID, viewerId: FIXED_ID, after: null, limit: 20 }]);
+    });
+
+    it('0件ならヘッダーを残して空の案内を出す', async () => {
+      await renderPage('Bob_12', { tab: 'likes' });
+
+      expect(screen.getByRole('heading', { name: 'ボブ' })).toBeInTheDocument();
+      expect(screen.getByText('いいねした投稿はまだありません')).toBeInTheDocument();
+    });
+
+    it('有効なカーソルを渡し、likesタブを保った「次の20件」「最新に戻る」を表示する', async () => {
+      const next = { createdAt: '2026-10-27T03:00:00.000001Z', likeId: '00000000-0000-4000-8000-0000000000e2' };
+      query.likedPage = { items: [{ likeId: likeCursor.likeId, likedAt: likeCursor.createdAt, item }], nextCursor: next };
+
+      await renderPage('Bob_12', { tab: 'likes', cursor: encodeLikeCursor(OTHER_ID, likeCursor) });
+
+      expect(query.requests.liked[0].after).toEqual(likeCursor);
+      expect(screen.getByRole('link', { name: '最新に戻る' })).toHaveAttribute('href', '/profile/Bob_12?tab=likes');
+      const nextHref = new URL(screen.getByRole('link', { name: '次の20件' }).getAttribute('href')!, 'http://x');
+      expect(nextHref.searchParams.get('tab')).toBe('likes');
+      expect(nextHref.searchParams.get('cursor')).toBe(encodeLikeCursor(OTHER_ID, next));
+    });
+
+    it.each([
+      ['壊れた値', 'broken!!'],
+      ['投稿タブのカーソル', encodeActivityCursor(OTHER_ID, 'tweets', cursor)],
+      ['他人のいいねカーソル', encodeLikeCursor(FIXED_ID, likeCursor)],
+    ])('不正なカーソル（%s）ではヘッダーを残し、一覧を取得せず先頭へのリンクを出す', async (_l, value) => {
+      await renderPage('Bob_12', { tab: 'likes', cursor: value });
+
+      expect(screen.getByRole('heading', { name: 'ボブ' })).toBeInTheDocument();
+      expect(query.requests.liked).toEqual([]);
+      expect(screen.getByRole('link', { name: '最新に戻る' })).toHaveAttribute('href', '/profile/Bob_12?tab=likes');
+    });
+
+    it('いいねカーソルを投稿タブへ持ち込んでも不正として扱う', async () => {
+      await renderPage('Bob_12', { cursor: encodeLikeCursor(OTHER_ID, likeCursor) });
+
+      expect(query.requests.activity).toEqual([]);
+      expect(screen.getByRole('link', { name: '最新に戻る' })).toHaveAttribute('href', '/profile/Bob_12');
+    });
+
+    it('一覧の取得障害ではヘッダーを残し、0件にせず一覧部分に再試行を出す', async () => {
+      vi.spyOn(query, 'findLikedPage').mockRejectedValue(new Error('db down: secret-host'));
+
+      await renderPage('Bob_12', { tab: 'likes' });
+
+      expect(screen.getByRole('heading', { name: 'ボブ' })).toBeInTheDocument();
+      expect(screen.getByText('一覧を取得できませんでした。時間をおいて再度お試しください')).toBeInTheDocument();
+      expect(screen.queryByText('いいねした投稿はまだありません')).not.toBeInTheDocument();
+      expect(document.body).not.toHaveTextContent('secret-host');
+    });
+
+    it('対象のプロフィールがなければ一覧を取得せず notFound にする', async () => {
+      query.summary = null;
+
+      await expect(page('Nobody_1', { tab: 'likes' })).rejects.toThrow('NEXT_HTTP_ERROR_FALLBACK;404');
+      expect(query.requests.liked).toEqual([]);
+    });
   });
 
   it('ログイン中の利用者の確認に失敗したら、自分のリンクを出さず自分判定もしない', async () => {

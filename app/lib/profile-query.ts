@@ -15,9 +15,9 @@ import {
 } from './cursor-validation';
 import { toTimelineCursor } from './timeline-query';
 
-const OTHER_TABS: readonly ProfileTab[] = ['retweets', 'following', 'followers'];
+const OTHER_TABS: readonly ProfileTab[] = ['retweets', 'likes', 'following', 'followers'];
 const KIND_BY_TAB = { tweets: 'tweet', retweets: 'retweet' } as const;
-const LIKES_TAB = 'likes';
+const LIKES_TAB = 'likes' satisfies ProfileTab;
 
 /** 単一の既知の値だけを受け付け、それ以外（未知・重複）は投稿タブにする。 */
 export function parseProfileTab(value: SearchParamValue): ProfileTab {
@@ -51,7 +51,7 @@ export function encodeLikeCursor(subjectId: string, cursor: LikeCursor): string 
   return encodeCursorParts([subjectId, LIKES_TAB, cursor.createdAt, cursor.likeId]);
 }
 
-function belongsTo(parts: unknown[], subjectId: string, tab: ProfileTab | typeof LIKES_TAB): boolean {
+function belongsTo(parts: unknown[], subjectId: string, tab: ProfileTab): boolean {
   return (
     isUuid(parts[0]) && parts[0].toLowerCase() === subjectId.toLowerCase() && parts[1] === tab
   );
@@ -103,7 +103,7 @@ export function profileHref({
 }: {
   displayId: string;
   tab: ProfileTab;
-  /** encodeActivityCursor / encodeConnectionCursor の結果。 */
+  /** encodeActivityCursor / encodeLikeCursor / encodeConnectionCursor の結果。 */
   cursor?: string | null;
 }): string {
   const params = new URLSearchParams();

@@ -28,6 +28,7 @@ const encodeRaw = (value: unknown) => Buffer.from(JSON.stringify(value)).toStrin
 describe('parseProfileTab', () => {
   it.each([
     ['retweets', 'retweets'],
+    ['likes', 'likes'],
     ['following', 'following'],
     ['followers', 'followers'],
   ] as const)('%s を受け付ける', (value, expected) => {
@@ -37,7 +38,8 @@ describe('parseProfileTab', () => {
   it.each([
     ['欠落', undefined],
     ['tweets', 'tweets'],
-    ['未知の値', 'likes'],
+    ['未知の値', 'favorites'],
+    ['大文字のタブ名', 'LIKES'],
     ['重複パラメータ', ['retweets', 'retweets']],
   ])('%sは投稿タブにする', (_label, value) => {
     expect(parseProfileTab(value)).toBe('tweets');
