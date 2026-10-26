@@ -209,6 +209,8 @@ test('未ログインで投稿ボタンを押すと、ログイン画面で3秒�
 });
 
 test('281文字・空・GIF・5枚目・5MB超過は欄エラーと失敗通知で、投稿を増やさない。5MBちょうどは添付できる', async ({ page }) => {
+  // 5MBの画像を実際のテスト用ストアへアップロードするため、他のテストより時間がかかる。
+  test.setTimeout(120_000);
   const me = track(await loginableUser('失敗する人'));
 
   await login(page, me);
