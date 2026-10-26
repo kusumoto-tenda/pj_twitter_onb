@@ -63,6 +63,8 @@ describe('PostgresTimelineQuery', () => {
         favoritedByViewer: false,
         likedByViewer: false,
         likeCount: 0,
+        retweetedByViewer: false,
+        retweetCount: 0,
       },
       retweetedBy: null,
     });

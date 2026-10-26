@@ -27,12 +27,14 @@ export type EventRow = {
   favorited_by_viewer: boolean;
   liked_by_viewer: boolean;
   like_count: number;
+  retweeted_by_viewer: boolean;
+  retweet_count: number;
 };
 
 /**
- * ページの行を選んだ後で、その投稿の画像を表示順の配列にまとめ、閲覧者のお気に入り・いいねかと
- * 公開いいね件数を求める。画像・お気に入り・いいねを先にJOINしないので、ページの件数や件数の値が
- * 掛け合わさらず、カードごとの追加SQLも発行しない。
+ * ページの行を選んだ後で、その投稿の画像を表示順の配列にまとめ、閲覧者のお気に入り・いいね・リツイートかと
+ * 公開いいね・リツイート件数を求める。画像・お気に入り・いいね・リツイートを先にJOINしないので、ページの件数や
+ * 件数の値が掛け合わさらず、カードごとの追加SQLも発行しない。
  * viewerIdはセッションで確認した閲覧者（プロフィールの対象者ではない）。未ログインならnull。
  */
 export function withImages<Row extends EventRow = EventRow>(
@@ -50,6 +52,10 @@ export function withImages<Row extends EventRow = EventRow>(
         SELECT 1 FROM twitter.likes lk WHERE lk.executor_id = ${viewerId}::uuid AND lk.tweet_id = page.tweet_id
       )) AS liked_by_viewer,
       (SELECT count(*) FROM twitter.likes lk WHERE lk.tweet_id = page.tweet_id)::int AS like_count,
+      (${viewerId}::uuid IS NOT NULL AND EXISTS (
+        SELECT 1 FROM twitter.retweets rt WHERE rt.executor_id = ${viewerId}::uuid AND rt.tweet_id = page.tweet_id
+      )) AS retweeted_by_viewer,
+      (SELECT count(*) FROM twitter.retweets rt WHERE rt.tweet_id = page.tweet_id)::int AS retweet_count,
       COALESCE((
         SELECT json_agg(
           json_build_object('id', i.id, 'position', i.position, 'width', i.width, 'height', i.height)
@@ -74,6 +80,8 @@ export function toTimelineItem(row: EventRow): TimelineItem {
       favoritedByViewer: row.favorited_by_viewer,
       likedByViewer: row.liked_by_viewer,
       likeCount: Number(row.like_count),
+      retweetedByViewer: row.retweeted_by_viewer,
+      retweetCount: Number(row.retweet_count),
     },
     retweetedBy:
       row.retweeter_id === null

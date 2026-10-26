@@ -85,6 +85,8 @@ function item(overrides: Partial<TimelineItem['tweet']> = {}, retweetedBy: Timel
       favoritedByViewer: false,
       likedByViewer: false,
       likeCount: 0,
+      retweetedByViewer: false,
+      retweetCount: 0,
       ...overrides,
     },
     retweetedBy,

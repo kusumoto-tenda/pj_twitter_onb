@@ -65,6 +65,8 @@ const entry: FavoriteEntry = {
       favoritedByViewer: true,
       likedByViewer: false,
       likeCount: 0,
+      retweetedByViewer: false,
+      retweetCount: 0,
     },
     retweetedBy: null,
   },
