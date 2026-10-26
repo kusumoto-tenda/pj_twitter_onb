@@ -5,7 +5,7 @@ import { consumeFlashCookie } from './consume-flash-cookie';
 import { TWEET_FLASHES, TWEET_FLASH_COOKIE, TWEET_FLASH_MESSAGES, type TweetFlashValue } from './flash';
 import { Toast } from './toast';
 
-/** 投稿後（メイン画面）・未ログインでの投稿時（ログイン画面）の通知を一度だけ3秒表示する。 */
+/** 投稿後（メイン画面）・未ログインでの投稿・編集・削除時（ログイン画面）の通知を一度だけ3秒表示する。 */
 export function TweetFlash() {
   const [flash, setFlash] = useState<{ value: TweetFlashValue; at: number } | null>(null);
 

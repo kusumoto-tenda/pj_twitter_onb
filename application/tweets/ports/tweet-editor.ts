@@ -27,7 +27,7 @@ export interface TweetEditor {
     now: Date;
     expiresAt: Date;
   }): Promise<PrepareEditOutcome>;
-  /** 下書き→対象投稿→画像の順にロックし、本文・画像の更新と削除予約を1つのトランザクションで行う。 */
+  /** 対象投稿→下書き→画像の順にロックし、本文・画像の更新と削除予約を1つのトランザクションで行う。 */
   commit(input: {
     actorId: string;
     draftId: string;
