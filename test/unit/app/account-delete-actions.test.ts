@@ -56,6 +56,7 @@ const REVALIDATIONS = [
   'revalidate:/profile/[displayId]:page',
   'revalidate:/profile/[displayId]/edit:page',
   'revalidate:/profile/[displayId]/delete:page',
+  'revalidate:/favorites',
 ];
 
 function form(fields: Record<string, string | string[] | Blob>) {

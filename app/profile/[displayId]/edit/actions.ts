@@ -80,6 +80,7 @@ export async function updateProfileAction(
   revalidatePath('/');
   revalidatePath('/profile/[displayId]', 'page');
   revalidatePath('/profile/[displayId]/edit', 'page');
+  revalidatePath('/favorites');
   (await cookies()).set(PROFILE_UPDATED_COOKIE, PROFILE_UPDATED_FLASH, {
     path: '/',
     maxAge: FLASH_MAX_AGE_SECONDS,

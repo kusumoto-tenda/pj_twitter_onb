@@ -57,7 +57,7 @@ function form(fields: Record<string, string | string[] | Blob>) {
   return data;
 }
 
-const REVALIDATE = ['revalidate:/', 'revalidate:/profile/[displayId]:page'];
+const REVALIDATE = ['revalidate:/', 'revalidate:/profile/[displayId]:page', 'revalidate:/favorites'];
 
 beforeEach(async () => {
   boundary.calls.length = 0;
