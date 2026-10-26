@@ -45,6 +45,10 @@ export default defineConfig({
             POSTGRES_URL_NON_POOLING: env.POSTGRES_URL_NON_POOLING ?? '',
             DATABASE_URL: env.DATABASE_URL ?? '',
             TEST_POSTGRES_URL: env.TEST_POSTGRES_URL ?? '',
+            TEST_BLOB_READ_WRITE_TOKEN: env.TEST_BLOB_READ_WRITE_TOKEN ?? '',
+            TEST_BLOB_STORE_ID: env.TEST_BLOB_STORE_ID ?? '',
+            BLOB_READ_WRITE_TOKEN: env.BLOB_READ_WRITE_TOKEN ?? '',
+            BLOB_STORE_ID: env.BLOB_STORE_ID ?? '',
           },
           // 実DBへの同時接続を抑え、テスト間でデータを共有しない。
           fileParallelism: false,

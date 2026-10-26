@@ -11,16 +11,19 @@ const linkClassName =
 export function MainNavigation({
   activePage,
   profileHref,
+  children,
 }: {
   /** 現在開いているページ。他人のプロフィールなど、どれにも当たらなければnull。 */
   activePage: 'home' | 'profile' | null;
   /** 実在を確認したログイン中の利用者のプロフィールURL。未ログインならnull。 */
   profileHref: string | null;
+  /** ナビの末尾に置く操作（投稿ボタンなど）。 */
+  children?: React.ReactNode;
 }) {
   return (
     <nav
       aria-label="メインメニュー"
-      className="flex items-center gap-2 border-b border-gray-200 px-4 py-2 md:sticky md:top-0 md:h-screen md:flex-col md:items-start md:gap-4 md:border-b-0 md:border-r md:px-6 md:py-6"
+      className="flex flex-wrap items-center gap-2 border-b border-gray-200 px-4 py-2 md:sticky md:top-0 md:h-screen md:flex-col md:items-start md:gap-4 md:border-b-0 md:border-r md:px-6 md:py-6"
     >
       <XLogo className="mr-2 text-3xl md:mb-2 md:text-5xl" />
       <Link
@@ -39,6 +42,7 @@ export function MainNavigation({
           プロフィール
         </Link>
       )}
+      {children && <div className="ml-auto md:ml-0 md:mt-4 md:w-full">{children}</div>}
     </nav>
   );
 }

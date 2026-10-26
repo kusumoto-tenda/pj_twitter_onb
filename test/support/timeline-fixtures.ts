@@ -44,10 +44,14 @@ export class TimelineFixtures {
     updatedAt: string = createdAt,
   ): Promise<string> {
     const id = randomUUID();
-    await this.sql`
-      INSERT INTO twitter.tweets (id, owner_id, content, created_at, updated_at)
-      VALUES (${id}, ${owner.id}, ${content}, ${createdAt}::text::timestamptz, ${updatedAt}::text::timestamptz)
-    `;
+    // 本文の遅延制約はコミット時に検査される。postgres.jsの自動コミットではその失敗が呼び出し元に
+    // 返らないため、明示的なトランザクションで実行してエラーを受け取る。
+    await this.sql.begin(
+      (tx) => tx`
+        INSERT INTO twitter.tweets (id, owner_id, content, created_at, updated_at)
+        VALUES (${id}, ${owner.id}, ${content}, ${createdAt}::text::timestamptz, ${updatedAt}::text::timestamptz)
+      `,
+    );
     return id;
   }
 
@@ -64,13 +68,15 @@ export class TimelineFixtures {
       updated_at: item.createdAt,
     }));
     // JSONで渡し、マイクロ秒の時刻を文字列のままDBで変換する。
-    await this.sql`
+    await this.sql.begin(
+      (tx) => tx`
       INSERT INTO twitter.tweets (id, owner_id, content, created_at, updated_at)
       SELECT id, owner_id, content, created_at, updated_at
       FROM jsonb_to_recordset(${JSON.stringify(rows)}::text::jsonb) AS x(
         id uuid, owner_id uuid, content text, created_at timestamptz, updated_at timestamptz
       )
-    `;
+    `,
+    );
     return rows.map((row) => row.id);
   }
 

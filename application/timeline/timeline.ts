@@ -13,6 +13,9 @@ export type TimelineCursor = {
   eventId: string;
 };
 
+/** 投稿に添付された画像。表示URLは `/media/{id}`。保存先の情報は含めない。 */
+export type TimelineImage = { id: string; position: number; width: number; height: number };
+
 export type TimelineItem = {
   key: TimelineCursor;
   tweet: {
@@ -20,6 +23,8 @@ export type TimelineItem = {
     content: string;
     author: TimelinePerson;
     createdAt: string;
+    /** 表示順（position順）。画像なしは空配列。 */
+    images: TimelineImage[];
   };
   /** リツイートの場合の実行者。通常投稿はnull。 */
   retweetedBy: TimelinePerson | null;

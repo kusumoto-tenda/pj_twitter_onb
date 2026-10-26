@@ -46,6 +46,7 @@ function item(overrides: Partial<TimelineItem> = {}, content = 'こんにちは'
       content,
       author: alice,
       createdAt: '2026-10-23T03:04:05.123456Z',
+      images: [],
     },
     retweetedBy: null,
     ...overrides,
@@ -112,6 +113,47 @@ describe('TweetCard', () => {
     expect(card).toHaveTextContent('アリス');
     expect(card).toHaveTextContent('@Alice_1');
     expect(card).toHaveTextContent('こんにちは');
+  });
+
+  it('添付画像を表示順に、/media のURL・寸法・代替テキスト・遅延読み込み付きで表示する', () => {
+    const images = [
+      { id: '00000000-0000-4000-8000-0000000000c2', position: 1, width: 20, height: 10 },
+      { id: '00000000-0000-4000-8000-0000000000c1', position: 0, width: 40, height: 30 },
+    ];
+    render(<TweetCard item={item({ tweet: { ...item().tweet, images } })} />);
+
+    const imgs = screen.getAllByRole('img');
+    expect(imgs.map((img) => img.getAttribute('src'))).toEqual([
+      '/media/00000000-0000-4000-8000-0000000000c1',
+      '/media/00000000-0000-4000-8000-0000000000c2',
+    ]);
+    expect(imgs[0]).toHaveAttribute('alt', '添付画像1');
+    expect(imgs[0]).toHaveAttribute('width', '40');
+    expect(imgs[0]).toHaveAttribute('height', '30');
+    expect(imgs[0]).toHaveAttribute('loading', 'lazy');
+  });
+
+  it('画像だけの投稿では空の本文段落を出さない', () => {
+    const images = [{ id: '00000000-0000-4000-8000-0000000000c1', position: 0, width: 4, height: 3 }];
+    render(<TweetCard item={item({ tweet: { ...item().tweet, content: '', images } })} />);
+
+    expect(screen.getByRole('article').querySelector('p[data-content]')).toBeNull();
+    expect(screen.getByRole('img')).toBeInTheDocument();
+  });
+
+  it('リツイートでも元投稿の画像を表示する', () => {
+    const images = [{ id: '00000000-0000-4000-8000-0000000000c1', position: 0, width: 4, height: 3 }];
+    render(
+      <TweetCard
+        item={item({
+          key: { ...item().key, kind: 'retweet', eventId: '00000000-0000-4000-8000-0000000000bb' },
+          tweet: { ...item().tweet, images },
+          retweetedBy: bob,
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('img')).toHaveAttribute('src', '/media/00000000-0000-4000-8000-0000000000c1');
   });
 
   it('本文の改行を保持し、HTML風の文字列をDOMとして解釈しない', () => {
@@ -264,5 +306,19 @@ describe('MainNavigation', () => {
 
     expect(screen.getByRole('link', { name: 'ホーム' })).not.toHaveAttribute('aria-current');
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
+  });
+});
+
+describe('MainNavigation（操作の配置）', () => {
+  it('末尾に投稿ボタンなどの操作を置ける', () => {
+    render(
+      <MainNavigation activePage="home" profileHref={null}>
+        <button type="button">ツイートする</button>
+      </MainNavigation>,
+    );
+
+    expect(screen.getByRole('navigation', { name: 'メインメニュー' })).toContainElement(
+      screen.getByRole('button', { name: 'ツイートする' }),
+    );
   });
 });

@@ -18,6 +18,8 @@ vi.mock('next/navigation', () => ({
   }),
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
 }));
+// ページの振る舞いのテストなので、投稿ボタン（ルートlayoutのProviderが必要）は空にする。
+vi.mock('@/app/ui/tweets/create-tweet-launcher', () => ({ CreateTweetLauncher: () => null }));
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
     <a href={href} {...props}>
@@ -49,6 +51,7 @@ const page: TimelinePage = {
         content: 'タイムラインの投稿',
         author: { id: FIXED_ID, name: 'アリス', displayId: 'Alice_1' },
         createdAt: cursor.eventAt,
+        images: [],
       },
       retweetedBy: null,
     },
