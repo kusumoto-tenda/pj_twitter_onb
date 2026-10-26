@@ -119,5 +119,6 @@ export async function updateTweetAction(
   // 確定後だけ、元投稿を参照するメイン・プロフィールの表示を無効化する。
   revalidatePath('/');
   revalidatePath('/profile/[displayId]', 'page');
+  revalidatePath('/favorites');
   return { status: 'success', tweetId: result.tweetId, attempt };
 }

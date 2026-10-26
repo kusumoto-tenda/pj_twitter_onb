@@ -28,6 +28,12 @@ vi.mock('next/navigation', () => ({
 }));
 // ページの振る舞いのテストなので、投稿ボタン（ルートlayoutのProviderが必要）は空にする。
 // 三点メニュー（ルートlayoutのProviderが必要）は、表示の有無が分かる目印にする。
+// お気に入りボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/favorites/favorite-button', () => ({
+  FavoriteButton: ({ tweetId, active, expectedActorId }: { tweetId: string; active: boolean; expectedActorId: string | null }) => (
+    <span data-testid="favorite-button" data-tweet={tweetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
+  ),
+}));
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
   TweetActionsMenu: ({ tweetId }: { tweetId: string }) => <span data-testid="tweet-menu">{tweetId}</span>,
 }));
@@ -73,6 +79,7 @@ const item: TimelineItem = {
     author: { id: OTHER_ID, name: 'ボブ', displayId: 'Bob_12' },
     createdAt: cursor.eventAt,
     images: [],
+    favoritedByViewer: false,
   },
   retweetedBy: null,
 };
@@ -114,7 +121,7 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('heading', { name: 'ボブ' })).toBeInTheDocument();
     expect(screen.getByRole('article')).toHaveTextContent('ボブの投稿');
     expect(query.requests.activity).toEqual([
-      { subjectId: OTHER_ID, kind: 'tweet', after: null, limit: 20 },
+      { subjectId: OTHER_ID, viewerId: null, kind: 'tweet', after: null, limit: 20 },
     ]);
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
     expect(metadata).toMatchObject({ title: 'プロフィール' });
@@ -126,6 +133,8 @@ describe('ProfilePage', () => {
     await renderPage('Bob_12');
 
     expect(query.requests.summary[0]).toMatchObject({ viewerId: FIXED_ID });
+    // 一覧の対象は表示中の他人、お気に入りの判定はログイン中の自分
+    expect(query.requests.activity[0]).toMatchObject({ subjectId: OTHER_ID, viewerId: FIXED_ID });
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
     expect(screen.getByText('フォロー中')).toBeInTheDocument();
     const nav = screen.getByRole('link', { name: 'プロフィール' });

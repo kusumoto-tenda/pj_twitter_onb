@@ -4,13 +4,17 @@ import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
 
 /** 取得失敗の表示。現在のURL条件のまま再取得する。 */
-export function TimelineRetry() {
+export function TimelineRetry({
+  message = '投稿を取得できませんでした。時間をおいて再度お試しください',
+}: {
+  message?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
   return (
     <div className="px-4 py-10 text-center text-gray-700">
-      <p>投稿を取得できませんでした。時間をおいて再度お試しください</p>
+      <p>{message}</p>
       <button
         type="button"
         disabled={pending}

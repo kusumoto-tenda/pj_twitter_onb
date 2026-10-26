@@ -70,17 +70,17 @@ describe('getProfileActivity', () => {
     const query = new InMemoryProfileQuery();
     query.activityPage = { items: [], nextCursor: cursor };
 
-    const result = await getProfileActivity({ query }, { subjectId, kind: 'retweet', after: cursor });
+    const result = await getProfileActivity({ query }, { subjectId, viewerId: null, kind: 'retweet', after: cursor });
 
     expect(result).toEqual({ ok: true, page: { items: [], nextCursor: cursor } });
-    expect(query.requests.activity).toEqual([{ subjectId, kind: 'retweet', after: cursor, limit: 20 }]);
+    expect(query.requests.activity).toEqual([{ subjectId, viewerId: null, kind: 'retweet', after: cursor, limit: 20 }]);
   });
 
   it('取得障害は0件にせず UNAVAILABLE を返す', async () => {
     const findActivityPage = vi.fn().mockRejectedValue(new Error('db down'));
 
     expect(
-      await getProfileActivity({ query: { findActivityPage } }, { subjectId, kind: 'tweet', after: null }),
+      await getProfileActivity({ query: { findActivityPage } }, { subjectId, viewerId: null, kind: 'tweet', after: null }),
     ).toEqual({ ok: false, code: 'UNAVAILABLE' });
   });
 });

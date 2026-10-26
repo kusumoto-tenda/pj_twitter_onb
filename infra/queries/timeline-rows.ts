@@ -24,15 +24,25 @@ export type EventRow = {
   retweeter_name: string | null;
   retweeter_display_id: string | null;
   images: TimelineImage[];
+  favorited_by_viewer: boolean;
 };
 
 /**
- * ページの行を選んだ後で、その投稿の画像を表示順の配列にまとめる。
- * 画像を先にJOINしないので、ページの件数が変わらず、カードごとの追加SQLも発行しない。
+ * ページの行を選んだ後で、その投稿の画像を表示順の配列にまとめ、閲覧者のお気に入りかを判定する。
+ * 画像・お気に入りを先にJOINしないので、ページの件数が変わらず、カードごとの追加SQLも発行しない。
+ * viewerIdはセッションで確認した閲覧者（プロフィールの対象者ではない）。未ログインならnull。
  */
-export function withImages(sql: postgres.Sql, page: postgres.PendingQuery<postgres.Row[]>, orderBy: postgres.PendingQuery<postgres.Row[]>) {
-  return sql<EventRow[]>`
+export function withImages<Row extends EventRow = EventRow>(
+  sql: postgres.Sql,
+  page: postgres.PendingQuery<postgres.Row[]>,
+  orderBy: postgres.PendingQuery<postgres.Row[]>,
+  viewerId: string | null,
+) {
+  return sql<Row[]>`
     SELECT page.*,
+      (${viewerId}::uuid IS NOT NULL AND EXISTS (
+        SELECT 1 FROM twitter.favorites fv WHERE fv.user_id = ${viewerId}::uuid AND fv.tweet_id = page.tweet_id
+      )) AS favorited_by_viewer,
       COALESCE((
         SELECT json_agg(
           json_build_object('id', i.id, 'position', i.position, 'width', i.width, 'height', i.height)
@@ -54,6 +64,7 @@ export function toTimelineItem(row: EventRow): TimelineItem {
       author: { id: row.author_id, name: row.author_name, displayId: row.author_display_id },
       createdAt: row.tweet_created_at,
       images: row.images.map(({ id, position, width, height }) => ({ id, position, width, height })),
+      favoritedByViewer: row.favorited_by_viewer,
     },
     retweetedBy:
       row.retweeter_id === null

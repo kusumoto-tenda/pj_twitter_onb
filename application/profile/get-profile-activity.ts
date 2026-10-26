@@ -9,7 +9,7 @@ export type GetProfileActivityResult =
 /** 対象者の通常投稿（tweet）または対象者が実行したリツイート（retweet）を20件ずつ取得する。 */
 export async function getProfileActivity(
   deps: { query: Pick<ProfileQuery, 'findActivityPage'> },
-  input: { subjectId: string; kind: TimelineEventKind; after: TimelineCursor | null },
+  input: { subjectId: string; viewerId: string | null; kind: TimelineEventKind; after: TimelineCursor | null },
 ): Promise<GetProfileActivityResult> {
   try {
     return {

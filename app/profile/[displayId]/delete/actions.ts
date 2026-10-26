@@ -39,6 +39,7 @@ async function finishWithoutAccount(outcome: 'deleted' | 'missing'): Promise<nev
   revalidatePath('/profile/[displayId]', 'page');
   revalidatePath('/profile/[displayId]/edit', 'page');
   revalidatePath('/profile/[displayId]/delete', 'page');
+  revalidatePath('/favorites');
   const signedOut = await endSession();
   const flash: AccountDeletedFlash =
     outcome === 'missing' ? 'account-missing' : signedOut ? 'deleted' : 'signout-failed';

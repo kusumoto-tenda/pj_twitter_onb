@@ -139,7 +139,7 @@ describe('updateTweetAction', () => {
 
     expect(state).toEqual({ status: 'success', tweetId: TWEET, attempt: 1 });
     expect(store.tweets.get(TWEET)?.content).toBe('新しい本文');
-    expect(boundary.calls).toEqual(['revalidate:/', 'revalidate:/profile/[displayId]:page']);
+    expect(boundary.calls).toEqual(['revalidate:/', 'revalidate:/profile/[displayId]:page', 'revalidate:/favorites']);
   });
 
   it('呼ぶたびに利用者を確認し、別アカウントに切り替わったら誰の投稿も変えない', async () => {

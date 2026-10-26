@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { TimelineImage, TimelineItem } from '@/application/timeline/timeline';
 import { profileHref } from '@/app/lib/profile-query';
+import { FavoriteButton } from '@/app/ui/favorites/favorite-button';
 import { TweetActionsMenu } from '@/app/ui/tweets/tweet-actions-menu';
 
 const dateFormatter = new Intl.DateTimeFormat('ja-JP', {
@@ -66,6 +67,10 @@ export function TweetCard({
         </p>
       )}
       {tweet.images.length > 0 && <TweetImages images={tweet.images} />}
+      {/* お気に入りはカードの右端。リツイートのカードでも対象は元投稿。 */}
+      <div className="mt-1 flex justify-end">
+        <FavoriteButton tweetId={tweet.id} active={tweet.favoritedByViewer} expectedActorId={viewerId} />
+      </div>
     </article>
   );
 }

@@ -114,6 +114,7 @@ describe('updateProfileAction', () => {
       'revalidate:/',
       'revalidate:/profile/[displayId]:page',
       'revalidate:/profile/[displayId]/edit:page',
+      'revalidate:/favorites',
       `cookie:${PROFILE_UPDATED_COOKIE}`,
       'redirect:/profile/Alice_99',
     ]);

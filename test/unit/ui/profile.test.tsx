@@ -9,6 +9,13 @@ import { ProfileHeader, formatJoinedDate } from '@/app/ui/profile/profile-header
 import { ProfileRetry } from '@/app/ui/profile/profile-retry';
 import { ProfileTabs } from '@/app/ui/profile/profile-tabs';
 
+// お気に入りボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/favorites/favorite-button', () => ({
+  FavoriteButton: ({ tweetId, active, expectedActorId }: { tweetId: string; active: boolean; expectedActorId: string | null }) => (
+    <span data-testid="favorite-button" data-tweet={tweetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
+  ),
+}));
+
 const router = vi.hoisted(() => ({ push: vi.fn(), refresh: vi.fn() }));
 const transition = vi.hoisted(() => ({ forcePending: false }));
 vi.mock('next/navigation', () => ({ useRouter: () => router }));
@@ -160,6 +167,7 @@ describe('ProfileActivityList', () => {
       author: { id: profile.id, name: 'アリス', displayId: 'Alice_1' },
       createdAt: '2026-10-23T03:04:05.123456Z',
       images: [],
+      favoritedByViewer: false,
     },
     retweetedBy: null,
   };

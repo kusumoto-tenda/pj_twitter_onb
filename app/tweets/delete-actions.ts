@@ -35,10 +35,11 @@ async function redirectToLogin(): Promise<never> {
   redirect('/login');
 }
 
-/** 元投稿を参照するメイン・プロフィールの表示を無効化する（リツイートのカードも消える）。 */
+/** 元投稿を参照するメイン・プロフィール・お気に入りの表示を無効化する（リツイートのカードも消える）。 */
 function revalidateTweetPages() {
   revalidatePath('/');
   revalidatePath('/profile/[displayId]', 'page');
+  revalidatePath('/favorites');
 }
 
 /**

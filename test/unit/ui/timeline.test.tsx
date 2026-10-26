@@ -24,6 +24,12 @@ vi.mock('react', async (importOriginal) => {
   };
 });
 // 三点メニューの中身はメニューのテストで確認する。ここでは表示の有無だけを見る。
+// お気に入りボタン（ルートlayoutのProviderが必要）は、渡された値が分かる目印にする。
+vi.mock('@/app/ui/favorites/favorite-button', () => ({
+  FavoriteButton: ({ tweetId, active, expectedActorId }: { tweetId: string; active: boolean; expectedActorId: string | null }) => (
+    <span data-testid="favorite-button" data-tweet={tweetId} data-active={String(active)} data-actor={expectedActorId ?? ''} />
+  ),
+}));
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({
   TweetActionsMenu: ({ tweetId, menuKey }: { tweetId: string; menuKey: string }) => (
     <button type="button" data-tweet-id={tweetId} data-menu-key={menuKey}>
@@ -55,6 +61,7 @@ function item(overrides: Partial<TimelineItem> = {}, content = 'こんにちは'
       author: alice,
       createdAt: '2026-10-23T03:04:05.123456Z',
       images: [],
+      favoritedByViewer: false,
     },
     retweetedBy: null,
     ...overrides,
@@ -104,6 +111,24 @@ describe('TweetCard', () => {
     // 未ログイン
     rerender(<TweetCard item={item()} viewerId={null} />);
     expect(screen.queryByRole('button', { name: 'ツイートの操作' })).not.toBeInTheDocument();
+  });
+
+  it('どのカードにも元投稿のお気に入りボタンを出し、閲覧者本人の保存状態と画面の利用者を渡す（リツイートでも元投稿）', () => {
+    const saved = item({
+      key: { ...item().key, kind: 'retweet', eventId: '00000000-0000-4000-8000-0000000000bb' },
+      retweetedBy: bob,
+      tweet: { ...item().tweet, favoritedByViewer: true },
+    });
+    const { rerender } = render(<TweetCard item={saved} viewerId={bob.id} />);
+    const button = screen.getByTestId('favorite-button');
+    expect(button).toHaveAttribute('data-tweet', item().tweet.id);
+    expect(button).toHaveAttribute('data-active', 'true');
+    expect(button).toHaveAttribute('data-actor', bob.id);
+
+    // 未ログインでも押せる（案内を出すため）。画面の利用者はなし
+    rerender(<TweetCard item={item()} viewerId={null} />);
+    expect(screen.getByTestId('favorite-button')).toHaveAttribute('data-active', 'false');
+    expect(screen.getByTestId('favorite-button')).toHaveAttribute('data-actor', '');
   });
 
   it('投稿者名を保存済みのIDのプロフィールへのリンクにする', () => {
@@ -334,6 +359,17 @@ describe('MainNavigation', () => {
 
     expect(screen.getByRole('link', { name: 'ホーム' })).not.toHaveAttribute('aria-current');
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'お気に入り' })).not.toBeInTheDocument();
+  });
+
+  it('ログイン中は本人のお気に入り一覧へのリンクを出し、開いているときは現在のページにする', () => {
+    const { rerender } = render(<MainNavigation activePage="home" profileHref="/profile/Alice_1" />);
+    expect(screen.getByRole('link', { name: 'お気に入り' })).toHaveAttribute('href', '/favorites');
+    expect(screen.getByRole('link', { name: 'お気に入り' })).not.toHaveAttribute('aria-current');
+
+    rerender(<MainNavigation activePage="favorites" profileHref="/profile/Alice_1" />);
+    expect(screen.getByRole('link', { name: 'お気に入り' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'ホーム' })).not.toHaveAttribute('aria-current');
   });
 });
 

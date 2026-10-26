@@ -7,7 +7,7 @@ export function PageShell({
   profileHref,
   children,
 }: {
-  activePage: 'home' | 'profile' | null;
+  activePage: 'home' | 'profile' | 'favorites' | null;
   profileHref: string | null;
   children: React.ReactNode;
 }) {

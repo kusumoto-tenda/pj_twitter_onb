@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import '@/app/ui/global.css';
+import { ActionFeedbackProvider } from '@/app/ui/notifications/action-feedback-provider';
 import { TweetComposerProvider } from '@/app/ui/tweets/tweet-composer';
 
 export const metadata: Metadata = {
@@ -14,8 +15,10 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <body className="antialiased">
-        {/* 投稿ダイアログはページの再取得で消えないよう、ルートのlayoutで状態を持つ。 */}
-        <TweetComposerProvider>{children}</TweetComposerProvider>
+        {/* 投稿ダイアログ・操作の通知はページの再取得で消えないよう、ルートのlayoutで状態を持つ。 */}
+        <ActionFeedbackProvider>
+          <TweetComposerProvider>{children}</TweetComposerProvider>
+        </ActionFeedbackProvider>
       </body>
     </html>
   );

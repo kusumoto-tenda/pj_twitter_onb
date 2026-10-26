@@ -14,7 +14,7 @@ export function MainNavigation({
   children,
 }: {
   /** 現在開いているページ。他人のプロフィールなど、どれにも当たらなければnull。 */
-  activePage: 'home' | 'profile' | null;
+  activePage: 'home' | 'profile' | 'favorites' | null;
   /** 実在を確認したログイン中の利用者のプロフィールURL。未ログインならnull。 */
   profileHref: string | null;
   /** ナビの末尾に置く操作（投稿ボタンなど）。 */
@@ -40,6 +40,16 @@ export function MainNavigation({
           className={linkClassName}
         >
           プロフィール
+        </Link>
+      )}
+      {/* お気に入りは本人専用の一覧なので、ログイン中だけ出す。 */}
+      {profileHref && (
+        <Link
+          href="/favorites"
+          aria-current={activePage === 'favorites' ? 'page' : undefined}
+          className={linkClassName}
+        >
+          お気に入り
         </Link>
       )}
       {children && <div className="ml-auto md:ml-0 md:mt-4 md:w-full">{children}</div>}

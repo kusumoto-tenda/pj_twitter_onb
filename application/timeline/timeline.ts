@@ -25,6 +25,8 @@ export type TimelineItem = {
     createdAt: string;
     /** 表示順（position順）。画像なしは空配列。 */
     images: TimelineImage[];
+    /** 閲覧者本人がこの元投稿をお気に入りに保存しているか。未ログインはfalse。 */
+    favoritedByViewer: boolean;
   };
   /** リツイートの場合の実行者。通常投稿はnull。 */
   retweetedBy: TimelinePerson | null;

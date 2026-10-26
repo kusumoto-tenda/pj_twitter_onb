@@ -90,7 +90,7 @@ export class PostgresTimelineQuery implements TimelineQuery {
       ORDER BY event_at_value DESC, kind DESC, event_id DESC
       LIMIT ${fetchSize}
     `;
-    const rows = await withImages(sql, page, sql`page.event_at_value DESC, page.kind DESC, page.event_id DESC`);
+    const rows = await withImages(sql, page, sql`page.event_at_value DESC, page.kind DESC, page.event_id DESC`, viewerId);
 
     const items = rows.slice(0, limit).map(toTimelineItem);
     const nextCursor: TimelineCursor | null = rows.length > limit ? items[limit - 1].key : null;
