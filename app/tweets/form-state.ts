@@ -7,7 +7,9 @@ export type CreateTweetErrorCode =
   | 'DRAFT_EXPIRED'
   | 'UPLOAD_NOT_READY'
   | 'CONFLICT'
-  | 'UNAVAILABLE';
+  | 'UNAVAILABLE'
+  /** Action呼び出し自体の失敗（ダイアログ側で作る。サーバーからは返さない）。 */
+  | 'NETWORK_ERROR';
 
 /** 本文や画像は返さない（ダイアログ側で保持する）。 */
 export type CreateTweetFormState =

@@ -42,3 +42,9 @@ export const TWEET_FAILED_MESSAGE = 'ツイートに失敗しました';
 export const TWEET_DELETED_MESSAGE = 'ツイートを削除しました';
 export const TWEET_DELETE_FAILED_MESSAGE = 'ツイートの削除に失敗しました';
 export const TWEET_ALREADY_DELETED_MESSAGE = 'このツイートは既に削除されています';
+
+/** 投稿ダイアログのAction呼び出し自体が失敗した（通信の切断など）ときの通知。 */
+export const ACTION_NETWORK_FAILED_MESSAGE = '通信に失敗しました。もう一度お試しください';
+/** サーバーで確定して応答だけ失った場合もあるため、「変更されていない」とは案内しない。 */
+export const DIALOG_NETWORK_UNCONFIRMED_MESSAGE =
+  '通信に失敗し、処理結果を確認できませんでした。入力を変更せず、もう一度お試しください';

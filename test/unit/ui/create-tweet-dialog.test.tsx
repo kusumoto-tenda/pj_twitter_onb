@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
@@ -19,18 +20,19 @@ function failure(overrides: Partial<Extract<CreateTweetFormState, { status: 'err
   } as CreateTweetFormState;
 }
 
-function setup(action: Action = vi.fn()) {
+function setup(action: Action = vi.fn(), { strict = false } = {}) {
   const uploader: ImageUploader = {
     upload: vi.fn(async () => ({ ok: true as const, uploadId: '00000000-0000-4000-8000-000000000001' })),
     discardUpload: vi.fn(async () => true),
     discardDraft: vi.fn(),
   };
   const beginDraft = vi.fn(async () => ({ ok: true as const, draftId: 'draft-1' }));
-  const view = render(
+  const tree = (
     <TweetComposerProvider beginDraft={beginDraft} action={action} uploader={uploader}>
       <CreateTweetLauncher />
-    </TweetComposerProvider>,
+    </TweetComposerProvider>
   );
+  const view = render(strict ? <StrictMode>{tree}</StrictMode> : tree);
   return { uploader, beginDraft, action, user: userEvent.setup(), view };
 }
 
@@ -278,5 +280,161 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
     expect(submitButton()).toBeDisabled();
     await act(async () => finishRelease(true));
     await waitFor(() => expect(submitButton()).toBeEnabled());
+  });
+
+  describe('Action自体のreject（通信の失敗など）', () => {
+    const NETWORK_TOAST = '通信に失敗しました。もう一度お試しください';
+    const UNCONFIRMED = '通信に失敗し、処理結果を確認できませんでした。入力を変更せず、もう一度お試しください';
+    const UPLOAD_ID = '00000000-0000-4000-8000-000000000001';
+
+    async function fillWithImage(ctx: ReturnType<typeof setup>) {
+      await open(ctx);
+      await ctx.user.type(screen.getByLabelText('本文'), '送れなかった本文');
+      await ctx.user.upload(screen.getByLabelText('画像を追加'), new File([new Uint8Array(4)], 'a.png', { type: 'image/png' }));
+      await waitFor(() => expect(submitButton()).toBeEnabled());
+    }
+
+    const entries = (data: FormData) => Array.from(data.entries());
+
+    it('ダイアログ・本文・下書き・準備済みの画像を保ち、通信の通知と結果不明の案内を出して、閉じる・送信を再び有効にする', async () => {
+      const action = vi.fn<Action>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup(action);
+      await fillWithImage(ctx);
+
+      await ctx.user.click(submitButton());
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+      expect(screen.queryByText('ツイートに失敗しました')).not.toBeInTheDocument();
+      expect(within(dialog()).getByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(screen.queryByText('Failed to fetch')).not.toBeInTheDocument();
+      expect(dialog()).toHaveAttribute('open');
+      expect(screen.getByLabelText('本文')).toHaveValue('送れなかった本文');
+      expect(screen.getByLabelText('本文')).not.toHaveAttribute('readonly');
+      expect(within(dialog()).getAllByRole('img')).toHaveLength(1);
+      expect(submitButton()).toBeEnabled();
+      expect(within(dialog()).getByRole('button', { name: '閉じる' })).toBeEnabled();
+      expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+      expect(ctx.uploader.discardUpload).not.toHaveBeenCalled();
+      expect(ctx.beginDraft).toHaveBeenCalledTimes(1);
+    });
+
+    it('利用者が押したときだけ、同じ本文・下書き・画像IDで再送する。成功すれば閉じ、下書きは破棄しない', async () => {
+      const action = vi.fn<Action>().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(undefined);
+      const ctx = setup(action);
+      await fillWithImage(ctx);
+      await ctx.user.click(submitButton());
+      await screen.findByText(UNCONFIRMED);
+      expect(action).toHaveBeenCalledTimes(1);
+
+      await ctx.user.click(submitButton());
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(action).toHaveBeenCalledTimes(2);
+      expect(entries(action.mock.calls[1][1])).toEqual(entries(action.mock.calls[0][1]));
+      expect(action.mock.calls[1][1].get('draftId')).toBe('draft-1');
+      expect(action.mock.calls[1][1].getAll('uploadIds')).toEqual([UPLOAD_ID]);
+      expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+      expect(ctx.beginDraft).toHaveBeenCalledTimes(1);
+    });
+
+    it('通信の失敗が続いても、そのたびに3秒の通知を出し直す', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const action = vi
+          .fn<Action>()
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+        const ctx = setup(action);
+        await open(ctx);
+        await ctx.user.type(screen.getByLabelText('本文'), 'a');
+
+        await ctx.user.click(submitButton());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(3000));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+        await ctx.user.click(submitButton());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        expect(action).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('通常の欄エラーの後に通信が失敗したら、古い欄エラーを残さず、次の通常エラーは既存の通知に戻す', async () => {
+      const action = vi
+        .fn<Action>()
+        .mockResolvedValueOnce(failure({ attempt: 1 }))
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValueOnce(failure({ attempt: 3 }));
+      const ctx = setup(action);
+      await open(ctx);
+      await ctx.user.type(screen.getByLabelText('本文'), '長すぎる本文');
+      await ctx.user.click(submitButton());
+      expect(await screen.findByText('本文は280文字以下で入力してください')).toBeInTheDocument();
+
+      await ctx.user.click(submitButton());
+
+      expect(await screen.findByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(screen.queryByText('本文は280文字以下で入力してください')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('本文')).toHaveAttribute('aria-invalid', 'false');
+      expect(screen.getByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+
+      await ctx.user.click(submitButton());
+
+      expect(await screen.findByText('本文は280文字以下で入力してください')).toBeInTheDocument();
+      expect(screen.queryByText(UNCONFIRMED)).not.toBeInTheDocument();
+      expect(screen.getByRole('alert')).toHaveTextContent('ツイートに失敗しました');
+    });
+
+    it('送信中は本文を変更できず（送信内容がずれない）、失敗後は再び編集できる', async () => {
+      let reject: (error: unknown) => void = () => {};
+      const action = vi.fn<Action>(() => new Promise((_resolve, r) => (reject = r)));
+      const ctx = setup(action);
+      await open(ctx);
+      await ctx.user.type(screen.getByLabelText('本文'), '送信中');
+      await ctx.user.click(submitButton());
+      await findSubmit('投稿中…');
+
+      expect(screen.getByLabelText('本文')).toHaveAttribute('readonly');
+      await ctx.user.type(screen.getByLabelText('本文'), '追記');
+      expect(screen.getByLabelText('本文')).toHaveValue('送信中');
+
+      await act(async () => reject(new TypeError('Failed to fetch')));
+      await screen.findByText(UNCONFIRMED);
+      await ctx.user.type(screen.getByLabelText('本文'), '追記');
+      expect(screen.getByLabelText('本文')).toHaveValue('送信中追記');
+    });
+
+    it('通信の失敗後も閉じる・Escでキャンセルでき、そのときだけ下書きを破棄する', async () => {
+      const action = vi.fn<Action>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup(action);
+      await open(ctx);
+      await ctx.user.type(screen.getByLabelText('本文'), 'a');
+      await ctx.user.click(submitButton());
+      await screen.findByText(UNCONFIRMED);
+      expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+
+      await act(async () => {
+        dialog().dispatchEvent(new Event('cancel', { cancelable: true }));
+      });
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(ctx.uploader.discardDraft).toHaveBeenCalledTimes(1);
+      expect(ctx.uploader.discardDraft).toHaveBeenCalledWith('draft-1');
+    });
+
+    it('StrictModeでも1回の操作で1回だけ送信し、通信の失敗を表示する', async () => {
+      const action = vi.fn<Action>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup(action, { strict: true });
+      await open(ctx);
+      await ctx.user.type(screen.getByLabelText('本文'), 'a');
+
+      await ctx.user.click(submitButton());
+
+      expect(await screen.findByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(action).toHaveBeenCalledTimes(1);
+      expect(ctx.beginDraft).toHaveBeenCalledTimes(1);
+    });
   });
 });

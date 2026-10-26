@@ -2,10 +2,15 @@
 
 import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
 import { initialCreateTweetState, type CreateTweetFormState } from '@/app/tweets/form-state';
-import { TWEET_FAILED_MESSAGE } from '@/app/ui/notifications/flash';
+import {
+  ACTION_NETWORK_FAILED_MESSAGE,
+  DIALOG_NETWORK_UNCONFIRMED_MESSAGE,
+  TWEET_FAILED_MESSAGE,
+} from '@/app/ui/notifications/flash';
 import { Toast } from '@/app/ui/notifications/toast';
 import { TWEET_CONTENT_MAX_LENGTH } from '@/domain/tweets/tweet-validation';
 import type { ImageUploader } from './image-uploader';
+import { invokeDialogAction } from './invoke-dialog-action';
 import { trapFocus } from './dialog-focus';
 import { TweetImagePicker, type PickerState } from './tweet-image-picker';
 
@@ -50,8 +55,19 @@ export function CreateTweetDialog({
 
   // Server Actionがメイン画面へ移動した（成功した）場合は、結果の状態が返らない。
   const [state, formAction, pending] = useActionState(
-    async (previous: CreateTweetFormState, formData: FormData) => {
-      const result = await action(previous, formData);
+    async (previous: CreateTweetFormState, formData: FormData): Promise<CreateTweetFormState> => {
+      const outcome = await invokeDialogAction(() => action(previous, formData));
+      // 通信の失敗では閉じず、下書きも破棄しない。同じ下書きのまま利用者が再試行できる。
+      if (!outcome.ok) {
+        return {
+          status: 'error',
+          code: 'NETWORK_ERROR',
+          message: DIALOG_NETWORK_UNCONFIRMED_MESSAGE,
+          fieldErrors: {},
+          attempt: previous.status === 'error' ? previous.attempt + 1 : 1,
+        };
+      }
+      const result = outcome.value;
       if (!result) {
         finish(true);
         return previous;
@@ -83,7 +99,11 @@ export function CreateTweetDialog({
       }}
       className="w-[calc(100%-2rem)] max-w-xl rounded-2xl p-0 backdrop:bg-black/40"
     >
-      <Toast message={TWEET_FAILED_MESSAGE} tone="error" trigger={failed?.attempt ?? null} />
+      <Toast
+        message={failed?.code === 'NETWORK_ERROR' ? ACTION_NETWORK_FAILED_MESSAGE : TWEET_FAILED_MESSAGE}
+        tone="error"
+        trigger={failed?.attempt ?? null}
+      />
       <form action={formAction} className="flex max-h-[85vh] flex-col">
         <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
           <button
@@ -117,6 +137,7 @@ export function CreateTweetDialog({
             name="content"
             rows={5}
             value={content}
+            readOnly={pending}
             onChange={(event) => setContent(event.target.value)}
             aria-invalid={contentErrors.length > 0}
             aria-describedby={contentErrors.length > 0 ? 'tweet-content-error' : 'tweet-content-count'}
