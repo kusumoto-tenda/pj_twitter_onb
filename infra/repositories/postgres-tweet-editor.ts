@@ -56,7 +56,7 @@ export class PostgresTweetEditor implements TweetEditor {
   }
 
   /**
-   * 編集を確定する。下書き→対象投稿→画像・予約の順にロックし、版が準備時と同じときだけ、
+   * 編集を確定する。対象投稿→下書き→画像・予約の順にロックし、版が準備時と同じときだけ、
    * 本文と画像（解除・位置の詰め直し・追加）と削除予約を1つのトランザクションで更新する。
    */
   async commit({
@@ -68,30 +68,37 @@ export class PostgresTweetEditor implements TweetEditor {
   }: Parameters<TweetEditor['commit']>[0]): Promise<CommitEditOutcome> {
     if (!UUID_PATTERN.test(draftId)) return { status: 'not-found' };
     return this.sql.begin(async (tx): Promise<CommitEditOutcome> => {
+      // ロックは投稿→下書き→画像・予約の順にそろえる（削除・アカウント削除・編集の準備と同じ順）。
+      // そのため、対象の投稿はロックせずに下書きから読み、投稿をロックしてから下書きをロックして確かめ直す。
+      const [target] = await tx<{ purpose: string; owner_id: string | null; target_tweet_id: string | null }[]>`
+        SELECT purpose, owner_id, target_tweet_id FROM twitter.tweet_drafts WHERE id = ${draftId}
+      `;
+      if (!target || target.purpose !== 'edit') return { status: 'not-found' };
+      if (target.owner_id !== actorId) return { status: 'forbidden' };
+      // 対象は下書きに保存した投稿だけ（クライアントの値で差し替えない）。
+      if (!target.target_tweet_id) return { status: 'not-found' };
+      const tweetId = target.target_tweet_id;
+      const [tweet] = await tx<{ owner_id: string; content: string; revision: string }[]>`
+        SELECT owner_id, content, revision::text AS revision FROM twitter.tweets WHERE id = ${tweetId} FOR UPDATE
+      `;
+      if (!tweet) return { status: 'not-found' };
+      if (tweet.owner_id !== actorId) return { status: 'forbidden' };
       const [draft] = await tx<
         {
           owner_id: string | null;
           status: string;
           expires_at: Date;
           fingerprint: string | null;
-          purpose: string;
           target_tweet_id: string | null;
           base_revision: string | null;
         }[]
       >`
-        SELECT owner_id, status, expires_at, fingerprint, purpose, target_tweet_id, base_revision::text AS base_revision
+        SELECT owner_id, status, expires_at, fingerprint, target_tweet_id, base_revision::text AS base_revision
         FROM twitter.tweet_drafts WHERE id = ${draftId} FOR UPDATE
       `;
-      if (!draft || draft.purpose !== 'edit') return { status: 'not-found' };
+      // 投稿をロックしている間は対象が変わらない（対象がNULLになるのは投稿の削除時だけ）。
+      if (!draft || draft.target_tweet_id !== tweetId) return { status: 'not-found' };
       if (draft.owner_id !== actorId) return { status: 'forbidden' };
-      // 対象は下書きに保存した投稿だけ（クライアントの値で差し替えない）。
-      if (!draft.target_tweet_id) return { status: 'not-found' };
-      const tweetId = draft.target_tweet_id;
-      const [tweet] = await tx<{ owner_id: string; content: string; revision: string }[]>`
-        SELECT owner_id, content, revision::text AS revision FROM twitter.tweets WHERE id = ${tweetId} FOR UPDATE
-      `;
-      if (!tweet) return { status: 'not-found' };
-      if (tweet.owner_id !== actorId) return { status: 'forbidden' };
 
       if (draft.status === 'published') {
         return draft.fingerprint === fingerprint

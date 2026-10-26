@@ -79,6 +79,29 @@ const jobsFor = (keys: string[]) =>
     WHERE j.storage_key = ANY(${keys}) ORDER BY j.storage_key
   `;
 
+function deferred() {
+  let resolve: () => void = () => {};
+  const promise = new Promise<void>((r) => (resolve = r));
+  return { promise, resolve };
+}
+
+/** blockerPid に（直接・間接に）待たされているセッションが count 個になるまで待つ。 */
+async function waitUntilBlocked(blockerPid: number, count: number) {
+  for (let i = 0; i < 200; i += 1) {
+    const [{ waiting }] = await sql<{ waiting: number }[]>`
+      WITH RECURSIVE blocked(pid) AS (
+        SELECT a.pid FROM pg_stat_activity a WHERE ${blockerPid}::int = ANY(pg_blocking_pids(a.pid))
+        UNION
+        SELECT a.pid FROM pg_stat_activity a JOIN blocked b ON b.pid = ANY(pg_blocking_pids(a.pid))
+      )
+      SELECT count(*)::int AS waiting FROM blocked
+    `;
+    if (waiting >= count) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`ロック待ちが${count}件になりませんでした`);
+}
+
 describe('PostgresTweetDeleter.findTarget', () => {
   it('DBの現在の所有者と本文を返す。存在しなければnull', async () => {
     const alice = await users.user('アリス', 'Dl');
@@ -176,7 +199,7 @@ describe('PostgresTweetDeleter.deleteOwned', () => {
     expect(await tweetCount(tweetId)).toBe(0);
   });
 
-  // 削除は ON DELETE SET NULL で下書きを更新する。下書きを先にロックしないと、編集の確定とデッドロックする。
+  // 削除は ON DELETE SET NULL で下書きを更新する。編集の確定も投稿→下書きの順にロックするので、順序が逆にならない。
   it('編集の確定と同時に削除しても、デッドロックせずにどちらかの順で完了する', async () => {
     const alice = await users.user('アリス', 'Dl');
     for (let i = 0; i < 5; i += 1) {
@@ -202,6 +225,57 @@ describe('PostgresTweetDeleter.deleteOwned', () => {
       expect(await tweetCount(tweetId)).toBe(0);
     }
   }, 120_000);
+
+  it('削除が待っている間に新しい編集用の下書きが作られ確定されても、デッドロックしない（順序を固定）', async () => {
+    const alice = await users.user('アリス', 'Dl');
+    const tweetId = await postWithImages(alice, '順序固定', [10]);
+    const [image] = await imagesOf(tweetId);
+
+    // 投稿に FOR KEY SHARE をかけたままにして、削除（FOR UPDATE）と編集の確定をこの投稿の前で待たせる。
+    // FOR SHARE（編集の準備）は FOR KEY SHARE と両立するので、削除が待っている間にも下書きを作れる。
+    let release: () => void = () => {};
+    const released = new Promise<void>((r) => (release = r));
+    let blockerPid = 0;
+    const holding = deferred();
+    const blocker = sql.begin(async (tx) => {
+      [{ pid: blockerPid }] = await tx<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`;
+      await tx`SELECT 1 FROM twitter.tweets WHERE id = ${tweetId} FOR KEY SHARE`;
+      holding.resolve();
+      await released;
+    });
+    await holding.promise;
+    try {
+      // 1. 削除が始まり、投稿のロックを待つ
+      const deleting = deleter.deleteOwned({ actorId: alice.id, tweetId });
+      await waitUntilBlocked(blockerPid, 1);
+      // 2. 新しい編集用の下書きが作られる
+      const draftId = randomUUID();
+      editDrafts.push(draftId);
+      expect((await editor.prepare({ actorId: alice.id, tweetId, draftId, now: NOW, expiresAt: later(24 * 3600_000) })).status).toBe(
+        'ready',
+      );
+      // 3. 編集の確定が始まり、同じ投稿を待つ
+      const editing = editor.commit({
+        actorId: alice.id,
+        draftId,
+        value: { content: '更新', keepImageIds: [image.id], uploadIds: [] },
+        fingerprint: 'f',
+        now: later(1000),
+      });
+      await waitUntilBlocked(blockerPid, 2);
+      // 4. ブロッカーを外し、削除と編集を進める
+      release();
+      const [deleted, edited] = await Promise.allSettled([deleting, editing]);
+
+      expect(deleted).toEqual({ status: 'fulfilled', value: 'deleted' });
+      expect(edited.status === 'rejected' ? String(edited.reason) : 'fulfilled').toBe('fulfilled');
+      expect(['updated', 'not-found']).toContain(edited.status === 'fulfilled' ? edited.value.status : edited.reason);
+      expect(await tweetCount(tweetId)).toBe(0);
+    } finally {
+      release();
+      await blocker;
+    }
+  }, 60_000);
 
   it('途中でDBが失敗したら、投稿・画像・リツイート・削除予約をすべてロールバックし、例外を返す', async () => {
     const alice = await users.user('アリス', 'Dl');

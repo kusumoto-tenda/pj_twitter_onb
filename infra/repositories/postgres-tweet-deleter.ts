@@ -21,13 +21,9 @@ export class PostgresTweetDeleter implements TweetDeleter {
     if (!UUID_PATTERN.test(tweetId)) return 'not-found';
     // 遅延制約・トリガーの失敗を受け取るため、明示的なトランザクションで実行する。
     return this.sql.begin(async (tx) => {
-      // 編集の確定（下書き→投稿の順にロック）と同じ順にするため、この投稿を参照する下書きを先にロックする。
-      // 削除時の ON DELETE SET NULL で下書きを更新するので、逆順だとデッドロックになり得る。
-      await tx`
-        SELECT id FROM twitter.tweet_drafts
-        WHERE target_tweet_id = ${tweetId} OR published_tweet_id = ${tweetId}
-        ORDER BY id FOR UPDATE
-      `;
+      // ロックは投稿→下書きの順（編集の準備・確定、アカウント削除と同じ）。この投稿を参照する下書きは、
+      // 削除時の ON DELETE SET NULL で投稿のロック後に更新される。下書きを先にロックすると、
+      // ロック後に作られた下書きを防げず、順序も逆になる。
       const [tweet] = await tx<{ owner_id: string }[]>`
         SELECT owner_id FROM twitter.tweets WHERE id = ${tweetId} FOR UPDATE
       `;
