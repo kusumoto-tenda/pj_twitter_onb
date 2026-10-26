@@ -91,6 +91,10 @@ describe('ProfileHeader', () => {
       'href',
       '/profile/Alice_1/edit',
     );
+    expect(screen.getByRole('link', { name: 'アカウント削除' })).toHaveAttribute(
+      'href',
+      '/profile/Alice_1/delete',
+    );
     expect(screen.queryByText('フォロー中')).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
@@ -101,6 +105,7 @@ describe('ProfileHeader', () => {
     expect(screen.getByText('フォロー中')).toBeInTheDocument();
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'プロフィール編集' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
@@ -110,6 +115,7 @@ describe('ProfileHeader', () => {
     expect(screen.queryByText('フォロー中')).not.toBeInTheDocument();
     expect(screen.queryByText('自分のプロフィール')).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'プロフィール編集' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
   });
 
   it('フォロー・フォロワーのタブでは対応する件数リンクを選択状態にする', () => {
