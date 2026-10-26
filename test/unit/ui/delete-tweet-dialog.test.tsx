@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { DeleteTweetFormState } from '@/app/tweets/delete-form-state';
 import { TweetActionsMenu } from '@/app/ui/tweets/tweet-actions-menu';
 import { TweetComposerProvider } from '@/app/ui/tweets/tweet-composer';
+import { CaptureBoundary, captureUnhandledRejections, redirectError } from '../../support/next-control';
 
 const TWEET = '00000000-0000-4000-8000-0000000000d1';
 const ACTOR = '00000000-0000-4000-8000-0000000000a1';
@@ -17,10 +18,12 @@ function setup({
   deleteAction = vi.fn<DeleteAction>().mockResolvedValue({ status: 'success', attempt: 1 }),
   beginDelete = vi.fn<BeginDelete>().mockResolvedValue({ ok: true, value: TARGET }),
   strict = false,
+  onBoundaryError,
 }: {
   deleteAction?: ReturnType<typeof vi.fn<DeleteAction>>;
   beginDelete?: ReturnType<typeof vi.fn<BeginDelete>>;
   strict?: boolean;
+  onBoundaryError?: (error: unknown) => void;
 } = {}) {
   const beginEdit = vi.fn();
   const tree = (
@@ -39,7 +42,8 @@ function setup({
       </main>
     </TweetComposerProvider>
   );
-  render(strict ? <StrictMode>{tree}</StrictMode> : tree);
+  const bounded = onBoundaryError ? <CaptureBoundary onError={onBoundaryError}>{tree}</CaptureBoundary> : tree;
+  render(strict ? <StrictMode>{bounded}</StrictMode> : bounded);
   return { deleteAction, beginDelete, beginEdit, user: userEvent.setup() };
 }
 
@@ -319,6 +323,66 @@ describe('DeleteTweetDialog', () => {
 
       expect(await inDialog().findByText(UNCONFIRMED)).toBeInTheDocument();
       expect(deleteAction).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('開く処理のreject・Next.jsの制御例外', () => {
+    const NETWORK_TOAST = '通信に失敗しました。もう一度お試しください';
+    const deleteItem = () => screen.getByRole('menuitem', { name: '削除する' });
+
+    it('削除の準備がrejectしたら開かずに通信の案内を出し、再び開けば古い案内を消して開ける', async () => {
+      const beginDelete = vi
+        .fn<BeginDelete>()
+        .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+        .mockResolvedValue({ ok: true, value: TARGET });
+      const ctx = setup({ beginDelete });
+
+      await ctx.user.click(menuButton());
+      await ctx.user.click(deleteItem());
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(menuButton()).toBeEnabled());
+
+      await open(ctx);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(beginDelete).toHaveBeenCalledTimes(2);
+    });
+
+    it('削除の準備で投げられたredirectは変換せずに抜け、通信の案内も出さない', async () => {
+      const control = redirectError('/login');
+      const captured = captureUnhandledRejections();
+      try {
+        const ctx = setup({ beginDelete: vi.fn<BeginDelete>().mockRejectedValueOnce(control) });
+
+        await ctx.user.click(menuButton());
+        await ctx.user.click(deleteItem());
+
+        await waitFor(() => expect(captured.errors).toEqual([control]));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      } finally {
+        captured.restore();
+      }
+    });
+
+    it('「はい」で投げられたredirectは変換せずにNext.jsへ渡し、通信の案内も削除の通知も出さない', async () => {
+      const control = redirectError('/login');
+      const onBoundaryError = vi.fn();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const ctx = setup({ deleteAction: vi.fn<DeleteAction>().mockRejectedValueOnce(control), onBoundaryError });
+        await open(ctx);
+
+        await ctx.user.click(yes());
+
+        await waitFor(() => expect(onBoundaryError).toHaveBeenCalledWith(control));
+        expect(screen.queryByText(NETWORK_TOAST)).not.toBeInTheDocument();
+        expect(screen.queryByText('ツイートを削除しました')).not.toBeInTheDocument();
+        expect(screen.queryByText('このツイートは既に削除されています')).not.toBeInTheDocument();
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 });

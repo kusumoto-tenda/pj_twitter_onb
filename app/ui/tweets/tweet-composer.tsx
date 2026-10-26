@@ -5,7 +5,12 @@ import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
 import { beginTweetDraftAction, createTweetAction } from '@/app/tweets/actions';
 import { beginTweetDeleteAction, deleteTweetAction } from '@/app/tweets/delete-actions';
 import { beginTweetEditAction, updateTweetAction } from '@/app/tweets/edit-actions';
-import { TWEET_ALREADY_DELETED_MESSAGE, TWEET_DELETED_MESSAGE, TWEET_UPDATED_MESSAGE } from '@/app/ui/notifications/flash';
+import {
+  ACTION_NETWORK_FAILED_MESSAGE,
+  TWEET_ALREADY_DELETED_MESSAGE,
+  TWEET_DELETED_MESSAGE,
+  TWEET_UPDATED_MESSAGE,
+} from '@/app/ui/notifications/flash';
 import { Toast } from '@/app/ui/notifications/toast';
 import { CreateTweetDialog, type CreateTweetAction } from './create-tweet-dialog';
 import {
@@ -17,6 +22,7 @@ import {
 import { EditTweetDialog, type UpdateTweetAction } from './edit-tweet-dialog';
 import { restoreFocusWhenReady } from './dialog-focus';
 import { blobImageUploader, type ImageUploader } from './image-uploader';
+import { invokeDialogAction } from './invoke-dialog-action';
 
 type BeginDraft = () => Promise<{ ok: true; draftId: string } | { ok: false; message: string }>;
 type BeginEdit = (tweetId: string) => Promise<{ ok: true; value: EditableTweet } | { ok: false; message: string }>;
@@ -89,44 +95,46 @@ export function TweetComposerProvider({
   }, []);
   useEffect(() => () => stopFocusRestore.current?.(), []);
 
-  const prepare = useCallback(async (run: () => Promise<ComposerState | string>) => {
-    stopFocusRestore.current?.();
-    setOpening(true);
-    setError(null);
-    try {
-      // 開く直前にサーバーで利用者・所有者を確認する。未ログインならサーバーがログイン画面へ移動させる。
-      const result = await run();
-      if (typeof result === 'string') setError(result);
-      else setState(result);
-    } finally {
-      setOpening(false);
-    }
-  }, []);
+  const prepare = useCallback(
+    async <T,>(begin: () => Promise<T>, toState: (result: T) => ComposerState | string) => {
+      stopFocusRestore.current?.();
+      setOpening(true);
+      setError(null);
+      try {
+        // 開く直前にサーバーで利用者・所有者を確認する。未ログインならサーバーがログイン画面へ移動させる。
+        // 通信の失敗では開かずに案内する。応答を失った下書きはUUIDが分からないため破棄せず、期限切れの回収に任せる。
+        const outcome = await invokeDialogAction(begin);
+        const result = outcome.ok ? toState(outcome.value) : ACTION_NETWORK_FAILED_MESSAGE;
+        if (typeof result === 'string') setError(result);
+        else setState(result);
+      } finally {
+        setOpening(false);
+      }
+    },
+    [],
+  );
 
   const open = useCallback(
     () =>
-      void prepare(async () => {
-        const result = await beginDraft();
-        return result.ok ? { mode: 'create', draftId: result.draftId } : result.message;
-      }),
+      void prepare(beginDraft, (result) => (result.ok ? { mode: 'create', draftId: result.draftId } : result.message)),
     [beginDraft, prepare],
   );
 
   const openEdit = useCallback(
     (tweetId: string, returnFocusKey: string) =>
-      void prepare(async () => {
-        const result = await beginEdit(tweetId);
-        return result.ok ? { mode: 'edit', value: result.value, returnFocusKey } : result.message;
-      }),
+      void prepare(
+        () => beginEdit(tweetId),
+        (result) => (result.ok ? { mode: 'edit', value: result.value, returnFocusKey } : result.message),
+      ),
     [beginEdit, prepare],
   );
 
   const openDelete = useCallback(
     (tweetId: string, returnFocusKey: string) =>
-      void prepare(async () => {
-        const result = await beginDelete(tweetId);
-        return result.ok ? { mode: 'delete', target: result.value, returnFocusKey } : result.message;
-      }),
+      void prepare(
+        () => beginDelete(tweetId),
+        (result) => (result.ok ? { mode: 'delete', target: result.value, returnFocusKey } : result.message),
+      ),
     [beginDelete, prepare],
   );
 

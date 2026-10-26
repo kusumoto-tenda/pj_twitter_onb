@@ -6,6 +6,7 @@ import type { CreateTweetFormState } from '@/app/tweets/form-state';
 import type { ImageUploader } from '@/app/ui/tweets/image-uploader';
 import { CreateTweetLauncher } from '@/app/ui/tweets/create-tweet-launcher';
 import { TweetComposerProvider } from '@/app/ui/tweets/tweet-composer';
+import { CaptureBoundary, captureUnhandledRejections, redirectError } from '../../support/next-control';
 
 type Action = (state: CreateTweetFormState, formData: FormData) => Promise<CreateTweetFormState | undefined>;
 
@@ -20,7 +21,10 @@ function failure(overrides: Partial<Extract<CreateTweetFormState, { status: 'err
   } as CreateTweetFormState;
 }
 
-function setup(action: Action = vi.fn(), { strict = false } = {}) {
+function setup(
+  action: Action = vi.fn(),
+  { strict = false, onBoundaryError }: { strict?: boolean; onBoundaryError?: (error: unknown) => void } = {},
+) {
   const uploader: ImageUploader = {
     upload: vi.fn(async () => ({ ok: true as const, uploadId: '00000000-0000-4000-8000-000000000001' })),
     discardUpload: vi.fn(async () => true),
@@ -32,7 +36,8 @@ function setup(action: Action = vi.fn(), { strict = false } = {}) {
       <CreateTweetLauncher />
     </TweetComposerProvider>
   );
-  const view = render(strict ? <StrictMode>{tree}</StrictMode> : tree);
+  const bounded = onBoundaryError ? <CaptureBoundary onError={onBoundaryError}>{tree}</CaptureBoundary> : tree;
+  const view = render(strict ? <StrictMode>{bounded}</StrictMode> : bounded);
   return { uploader, beginDraft, action, user: userEvent.setup(), view };
 }
 
@@ -435,6 +440,66 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
       expect(await screen.findByText(UNCONFIRMED)).toBeInTheDocument();
       expect(action).toHaveBeenCalledTimes(1);
       expect(ctx.beginDraft).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('開く処理のreject・Next.jsの制御例外', () => {
+    const NETWORK_TOAST = '通信に失敗しました。もう一度お試しください';
+
+    it('下書きの準備がrejectしたら開かずに通信の案内を出し、再び押せば古い案内を消して開ける', async () => {
+      const ctx = setup();
+      ctx.beginDraft.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      await ctx.user.click(launcher());
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+      expect(screen.queryByText('Failed to fetch')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(launcher()).toBeEnabled();
+      expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+
+      await open(ctx);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(ctx.beginDraft).toHaveBeenCalledTimes(2);
+    });
+
+    it('下書きの準備で投げられたredirectは変換せずに抜け、通信の案内も出さない', async () => {
+      const control = redirectError('/login');
+      const captured = captureUnhandledRejections();
+      try {
+        const ctx = setup();
+        ctx.beginDraft.mockRejectedValueOnce(control as never);
+
+        await ctx.user.click(launcher());
+
+        await waitFor(() => expect(captured.errors).toEqual([control]));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        await waitFor(() => expect(launcher()).toBeEnabled());
+      } finally {
+        captured.restore();
+      }
+    });
+
+    it.each(['/', '/login'])('送信で投げられたredirect(%s)は変換せずにNext.jsへ渡し、通信の案内も下書きの破棄も行わない', async (path) => {
+      const control = redirectError(path);
+      const onBoundaryError = vi.fn();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const action = vi.fn<Action>().mockRejectedValueOnce(control);
+        const ctx = setup(action, { onBoundaryError });
+        await open(ctx);
+        await ctx.user.type(screen.getByLabelText('本文'), 'a');
+
+        await ctx.user.click(submitButton());
+
+        await waitFor(() => expect(onBoundaryError).toHaveBeenCalledWith(control));
+        expect(screen.queryByText(NETWORK_TOAST)).not.toBeInTheDocument();
+        expect(screen.queryByText(/処理結果を確認できませんでした/)).not.toBeInTheDocument();
+        expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 });

@@ -7,6 +7,7 @@ import type { EditTweetFormState } from '@/app/tweets/edit-form-state';
 import type { ImageUploader } from '@/app/ui/tweets/image-uploader';
 import { TweetActionsMenu } from '@/app/ui/tweets/tweet-actions-menu';
 import { TweetComposerProvider } from '@/app/ui/tweets/tweet-composer';
+import { CaptureBoundary, captureUnhandledRejections, redirectError } from '../../support/next-control';
 
 const TWEET = '00000000-0000-4000-8000-0000000000d1';
 const img = (n: number) => ({ id: `00000000-0000-4000-9000-00000000000${n}`, position: n - 1, width: 10 * n, height: 10 });
@@ -22,7 +23,13 @@ function setup({
   updateAction = vi.fn<UpdateAction>().mockResolvedValue({ status: 'success', tweetId: TWEET, attempt: 1 }),
   value = EDITABLE,
   strict = false,
-}: { updateAction?: ReturnType<typeof vi.fn<UpdateAction>>; value?: EditableTweet; strict?: boolean } = {}) {
+  onBoundaryError,
+}: {
+  updateAction?: ReturnType<typeof vi.fn<UpdateAction>>;
+  value?: EditableTweet;
+  strict?: boolean;
+  onBoundaryError?: (error: unknown) => void;
+} = {}) {
   let seq = 0;
   const uploader: ImageUploader = {
     upload: vi.fn(async () => ({ ok: true as const, uploadId: `00000000-0000-4000-8000-00000000010${++seq}` })),
@@ -35,7 +42,8 @@ function setup({
       <TweetActionsMenu tweetId={TWEET} menuKey="tweet:a" />
     </TweetComposerProvider>
   );
-  render(strict ? <StrictMode>{tree}</StrictMode> : tree);
+  const bounded = onBoundaryError ? <CaptureBoundary onError={onBoundaryError}>{tree}</CaptureBoundary> : tree;
+  render(strict ? <StrictMode>{bounded}</StrictMode> : bounded);
   return { uploader, beginEdit, updateAction, user: userEvent.setup() };
 }
 
@@ -350,6 +358,65 @@ describe('EditTweetDialog', () => {
 
       expect(await inDialog().findByText(UNCONFIRMED)).toBeInTheDocument();
       expect(updateAction).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('開く処理のreject・Next.jsの制御例外', () => {
+    const NETWORK_TOAST = '通信に失敗しました。もう一度お試しください';
+    const editItem = () => screen.getByRole('menuitem', { name: '編集する' });
+
+    it('編集の準備がrejectしたら開かずに通信の案内を出し、再び開けば古い案内を消して開ける', async () => {
+      const ctx = setup();
+      ctx.beginEdit.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+      await ctx.user.click(menuButton());
+      await ctx.user.click(editItem());
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      await waitFor(() => expect(menuButton()).toBeEnabled());
+
+      await open(ctx);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(ctx.beginEdit).toHaveBeenCalledTimes(2);
+    });
+
+    it('編集の準備で投げられたredirectは変換せずに抜け、通信の案内も出さない', async () => {
+      const control = redirectError('/login');
+      const captured = captureUnhandledRejections();
+      try {
+        const ctx = setup();
+        ctx.beginEdit.mockRejectedValueOnce(control as never);
+
+        await ctx.user.click(menuButton());
+        await ctx.user.click(editItem());
+
+        await waitFor(() => expect(captured.errors).toEqual([control]));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      } finally {
+        captured.restore();
+      }
+    });
+
+    it('更新で投げられたredirectは変換せずにNext.jsへ渡し、通信の案内・更新の通知・下書きの破棄を行わない', async () => {
+      const control = redirectError('/login');
+      const onBoundaryError = vi.fn();
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      try {
+        const updateAction = vi.fn<UpdateAction>().mockRejectedValueOnce(control);
+        const ctx = setup({ updateAction, onBoundaryError });
+        await open(ctx);
+
+        await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+
+        await waitFor(() => expect(onBoundaryError).toHaveBeenCalledWith(control));
+        expect(screen.queryByText(NETWORK_TOAST)).not.toBeInTheDocument();
+        expect(screen.queryByText('ツイートを更新しました')).not.toBeInTheDocument();
+        expect(ctx.uploader.discardDraft).not.toHaveBeenCalled();
+      } finally {
+        consoleError.mockRestore();
+      }
     });
   });
 });
