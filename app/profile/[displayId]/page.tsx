@@ -12,6 +12,7 @@ import {
   profileHref,
 } from '@/app/lib/profile-query';
 import { PageShell } from '@/app/ui/layout/page-shell';
+import { ProfileUpdatedFlash } from '@/app/ui/notifications/profile-updated-flash';
 import { ProfileActivityList } from '@/app/ui/profile/profile-activity-list';
 import { ProfileConnectionsList } from '@/app/ui/profile/profile-connections-list';
 import { ProfileHeader } from '@/app/ui/profile/profile-header';
@@ -123,6 +124,7 @@ export default async function ProfilePage({
 
   return (
     <PageShell activePage={isSelf ? 'profile' : null} profileHref={ownProfileHref}>
+      <ProfileUpdatedFlash />
       <ProfileHeader profile={profile} isSelf={isSelf} tab={tab} />
       <ProfileTabs displayId={profile.displayId} tab={tab} />
       {list}

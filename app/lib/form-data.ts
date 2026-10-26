@@ -43,3 +43,11 @@ export function classifySignInResult(result: unknown): SignInOutcome {
 export function isSuccessfulSignIn(result: unknown): boolean {
   return classifySignInResult(result) === 'success';
 }
+
+/**
+ * フォーム送信でブラウザがCRLFに変換する改行をLFに揃える。
+ * 文字数の上限を改行1つで2文字と数えたり、保存値に\rが混ざったりしないようにする。
+ */
+export function normalizeNewlines(value: string): string {
+  return value.replace(/\r\n?/g, '\n');
+}

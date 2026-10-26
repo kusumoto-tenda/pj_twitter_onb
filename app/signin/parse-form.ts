@@ -1,4 +1,4 @@
-import { readStringFields } from '@/app/lib/form-data';
+import { normalizeNewlines, readStringFields } from '@/app/lib/form-data';
 import type { CreateAccountInput } from '@/domain/users/user';
 
 /** 登録フォームのFormDataを入力に変換する。UUID・作成日時などクライアント提供の値は採用しない。 */
@@ -12,7 +12,7 @@ export function parseCreateAccountForm(
     input: {
       name: fields.name,
       displayId: fields.displayId,
-      bio: fields.bio ?? '',
+      bio: normalizeNewlines(fields.bio ?? ''),
       password: fields.password,
     },
   };
