@@ -1,4 +1,10 @@
-export type DeleteTweetFailureCode = 'INVALID_REQUEST' | 'SESSION_CHANGED' | 'FORBIDDEN' | 'UNAVAILABLE';
+export type DeleteTweetFailureCode =
+  | 'INVALID_REQUEST'
+  | 'SESSION_CHANGED'
+  | 'FORBIDDEN'
+  | 'UNAVAILABLE'
+  /** Action呼び出し自体の失敗（ダイアログ側で作る。サーバーからは返さない）。 */
+  | 'NETWORK_ERROR';
 
 /** 成功しても画面は移動しない。既にない投稿（not-found）は削除成功と区別して知らせる。 */
 export type DeleteTweetFormState =

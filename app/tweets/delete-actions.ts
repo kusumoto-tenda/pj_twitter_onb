@@ -16,7 +16,10 @@ const BEGIN_MESSAGES = {
   UNAVAILABLE: 'ツイートを削除できませんでした。時間をおいて再度お試しください',
 } as const;
 
-const DELETE_MESSAGES: Record<DeleteTweetFailureCode, string> = {
+/** サーバーが返す失敗コード。NETWORK_ERROR はクライアントだけが作る。 */
+type ServerDeleteFailureCode = Exclude<DeleteTweetFailureCode, 'NETWORK_ERROR'>;
+
+const DELETE_MESSAGES: Record<ServerDeleteFailureCode, string> = {
   INVALID_REQUEST: '削除する内容を確認できませんでした。閉じて開き直してください',
   SESSION_CHANGED: 'ログイン中の利用者が変わりました。画面を開き直してください',
   FORBIDDEN: 'このツイートは削除できません',
@@ -86,7 +89,7 @@ export async function deleteTweetAction(
   formData: FormData,
 ): Promise<DeleteTweetFormState> {
   const attempt = previous.status === 'idle' ? 1 : previous.attempt + 1;
-  const failure = (code: DeleteTweetFailureCode): DeleteTweetFormState => ({
+  const failure = (code: ServerDeleteFailureCode): DeleteTweetFormState => ({
     status: 'error',
     code,
     message: DELETE_MESSAGES[code],

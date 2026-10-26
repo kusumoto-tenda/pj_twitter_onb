@@ -2,9 +2,14 @@
 
 import { useActionState, useCallback, useEffect, useRef } from 'react';
 import { initialDeleteTweetState, type DeleteTweetFormState } from '@/app/tweets/delete-form-state';
-import { TWEET_DELETE_FAILED_MESSAGE } from '@/app/ui/notifications/flash';
+import {
+  ACTION_NETWORK_FAILED_MESSAGE,
+  DIALOG_NETWORK_UNCONFIRMED_MESSAGE,
+  TWEET_DELETE_FAILED_MESSAGE,
+} from '@/app/ui/notifications/flash';
 import { Toast } from '@/app/ui/notifications/toast';
 import { trapFocus } from './dialog-focus';
+import { invokeDialogAction } from './invoke-dialog-action';
 
 export type DeleteTweetAction = (
   state: DeleteTweetFormState,
@@ -47,8 +52,18 @@ export function DeleteTweetDialog({
   );
 
   const [state, formAction, pending] = useActionState(
-    async (previous: DeleteTweetFormState, formData: FormData) => {
-      const result = await action(previous, formData);
+    async (previous: DeleteTweetFormState, formData: FormData): Promise<DeleteTweetFormState> => {
+      const outcome = await invokeDialogAction(() => action(previous, formData));
+      // 通信の失敗では閉じない。確定済みだった場合の再試行は、既存どおり「既に削除されています」になる。
+      if (!outcome.ok) {
+        return {
+          status: 'error',
+          code: 'NETWORK_ERROR',
+          message: DIALOG_NETWORK_UNCONFIRMED_MESSAGE,
+          attempt: previous.status === 'idle' ? 1 : previous.attempt + 1,
+        };
+      }
+      const result = outcome.value;
       // 未ログインでログイン画面へ移動した場合は結果が返らない。残ったダイアログは閉じる。
       if (!result) {
         finish('redirected');
@@ -85,7 +100,11 @@ export function DeleteTweetDialog({
       }}
       className="w-[calc(100%-2rem)] max-w-sm rounded-2xl p-0 backdrop:bg-black/40"
     >
-      <Toast message={TWEET_DELETE_FAILED_MESSAGE} tone="error" trigger={failed?.attempt ?? null} />
+      <Toast
+        message={failed?.code === 'NETWORK_ERROR' ? ACTION_NETWORK_FAILED_MESSAGE : TWEET_DELETE_FAILED_MESSAGE}
+        tone="error"
+        trigger={failed?.attempt ?? null}
+      />
       <form action={formAction} className="space-y-4 p-6">
         <input type="hidden" name="tweetId" value={target.tweetId} />
         <input type="hidden" name="expectedActorId" value={target.actorId} />

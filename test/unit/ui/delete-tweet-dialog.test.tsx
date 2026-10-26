@@ -213,4 +213,112 @@ describe('DeleteTweetDialog', () => {
 
     expect(screen.getByRole('button', { name: 'ツイートの操作', hidden: true })).toBeDisabled();
   });
+
+  describe('Action自体のreject（通信の失敗など）', () => {
+    const NETWORK_TOAST = '通信に失敗しました。もう一度お試しください';
+    const UNCONFIRMED = '通信に失敗し、処理結果を確認できませんでした。入力を変更せず、もう一度お試しください';
+
+    it('確認文・対象を保ったまま開いておき、「はい」「いいえ」を再び有効にする。成功・削除済みは通知しない', async () => {
+      const deleteAction = vi.fn<DeleteAction>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ deleteAction });
+      await open(ctx);
+
+      await ctx.user.click(yes());
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+      expect(inDialog().getByText(UNCONFIRMED)).toBeInTheDocument();
+      // 「削除されていない」とは断言しない
+      expect(screen.queryByText(/削除されていません/)).not.toBeInTheDocument();
+      expect(screen.queryByText('ツイートの削除に失敗しました')).not.toBeInTheDocument();
+      expect(screen.queryByText('ツイートを削除しました')).not.toBeInTheDocument();
+      expect(screen.queryByText('このツイートは既に削除されています')).not.toBeInTheDocument();
+      expect(dialog()).toHaveAttribute('open');
+      expect(inDialog().getByText('消す本文')).toBeInTheDocument();
+      expect(yes()).toHaveTextContent('はい');
+      expect(yes()).toBeEnabled();
+      expect(no()).toBeEnabled();
+      expect(ctx.beginDelete).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['削除成功', { status: 'success', attempt: 2 } as const, 'ツイートを削除しました'],
+      ['既に削除済み（確定後に応答を失った場合を含む）', { status: 'not-found', message: 'このツイートは既に削除されています', attempt: 2 } as const, 'このツイートは既に削除されています'],
+    ])('「はい」の再試行では同じ対象・利用者を送り、%sなら既存どおり閉じて通知する', async (_name, retried, message) => {
+      const deleteAction = vi.fn<DeleteAction>().mockRejectedValueOnce(new TypeError('Failed to fetch')).mockResolvedValueOnce(retried);
+      const ctx = setup({ deleteAction });
+      await open(ctx);
+      await ctx.user.click(yes());
+      await inDialog().findByText(UNCONFIRMED);
+
+      await ctx.user.click(yes());
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect((await screen.findAllByRole('status')).map((s) => s.textContent)).toEqual([message]);
+      const [first, second] = deleteAction.mock.calls.map((call) => call[1]);
+      expect(Array.from(second.entries())).toEqual(Array.from(first.entries()));
+      expect(second.get('tweetId')).toBe(TWEET);
+      expect(second.get('expectedActorId')).toBe(ACTOR);
+      await waitFor(() => expect(screen.getByRole('heading', { name: '最新ツイート' })).toHaveFocus());
+    });
+
+    it('通信の失敗が続けば通知を出し直し、その後の通常エラーは既存の失敗通知と理由で開いたままにする', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const deleteAction = vi
+          .fn<DeleteAction>()
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockResolvedValueOnce({
+            status: 'error',
+            code: 'SESSION_CHANGED',
+            message: 'ログイン中の利用者が変わりました。画面を開き直してください',
+            attempt: 3,
+          });
+        const ctx = setup({ deleteAction });
+        await open(ctx);
+
+        await ctx.user.click(yes());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(3000));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        await ctx.user.click(yes());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+
+        await ctx.user.click(yes());
+        expect(await inDialog().findByText('ログイン中の利用者が変わりました。画面を開き直してください')).toBeInTheDocument();
+        expect(inDialog().queryByText(UNCONFIRMED)).not.toBeInTheDocument();
+        expect(screen.getByRole('alert')).toHaveTextContent('ツイートの削除に失敗しました');
+        expect(dialog()).toHaveAttribute('open');
+        expect(deleteAction).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('通信の失敗後に「いいえ」で閉じると、送信せずメニューへフォーカスを戻す', async () => {
+      const deleteAction = vi.fn<DeleteAction>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ deleteAction });
+      await open(ctx);
+      await ctx.user.click(yes());
+      await inDialog().findByText(UNCONFIRMED);
+
+      await ctx.user.click(no());
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+      expect(deleteAction).toHaveBeenCalledTimes(1);
+      expect(screen.queryByText('ツイートを削除しました')).not.toBeInTheDocument();
+      await waitFor(() => expect(menuButton()).toHaveFocus());
+    });
+
+    it('StrictModeでも1回の操作で1回だけ送信し、通信の失敗を表示する', async () => {
+      const deleteAction = vi.fn<DeleteAction>().mockRejectedValueOnce(new TypeError('Failed to fetch'));
+      const ctx = setup({ deleteAction, strict: true });
+      await open(ctx);
+
+      await ctx.user.click(yes());
+
+      expect(await inDialog().findByText(UNCONFIRMED)).toBeInTheDocument();
+      expect(deleteAction).toHaveBeenCalledTimes(1);
+    });
+  });
 });
