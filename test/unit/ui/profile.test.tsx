@@ -160,6 +160,7 @@ describe('ProfileActivityList', () => {
       author: { id: profile.id, name: 'アリス', displayId: 'Alice_1' },
       createdAt: '2026-10-23T03:04:05.123456Z',
       images: [],
+      favoritedByViewer: false,
     },
     retweetedBy: null,
   };

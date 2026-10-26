@@ -95,9 +95,10 @@ describe('findActivityPage', () => {
     const aRetweetsB = await fixtures.retweet(a, bTweet, at(3));
     await fixtures.retweet(b, aTweet, at(4)); // BによるAの投稿のリツイート（Aの一覧には含めない）
 
-    const tweets = await query.findActivityPage({ subjectId: a.id, kind: 'tweet', after: null, limit: 20 });
+    const tweets = await query.findActivityPage({ subjectId: a.id, viewerId: null, kind: 'tweet', after: null, limit: 20 });
     const retweets = await query.findActivityPage({
       subjectId: a.id,
+      viewerId: null,
       kind: 'retweet',
       after: null,
       limit: 20,
@@ -127,7 +128,7 @@ describe('findActivityPage', () => {
       );
     }
 
-    const page = await query.findActivityPage({ subjectId: a.id, kind: 'tweet', after: null, limit: 20 });
+    const page = await query.findActivityPage({ subjectId: a.id, viewerId: null, kind: 'tweet', after: null, limit: 20 });
 
     expect(page.items).toHaveLength(Math.min(count, 20));
     expect(page.nextCursor === null).toBe(!hasNext);
@@ -157,7 +158,7 @@ describe('findActivityPage', () => {
       const seen: string[] = [];
       let after = null;
       for (let i = 0; i < 5; i++) {
-        const page = await query.findActivityPage({ subjectId: a.id, kind, after, limit: 20 });
+        const page = await query.findActivityPage({ subjectId: a.id, viewerId: null, kind, after, limit: 20 });
         seen.push(...ids(page.items));
         if (!page.nextCursor) break;
         after = page.nextCursor;

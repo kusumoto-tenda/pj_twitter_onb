@@ -77,11 +77,13 @@ export class PostgresProfileQuery implements ProfileQuery {
 
   async findActivityPage({
     subjectId,
+    viewerId,
     kind,
     after,
     limit,
   }: {
     subjectId: string;
+    viewerId: string | null;
     kind: TimelineEventKind;
     after: TimelineCursor | null;
     limit: number;
@@ -146,7 +148,7 @@ export class PostgresProfileQuery implements ProfileQuery {
             ORDER BY r.created_at DESC, r.id DESC
             LIMIT ${limit + 1}
           `;
-    const rows = await withImages(sql, page, sql`page.sort_at DESC, page.event_id DESC`);
+    const rows = await withImages(sql, page, sql`page.sort_at DESC, page.event_id DESC`, viewerId);
 
     const items = rows.slice(0, limit).map(toTimelineItem);
     return { items, nextCursor: rows.length > limit ? items[limit - 1].key : null };

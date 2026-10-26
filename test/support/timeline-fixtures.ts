@@ -109,6 +109,20 @@ export class TimelineFixtures {
     return id;
   }
 
+  /** お気に入りを直接作る（日時はマイクロ秒まで保つ）。 */
+  async favorite(
+    user: TimelinePerson,
+    tweetId: string,
+    createdAt: string,
+    id: string = randomUUID(),
+  ): Promise<string> {
+    await this.sql`
+      INSERT INTO twitter.favorites (id, user_id, tweet_id, created_at)
+      VALUES (${id}, ${user.id}, ${tweetId}, ${createdAt}::text::timestamptz)
+    `;
+    return id;
+  }
+
   async cleanup(): Promise<void> {
     const ids = this.userIds.splice(0);
     if (ids.length > 0) await this.sql`DELETE FROM twitter.users WHERE id = ANY(${ids}::uuid[])`;

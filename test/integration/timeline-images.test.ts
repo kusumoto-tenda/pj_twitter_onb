@@ -73,9 +73,9 @@ describe('一覧の添付画像', () => {
     expect(JSON.stringify(timeline)).not.toMatch(/storage_key|tweet-uploads/);
 
     const profiles = new PostgresProfileQuery(sql);
-    const tweets = await profiles.findActivityPage({ subjectId: alice.id, kind: 'tweet', after: null, limit: 20 });
+    const tweets = await profiles.findActivityPage({ subjectId: alice.id, viewerId: null, kind: 'tweet', after: null, limit: 20 });
     expect(tweets.items.find((i) => i.key.eventId === withImages)?.tweet.images.map((i) => i.width)).toEqual([30, 10, 20]);
-    const retweets = await profiles.findActivityPage({ subjectId: bob.id, kind: 'retweet', after: null, limit: 20 });
+    const retweets = await profiles.findActivityPage({ subjectId: bob.id, viewerId: null, kind: 'retweet', after: null, limit: 20 });
     expect(retweets.items[0].tweet.images.map((i) => i.width)).toEqual([30, 10, 20]);
   }, 120_000);
 
@@ -88,12 +88,13 @@ describe('一覧の添付画像', () => {
       Array.from({ length: 20 }, (_, i) => ({ content: `本文${i}`, createdAt: at(30 + i).toISOString() })),
     );
 
-    const page = await new PostgresProfileQuery(sql).findActivityPage({ subjectId: alice.id, kind: 'tweet', after: null, limit: 20 });
+    const page = await new PostgresProfileQuery(sql).findActivityPage({ subjectId: alice.id, viewerId: null, kind: 'tweet', after: null, limit: 20 });
 
     expect(page.items).toHaveLength(20);
     expect(new Set(page.items.map((i) => i.key.eventId)).size).toBe(20);
     const next = await new PostgresProfileQuery(sql).findActivityPage({
       subjectId: alice.id,
+      viewerId: null,
       kind: 'tweet',
       after: page.nextCursor,
       limit: 20,

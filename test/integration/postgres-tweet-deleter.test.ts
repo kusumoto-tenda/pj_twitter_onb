@@ -113,7 +113,7 @@ describe('PostgresTweetDeleter.findTarget', () => {
 });
 
 describe('PostgresTweetDeleter.deleteOwned', () => {
-  it('本人の投稿を消すと、画像・リツイートも同じトランザクションで消え、画像の実体の削除をトークン期限以降に予約する', async () => {
+  it('本人の投稿を消すと、画像・リツイート・お気に入りも同じトランザクションで消え、画像の実体の削除をトークン期限以降に予約する', async () => {
     const alice = await users.user('アリス', 'Dl');
     const bob = await users.user('ボブ', 'Dl');
     const tweetId = await postWithImages(alice, '消す', [10, 20]);
@@ -124,6 +124,10 @@ describe('PostgresTweetDeleter.deleteOwned', () => {
     const keepOwn = await postWithImages(alice, '残す', [30]);
     const keepOther = await postWithImages(bob, 'ボブの投稿', [40]);
     await users.retweet(alice, keepOther, later(30).toISOString());
+    // 消す投稿へのお気に入り（本人・他人）と、無関係な投稿へのお気に入り
+    await users.favorite(alice, tweetId, later(40).toISOString());
+    await users.favorite(bob, tweetId, later(50).toISOString());
+    const keptFavorite = await users.favorite(bob, keepOwn, later(60).toISOString());
     const kept = [...(await imagesOf(keepOwn)), ...(await imagesOf(keepOther))];
 
     expect(await deleter.deleteOwned({ actorId: alice.id, tweetId })).toBe('deleted');
@@ -131,6 +135,8 @@ describe('PostgresTweetDeleter.deleteOwned', () => {
     expect(await tweetCount(tweetId)).toBe(0);
     expect(await imagesOf(tweetId)).toEqual([]);
     expect(await retweetCount(tweetId)).toBe(0);
+    expect(await count(sql`SELECT count(*) FROM twitter.favorites WHERE tweet_id = ${tweetId}`)).toBe(0);
+    expect(await count(sql`SELECT count(*) FROM twitter.favorites WHERE id = ${keptFavorite}`)).toBe(1);
     const jobs = await jobsFor(images.map((i) => i.storage_key));
     expect(jobs.map((j) => j.storage_key)).toEqual(images.map((i) => i.storage_key).sort());
     for (const job of jobs) expect(job.not_before.getTime()).toBeGreaterThanOrEqual(job.token_valid_until.getTime());

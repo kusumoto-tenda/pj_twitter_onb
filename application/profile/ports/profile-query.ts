@@ -13,6 +13,8 @@ export interface ProfileQuery {
   /** tweetは対象者の通常投稿、retweetは対象者が実行したリツイート。 */
   findActivityPage(input: {
     subjectId: string;
+    /** お気に入りの判定に使う閲覧者（対象者とは別）。未ログインならnull。 */
+    viewerId: string | null;
     kind: TimelineEventKind;
     after: TimelineCursor | null;
     limit: number;

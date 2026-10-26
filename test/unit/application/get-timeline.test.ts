@@ -19,6 +19,7 @@ const page: TimelinePage = {
         author: { id: viewerId, name: 'アリス', displayId: 'Alice_1' },
         createdAt: '2026-10-23T03:00:00.000000Z',
         images: [],
+        favoritedByViewer: false,
       },
       retweetedBy: null,
     },

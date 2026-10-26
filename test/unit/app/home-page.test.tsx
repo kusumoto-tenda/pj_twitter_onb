@@ -56,6 +56,7 @@ const page: TimelinePage = {
         author: { id: FIXED_ID, name: 'アリス', displayId: 'Alice_1' },
         createdAt: cursor.eventAt,
         images: [],
+        favoritedByViewer: false,
       },
       retweetedBy: null,
     },

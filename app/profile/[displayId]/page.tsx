@@ -54,6 +54,7 @@ async function loadListSection(
     if (!cursor.ok) return <InvalidCursorNotice latestHref={latestHref} />;
     const result = await getProfileActivity(deps, {
       subjectId: profile.id,
+      viewerId,
       kind: tab === 'tweets' ? 'tweet' : 'retweet',
       after: cursor.cursor,
     });
