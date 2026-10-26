@@ -26,7 +26,7 @@ const STATUS_LABEL = { uploading: 'アップロード中', verifying: '確認中
 
 /**
  * 画像の選択・プレビュー・解除・再試行。選んだ直後に直接アップロードと検証を進め、
- * 準備できた画像IDを選択順で親へ知らせる（失敗・処理中の画像があればbusy）。
+ * 準備できた画像IDを選択順で親へ知らせる（失敗・処理中・解除中の画像があればbusy）。
  */
 export function TweetImagePicker({
   draftId,
@@ -55,8 +55,8 @@ export function TweetImagePicker({
 
   useEffect(() => {
     onChange({
-      uploadIds: attachments.filter((a) => a.status === 'ready').map((a) => a.uploadId!),
-      busy: attachments.some((a) => a.status !== 'ready'),
+      uploadIds: attachments.filter((a) => a.status === 'ready' && !a.releasing).map((a) => a.uploadId!),
+      busy: attachments.some((a) => a.status !== 'ready' || a.releasing),
     });
   }, [attachments, onChange]);
 

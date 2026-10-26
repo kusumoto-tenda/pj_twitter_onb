@@ -199,4 +199,21 @@ describe('EditTweetDialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('このツイートは編集できません');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
+
+  it('新規画像の削除（予約の破棄）が終わるまでは更新できず、削除した画像を送信しない', async () => {
+    const ctx = setup();
+    await open(ctx);
+    await addImages(ctx, 1);
+    let finishRelease: (released: boolean) => void = () => {};
+    vi.mocked(ctx.uploader.discardUpload).mockImplementationOnce(() => new Promise((r) => (finishRelease = r)));
+
+    await ctx.user.click(inDialog().getByRole('button', { name: '画像1を削除' }));
+    expect(inDialog().getByRole('button', { name: '更新' })).toBeDisabled();
+    await act(async () => finishRelease(true));
+    await waitFor(() => expect(inDialog().getByRole('button', { name: '更新' })).toBeEnabled());
+    await ctx.user.click(inDialog().getByRole('button', { name: '更新' }));
+
+    await waitFor(() => expect(ctx.updateAction).toHaveBeenCalledTimes(1));
+    expect(ctx.updateAction.mock.calls[0][1].getAll('uploadIds')).toEqual([]);
+  });
 });

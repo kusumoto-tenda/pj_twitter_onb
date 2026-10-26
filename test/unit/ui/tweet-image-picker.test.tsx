@@ -265,4 +265,37 @@ describe('TweetImagePicker', () => {
     expect(screen.getByLabelText('画像を追加')).toBeDisabled();
     expect(screen.getByText('画像は4枚まで添付できます')).toBeInTheDocument();
   });
+
+  it('予約の破棄を待っている間は処理中として扱い、その画像を送信する画像IDから外す', async () => {
+    const { uploader, succeed } = controllableUploader();
+    const onChange = vi.fn();
+    render(<TweetImagePicker draftId="draft-1" uploader={uploader} disabled={false} onChange={onChange} />);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+    await succeed(0);
+    let finishRelease: (released: boolean) => void = () => {};
+    vi.mocked(uploader.discardUpload).mockImplementationOnce(() => new Promise((r) => (finishRelease = r)));
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+
+    expect(onChange).toHaveBeenLastCalledWith({ uploadIds: [], busy: true });
+    await act(async () => finishRelease(true));
+    await waitFor(() => expect(onChange).toHaveBeenLastCalledWith({ uploadIds: [], busy: false }));
+  });
+
+  it('破棄に失敗したら、画像を残して再び送信できる状態に戻す', async () => {
+    const { uploader, succeed } = controllableUploader();
+    const onChange = vi.fn();
+    render(<TweetImagePicker draftId="draft-1" uploader={uploader} disabled={false} onChange={onChange} />);
+    const user = userEvent.setup();
+    await user.upload(screen.getByLabelText('画像を追加'), [png('1.png')]);
+    await succeed(0);
+    vi.mocked(uploader.discardUpload).mockResolvedValueOnce(false);
+
+    await user.click(screen.getByRole('button', { name: '画像1を削除' }));
+
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith({ uploadIds: ['00000000-0000-4000-8000-000000000001'], busy: false }),
+    );
+  });
 });
