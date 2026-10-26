@@ -10,9 +10,11 @@ import { verifyImageUpload } from '@/application/media/verify-image-upload';
 import type { TimelinePerson } from '@/application/timeline/timeline';
 import { beginTweetDraft } from '@/application/tweets/begin-tweet-draft';
 import { createTweet } from '@/application/tweets/create-tweet';
+import { deleteTweet } from '@/application/tweets/delete-tweet';
 import { SharpImageInspector } from '@/infra/media/sharp-image-inspector';
 import { VercelBlobStorage } from '@/infra/media/vercel-blob-storage';
 import { PostgresMediaRepository } from '@/infra/repositories/postgres-media-repository';
+import { PostgresTweetDeleter } from '@/infra/repositories/postgres-tweet-deleter';
 import { PostgresTweetWriter } from '@/infra/repositories/postgres-tweet-writer';
 import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
 import { requireTestBlobEnvironment } from '@/test/support/blob-environment';
@@ -102,6 +104,42 @@ describe('画像のライフサイクル（実DB・実テスト用ストア）',
 
     expect(await storage.inspect(aliceUpload.pathname)).toBeNull();
     expect(await storage.inspect(bobUpload.pathname)).not.toBeNull();
+  }, 120_000);
+
+  it('投稿の削除で画像の配信は直ちに止まり、トークンの期限後の回収で実体が消える。残す投稿・他人の画像は残る', async () => {
+    const start = new Date();
+    const deps = depsAt(() => start);
+    const alice = await users.user('アリス', 'Ml');
+    const bob = await users.user('ボブ', 'Ml');
+    const post = async (actor: TimelinePerson, content: string) => {
+      const draftId = await newDraft(deps, actor);
+      const upload = await uploadVerified(deps, actor, draftId);
+      const created = await createTweet(deps, { actorId: actor.id, draftId, input: { content, uploadIds: [upload.uploadId] } });
+      if (!created.ok) throw new Error(created.code);
+      const [{ id: imageId }] = await sql`SELECT id FROM twitter.images WHERE upload_id = ${upload.uploadId}`;
+      return { tweetId: draftId, imageId: imageId as string, pathname: upload.pathname };
+    };
+    const target = await post(alice, '消す');
+    const keep = await post(alice, '残す');
+    const other = await post(bob, 'ボブ');
+    await users.retweet(bob, target.tweetId, new Date(start.getTime() + 10).toISOString());
+
+    expect(
+      await deleteTweet({ deleter: new PostgresTweetDeleter(sql) }, { actorId: alice.id, expectedActorId: alice.id, tweetId: target.tweetId }),
+    ).toEqual({ ok: true });
+    expect(await deps.media.findPublishedImage(target.imageId)).toBeNull();
+    expect(await storage.inspect(target.pathname)).not.toBeNull();
+
+    // トークンの期限前は削除しない
+    await cleanupMedia(depsAt(() => new Date(start.getTime() + 60_000)), { limit: 1000 });
+    expect(await storage.inspect(target.pathname)).not.toBeNull();
+
+    await cleanupMedia(depsAt(() => new Date(start.getTime() + 20 * 60_000)), { limit: 1000 });
+    expect(await storage.inspect(target.pathname)).toBeNull();
+    for (const image of [keep, other]) {
+      expect(await deps.media.findPublishedImage(image.imageId)).not.toBeNull();
+      expect(await storage.inspect(image.pathname)).not.toBeNull();
+    }
   }, 120_000);
 
   it('トークンの有効期間中に破棄した後で届いたアップロードも、期限後の回収で消える', async () => {

@@ -4,6 +4,7 @@ import { getSql } from '@/infra/db/client';
 import { SharpImageInspector } from '@/infra/media/sharp-image-inspector';
 import { VercelBlobStorage } from '@/infra/media/vercel-blob-storage';
 import { PostgresMediaRepository } from '@/infra/repositories/postgres-media-repository';
+import { PostgresTweetDeleter } from '@/infra/repositories/postgres-tweet-deleter';
 import { PostgresTweetEditor } from '@/infra/repositories/postgres-tweet-editor';
 import { PostgresTweetWriter } from '@/infra/repositories/postgres-tweet-writer';
 
@@ -12,6 +13,7 @@ function build() {
   return {
     tweets: new PostgresTweetWriter(sql),
     editor: new PostgresTweetEditor(sql),
+    deleter: new PostgresTweetDeleter(sql),
     media: new PostgresMediaRepository(sql),
     // 資格情報はサーバーの実行時設定だけから読む（ビルド時には接続しない）。
     storage: new VercelBlobStorage(process.env.BLOB_READ_WRITE_TOKEN),
