@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, useTransition } from 'react';
 import { setFavoriteAction } from '@/app/favorites/actions';
 import { useActionFeedback } from '@/app/ui/notifications/action-feedback-provider';
 
+const NETWORK_ERROR_MESSAGE = '通信に失敗しました。時間をおいて再度お試しください';
+
 /**
  * お気に入り（自分専用の保存）のボタン。デザイン案の旗のようなアイコン（bookmark）で、いいね（♡）とは別。
  * 表示する状態はサーバーで取得したDBの値（active）だけで、押したら次の状態を明示して送る（トグルにしない）。
@@ -43,6 +45,9 @@ export function FavoriteButton({
         const result = await action(formData);
         // 失敗しても表示中の状態は変えない（楽観的に切り替えない）。
         if (!result.ok) notify(result.message, 'error');
+      } catch {
+        // 通信の切断などでAction自体が失敗した場合も、エラー境界へ進めず通知して再試行できるようにする。
+        notify(NETWORK_ERROR_MESSAGE, 'error');
       } finally {
         sending.current = false;
       }

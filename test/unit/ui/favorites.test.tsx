@@ -75,7 +75,7 @@ describe('FavoriteButton', () => {
     await waitFor(() => expect(button()).toBeEnabled());
   });
 
-  it('失敗したら表示中の状態を変えずに理由を3秒通知する', async () => {
+  it('Actionが失敗結果を返したら、表示中の状態を変えずに理由を3秒通知する', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const { user } = setup({
@@ -91,6 +91,23 @@ describe('FavoriteButton', () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it('Action自体がreject（通信の失敗など）しても画面を置き換えず、状態を保ったまま通知し、再試行できる', async () => {
+    const action = vi
+      .fn<Action>()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValueOnce({ ok: true, active: true });
+    const { user } = setup({ action });
+    await user.click(button());
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('通信に失敗しました。時間をおいて再度お試しください');
+    expect(button()).toHaveAttribute('aria-pressed', 'false');
+    await waitFor(() => expect(button()).toBeEnabled());
+
+    await user.click(button());
+    await waitFor(() => expect(action).toHaveBeenCalledTimes(2));
+    expect(action.mock.calls[1][0].get('active')).toBe('true');
   });
 
   it('未ログインで表示した画面では画面の利用者を送らず、返された案内だけを表示する', async () => {
