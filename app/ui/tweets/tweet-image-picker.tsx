@@ -1,0 +1,196 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import { MAX_IMAGES_PER_TWEET, validateImageFile } from '@/domain/tweets/tweet-validation';
+import type { ImageUploader } from './image-uploader';
+
+type Attachment = {
+  localId: number;
+  file: File;
+  previewUrl: string;
+  status: 'uploading' | 'verifying' | 'ready' | 'error';
+  uploadId?: string;
+  error?: string;
+  controller: AbortController;
+};
+
+export type PickerState = { uploadIds: string[]; busy: boolean };
+
+const STATUS_LABEL = { uploading: 'アップロード中', verifying: '確認中' } as const;
+
+/**
+ * 画像の選択・プレビュー・解除・再試行。選んだ直後に直接アップロードと検証を進め、
+ * 準備できた画像IDを選択順で親へ知らせる（失敗・処理中の画像があればbusy）。
+ */
+export function TweetImagePicker({
+  draftId,
+  uploader,
+  disabled,
+  onChange,
+  errors = [],
+}: {
+  draftId: string;
+  uploader: ImageUploader;
+  disabled: boolean;
+  onChange: (state: PickerState) => void;
+  errors?: string[];
+}) {
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const seq = useRef(0);
+  const live = useRef<Attachment[]>([]);
+  live.current = attachments;
+
+  useEffect(() => {
+    onChange({
+      uploadIds: attachments.filter((a) => a.status === 'ready').map((a) => a.uploadId!),
+      busy: attachments.some((a) => a.status !== 'ready'),
+    });
+  }, [attachments, onChange]);
+
+  // 閉じる・アンマウント時は、進行中のアップロードを中断してプレビューURLを解放する。
+  useEffect(
+    () => () => {
+      for (const attachment of live.current) {
+        attachment.controller.abort();
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+    },
+    [],
+  );
+
+  const update = (localId: number, patch: Partial<Attachment>) =>
+    setAttachments((current) => current.map((a) => (a.localId === localId ? { ...a, ...patch } : a)));
+
+  const start = (attachment: Attachment) => {
+    void uploader
+      .upload({
+        draftId,
+        file: attachment.file,
+        signal: attachment.controller.signal,
+        onStage: (stage) => update(attachment.localId, { status: stage }),
+      })
+      .then((result) => {
+        if (attachment.controller.signal.aborted) return;
+        update(
+          attachment.localId,
+          result.ok
+            ? { status: 'ready', uploadId: result.uploadId, error: undefined }
+            : { status: 'error', uploadId: result.uploadId, error: result.message },
+        );
+      });
+  };
+
+  const add = (files: File[]) => {
+    setSelectionError(null);
+    const room = MAX_IMAGES_PER_TWEET - live.current.length;
+    if (files.length > room) setSelectionError(`画像は${MAX_IMAGES_PER_TWEET}枚まで添付できます`);
+    const added: Attachment[] = [];
+    for (const file of files.slice(0, Math.max(room, 0))) {
+      const [error] = validateImageFile({ size: file.size, contentType: file.type });
+      if (error) {
+        setSelectionError(error);
+        continue;
+      }
+      added.push({
+        localId: ++seq.current,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        status: 'uploading',
+        controller: new AbortController(),
+      });
+    }
+    if (added.length === 0) return;
+    setAttachments((current) => [...current, ...added]);
+    added.forEach(start);
+  };
+
+  const remove = (attachment: Attachment) => {
+    attachment.controller.abort();
+    URL.revokeObjectURL(attachment.previewUrl);
+    if (attachment.uploadId) uploader.discardUpload(attachment.uploadId);
+    setAttachments((current) => current.filter((a) => a.localId !== attachment.localId));
+  };
+
+  const retry = (attachment: Attachment) => {
+    // 予約は再利用せず、新しい予約・パスでアップロードし直す。
+    if (attachment.uploadId) uploader.discardUpload(attachment.uploadId);
+    const next = { ...attachment, status: 'uploading' as const, uploadId: undefined, error: undefined, controller: new AbortController() };
+    update(attachment.localId, next);
+    start(next);
+  };
+
+  const full = attachments.length >= MAX_IMAGES_PER_TWEET;
+  const messages = [...(selectionError ? [selectionError] : []), ...errors];
+
+  return (
+    <div className="space-y-2">
+      {attachments.length > 0 && (
+        <ul className="grid grid-cols-2 gap-2">
+          {attachments.map((attachment, index) => (
+            <li key={attachment.localId} className="relative overflow-hidden rounded-lg border border-gray-200">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={attachment.previewUrl}
+                alt={`添付画像${index + 1}`}
+                className="h-28 w-full bg-gray-100 object-cover"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-1 p-1 text-xs">
+                <span className={attachment.status === 'error' ? 'text-red-600' : 'text-gray-600'}>
+                  {attachment.status === 'error'
+                    ? attachment.error
+                    : attachment.status === 'ready'
+                      ? '添付済み'
+                      : STATUS_LABEL[attachment.status]}
+                </span>
+                <span className="flex gap-1">
+                  {attachment.status === 'error' && (
+                    <button
+                      type="button"
+                      onClick={() => retry(attachment)}
+                      disabled={disabled}
+                      aria-label={`画像${index + 1}を再試行`}
+                      className="rounded border border-gray-300 px-2 py-0.5"
+                    >
+                      再試行
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => remove(attachment)}
+                    disabled={disabled}
+                    aria-label={`画像${index + 1}を削除`}
+                    className="rounded border border-gray-300 px-2 py-0.5"
+                  >
+                    削除
+                  </button>
+                </span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+      <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-sky-500 px-4 py-1.5 text-sm font-bold text-sky-600 has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+        画像を追加
+        <input
+          type="file"
+          accept="image/jpeg,image/png"
+          multiple
+          disabled={disabled || full}
+          className="sr-only"
+          onChange={(event) => {
+            add(Array.from(event.target.files ?? []));
+            event.target.value = '';
+          }}
+        />
+      </label>
+      {messages.length > 0 && (
+        <ul id="tweet-images-error" className="text-sm text-red-600">
+          {messages.map((message) => (
+            <li key={message}>{message}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}

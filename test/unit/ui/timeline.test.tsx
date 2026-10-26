@@ -308,3 +308,17 @@ describe('MainNavigation', () => {
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
   });
 });
+
+describe('MainNavigation（操作の配置）', () => {
+  it('末尾に投稿ボタンなどの操作を置ける', () => {
+    render(
+      <MainNavigation activePage="home" profileHref={null}>
+        <button type="button">ツイートする</button>
+      </MainNavigation>,
+    );
+
+    expect(screen.getByRole('navigation', { name: 'メインメニュー' })).toContainElement(
+      screen.getByRole('button', { name: 'ツイートする' }),
+    );
+  });
+});
