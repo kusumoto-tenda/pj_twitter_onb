@@ -82,11 +82,13 @@ describe('PostgresRetweetRepository.set', () => {
   it('同じ登録の再送ではタイムラインの順位が上がらず、解除後の再実行は新しいUUID・日時で先頭側へ出る', async () => {
     const alice = await fixtures.user('アリス', 'Rt');
     const bob = await fixtures.user('ボブ', 'Rt');
+    // 自分と今回フォローした作者だけに絞り、共有テストDBの別fixtureを順位の期待値に混ぜない。
+    await fixtures.follow(alice, bob, at(0));
     const target = await fixtures.tweet(bob, '対象', at(1));
     await set(alice.id, target, true, later(2));
     const newer = await fixtures.tweet(bob, '後の投稿', `${year}-03-01T00:00:00.000000Z`);
     const order = async () =>
-      (await home(alice.id)).items.map((i) => [i.key.kind, i.tweet.id === target ? 'target' : i.tweet.id === newer ? 'newer' : '?']);
+      (await home(alice.id, true)).items.map((i) => [i.key.kind, i.tweet.id === target ? 'target' : i.tweet.id === newer ? 'newer' : '?']);
     expect(await order()).toEqual([['tweet', 'newer'], ['retweet', 'target'], ['tweet', 'target']]);
     const [before] = await rowsOf(alice.id);
 
@@ -102,7 +104,7 @@ describe('PostgresRetweetRepository.set', () => {
     expect(after.created_at.getTime()).toBeGreaterThan(before.created_at.getTime());
     expect(await order()).toEqual([['retweet', 'target'], ['tweet', 'newer'], ['tweet', 'target']]);
     // 元投稿の作成日時は変えない
-    expect((await home(alice.id)).items[0].tweet.createdAt).toBe(at(1));
+    expect((await home(alice.id, true)).items[0].tweet.createdAt).toBe(at(1));
   });
 
   it('同じ登録を同時に送っても1行だけ作り、どの応答も同じ件数を返す', async () => {
