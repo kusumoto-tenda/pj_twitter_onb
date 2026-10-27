@@ -227,7 +227,7 @@ test('表示後に相手がユーザーIDを変え、旧IDを別人が使って�
   await expect(followButton(page)).toHaveAttribute('aria-pressed', 'false');
 });
 
-test('フォローのみは自分の出来事を常に含み、フォローした人が他人の投稿をリツイートした出来事を含み、解除した人の出来事を除く', async ({ page }) => {
+test('フォローのみは自分の出来事を含めず、フォローした人が他人の投稿をリツイートした出来事を含み、解除した人の出来事を除く', async ({ page }) => {
   const me = await loginableUser('絞り込む人');
   const target = await loginableUser('フォローして解除する人');
   const stranger = await loginableUser('フォローしていない作者');
@@ -244,10 +244,10 @@ test('フォローのみは自分の出来事を常に含み、フォローし�
   await expect(unfollowButton(page)).toBeEnabled();
 
   await page.goto('/?follow=true');
-  await expect(card(page, `自分の投稿 ${t}`)).toBeVisible();
   await expect(card(page, `相手の投稿 ${t}`)).toBeVisible();
   await expect(card(page, `知らない人の投稿 ${t}`).filter({ hasText: `${target.name}さんがリツイート` })).toBeVisible();
-  await expect(card(page, `知らない人の投稿 ${t}`).filter({ hasText: `${me.name}さんがリツイート` })).toBeVisible();
+  await expect(card(page, `自分の投稿 ${t}`)).toHaveCount(0);
+  await expect(card(page, `知らない人の投稿 ${t}`).filter({ hasText: `${me.name}さんがリツイート` })).toHaveCount(0);
   await expect(card(page, `知らない人の投稿 ${t}`).filter({ hasNotText: 'さんがリツイート' })).toHaveCount(0);
 
   await page.goto(`/profile/${target.displayId}`);
@@ -255,10 +255,12 @@ test('フォローのみは自分の出来事を常に含み、フォローし�
   await expect(followButton(page)).toBeEnabled();
 
   await page.goto('/?follow=true');
-  await expect(card(page, `自分の投稿 ${t}`)).toBeVisible();
-  await expect(card(page, `知らない人の投稿 ${t}`).filter({ hasText: `${me.name}さんがリツイート` })).toBeVisible();
   await expect(card(page, `相手の投稿 ${t}`)).toHaveCount(0);
   await expect(card(page, `知らない人の投稿 ${t}`).filter({ hasText: `${target.name}さんがリツイート` })).toHaveCount(0);
+  await expect(card(page, `自分の投稿 ${t}`)).toHaveCount(0);
+  // 自分の出来事は全体の一覧には出る
+  await page.goto('/');
+  await expect(card(page, `自分の投稿 ${t}`)).toBeVisible();
 });
 
 test('幅375pxで横スクロールが出ず、キーボードでフォロー・解除でき、処理中は連打できない', async ({ page }) => {

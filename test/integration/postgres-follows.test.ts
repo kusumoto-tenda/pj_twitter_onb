@@ -234,7 +234,8 @@ describe('PostgresFollowRepository.set', () => {
     expect(await profiles.findSummary({ displayId: b.displayId, viewerId: a.id })).toMatchObject({ followingCount: 0, followerCount: 1, followedByViewer: true });
     expect((await profiles.findConnectionsPage({ subjectId: a.id, direction: 'following', after: null, limit: 20 })).items).toEqual([b]);
     expect((await profiles.findConnectionsPage({ subjectId: b.id, direction: 'followers', after: null, limit: 20 })).items).toEqual([a]);
-    expect(await events()).toEqual([byA, byB, followed, own]);
+    // 自分の投稿(own)・リツイート(byA)は含めず、フォロー中のBの出来事だけになる
+    expect(await events()).toEqual([byB, followed]);
 
     const newDisplayId = uniqueDisplayId('Fn');
     await new PostgresUserRepository(sql).updateProfile(b.id, { name: '改名B', displayId: newDisplayId, bio: '' });
@@ -243,7 +244,7 @@ describe('PostgresFollowRepository.set', () => {
     expect(await profiles.findSummary({ displayId: newDisplayId, viewerId: a.id })).toMatchObject({ followerCount: 0, followedByViewer: false });
     expect(await profiles.findSummary({ displayId: a.displayId, viewerId: a.id })).toMatchObject({ followingCount: 0 });
     expect((await profiles.findConnectionsPage({ subjectId: b.id, direction: 'followers', after: null, limit: 20 })).items).toEqual([]);
-    expect(await events()).toEqual([byA, own]);
+    expect(await events()).toEqual([]);
     // 解除は関係だけを消し、元投稿・自分と他人のリツイートを変更しない。
     expect(await sql`SELECT id FROM twitter.retweets WHERE id = ANY(${[byA, byB]}::uuid[])`).toHaveLength(2);
   });

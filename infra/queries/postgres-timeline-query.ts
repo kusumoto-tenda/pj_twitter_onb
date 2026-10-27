@@ -15,13 +15,13 @@ export class PostgresTimelineQuery implements TimelineQuery {
     // 次ページの有無を判定するため1件多く取得する。
     const fetchSize = limit + 1;
 
-    // フォロー一覧では、出来事の実行者が本人またはフォロー中の利用者であるものだけにする。
+    // フォロー一覧では、出来事の実行者がフォロー中の利用者であるものだけにする（本人の出来事は含めない）。
     const byActor = (actorColumn: postgres.PendingQuery<postgres.Row[]>) =>
       followingOnly && viewerId
-        ? sql`AND (${actorColumn} = ${viewerId}::uuid OR EXISTS (
+        ? sql`AND EXISTS (
             SELECT 1 FROM twitter.follows f
             WHERE f.follower_id = ${viewerId}::uuid AND f.follow_id = ${actorColumn}
-          ))`
+          )`
         : sql``;
     const olderThan = (
       at: postgres.PendingQuery<postgres.Row[]>,

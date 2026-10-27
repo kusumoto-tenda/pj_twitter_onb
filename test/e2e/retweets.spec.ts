@@ -208,7 +208,7 @@ test('画面を表示した後に別の利用者へ切り替えると、どち�
   expect(await sql`SELECT 1 FROM twitter.retweets WHERE tweet_id = ${tweetId}`).toHaveLength(0);
 });
 
-test('フォローのみでは実行者で判定し、自分のリツイートも表示する', async ({ page }) => {
+test('フォローのみでは実行者で判定し、自分のリツイートは表示しない', async ({ page }) => {
   const me = await loginableUser('フォローする人');
   const followed = await loginableUser('フォロー先');
   const stranger = await loginableUser('フォローしていない作者');
@@ -226,24 +226,27 @@ test('フォローのみでは実行者で判定し、自分のリツイート�
   await expect(retweetCard(page, followed, `知らない人の投稿 ${t}`)).toBeVisible();
 
   await retweetButton(retweetCard(page, followed, `知らない人の投稿 ${t}`)).click();
-  await expect(retweetCard(page, me, `知らない人の投稿 ${t}`)).toBeVisible();
+  await expect(cards.getByRole('button', { name: 'リツイートを解除', exact: true })).toBeVisible();
   await expect(page).toHaveURL('/?follow=true');
-  await expect(cards).toHaveCount(2);
-  await expect(cards.getByText('リツイート2件', { exact: true })).toHaveCount(2);
-  await expect(cards.getByRole('button', { name: 'リツイートを解除', exact: true })).toHaveCount(2);
+  // 自分のリツイートは出来事として増えず、件数と状態だけが変わる
+  await expect(cards).toHaveCount(1);
+  await expect(retweetCard(page, me, `知らない人の投稿 ${t}`)).toHaveCount(0);
+  await expect(cards.getByText('リツイート2件', { exact: true })).toHaveCount(1);
 });
 
 test('2ページ目で操作してもURL・カーソルを保ち、戻る・進むで状態がDBの値になる', async ({ page }) => {
   const me = await loginableUser('ページを見る人');
+  const author = await loginableUser('ページの作者');
+  await fixtures.follow(me, author);
   const t = token();
   const base = Date.now() - 120_000;
   const tweets = await fixtures.tweets(
-    me,
+    author,
     Array.from({ length: 21 }, (_, i) => ({ content: `ページ${String(i).padStart(2, '0')}番 ${t}`, createdAt: new Date(base + i).toISOString() })),
   );
 
   await login(page, me);
-  // 他の利用者の投稿が先頭ページに混ざっても、自分の21件は自分の絞り込みで確実に2ページになる
+  // 他の利用者の投稿が先頭ページに混ざっても、フォロー中の作者の21件は絞り込みで確実に2ページになる
   await followToggle(page).check();
   await expect(page).toHaveURL('/?follow=true');
   await page.getByRole('link', { name: '次の20件' }).click();
@@ -260,9 +263,9 @@ test('2ページ目で操作してもURL・カーソルを保ち、戻る・進�
 
   await page.goBack();
   await expect(page).toHaveURL('/?follow=true');
-  // 新しいリツイートは先頭ページに出来事として出る
-  await expect(retweetCard(page, me, `ページ00番 ${t}`)).toBeVisible();
-  await expect(unretweetButton(retweetCard(page, me, `ページ00番 ${t}`))).toBeVisible();
+  // 自分のリツイートはフォローのみの先頭ページに出来事として出ない
+  await expect(plainCard(page, `ページ20番 ${t}`)).toBeVisible();
+  await expect(retweetCard(page, me, `ページ00番 ${t}`)).toHaveCount(0);
   await page.goForward();
   await expect(page).toHaveURL(second);
   await expect(unretweetButton(plainCard(page, `ページ00番 ${t}`))).toBeVisible();
