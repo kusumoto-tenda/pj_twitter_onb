@@ -52,6 +52,8 @@ async function userExists(id: string) {
 const header = (page: Page) => page.getByRole('region', { name: 'プロフィール' });
 const deleteButton = (page: Page) => page.getByRole('button', { name: 'アカウント削除' });
 const navProfile = (page: Page) => page.getByRole('link', { name: 'プロフィール', exact: true });
+const navDelete = (page: Page) =>
+  page.getByRole('navigation', { name: 'メインメニュー' }).getByRole('link', { name: 'アカウント削除' });
 
 test.afterEach(async () => {
   await fixtures.cleanup();
@@ -82,7 +84,9 @@ test('本人のリンクからパスワードを入力して削除すると、�
   await page.goto(`/profile/${friend.displayId}?tab=following`);
   await expect(page.getByRole('link', { name: /削除する人/ })).toBeVisible();
   await navProfile(page).click();
-  await header(page).getByRole('link', { name: 'アカウント削除' }).click();
+  // 削除の導線はプロフィールではなくナビの一番下にある
+  await expect(header(page).getByRole('link', { name: 'アカウント削除' })).toHaveCount(0);
+  await navDelete(page).click();
 
   await expect(page).toHaveURL(`/profile/${me.displayId}/delete`);
   await expect(page.getByRole('heading', { name: 'パスワードを確認' })).toBeVisible();
@@ -186,7 +190,8 @@ test('未ログインで削除URLはログイン画面、他人の削除URLは�
   await page.goto(`/profile/${stranger.displayId}/delete`);
   await expect(page.getByText('このユーザーは見つかりませんでした')).toBeVisible();
   await page.goto(`/profile/${stranger.displayId}`);
-  await expect(header(page).getByRole('link', { name: 'アカウント削除' })).toHaveCount(0);
+  // 他人のプロフィールでも、ナビの削除リンクは自分の削除画面を指す
+  await expect(navDelete(page)).toHaveAttribute('href', `/profile/${me.displayId}/delete`);
   expect(await userExists(stranger.id)).toBe(true);
 });
 

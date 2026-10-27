@@ -415,6 +415,7 @@ describe('MainNavigation', () => {
     expect(screen.getByRole('link', { name: 'ホーム' })).not.toHaveAttribute('aria-current');
     expect(screen.queryByRole('link', { name: 'プロフィール' })).not.toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'お気に入り' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
   });
 
   it('ログイン中は本人のお気に入り一覧へのリンクを出し、開いているときは現在のページにする', () => {
@@ -439,5 +440,22 @@ describe('MainNavigation（操作の配置）', () => {
     expect(screen.getByRole('navigation', { name: 'メインメニュー' })).toContainElement(
       screen.getByRole('button', { name: 'ツイートする' }),
     );
+  });
+
+  it('ログイン中はアカウント削除をナビの一番下に置き、削除画面では現在のページにする', () => {
+    const { rerender } = render(
+      <MainNavigation activePage="home" profileHref="/profile/Alice_1">
+        <button type="button">ツイートする</button>
+      </MainNavigation>,
+    );
+
+    const remove = screen.getByRole('link', { name: 'アカウント削除' });
+    expect(remove).toHaveAttribute('href', '/profile/Alice_1/delete');
+    expect(remove).not.toHaveAttribute('aria-current');
+    expect(screen.getByRole('navigation', { name: 'メインメニュー' }).lastElementChild).toBe(remove);
+
+    rerender(<MainNavigation activePage="accountDelete" profileHref="/profile/Alice_1" />);
+    expect(screen.getByRole('link', { name: 'アカウント削除' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('link', { name: 'プロフィール' })).not.toHaveAttribute('aria-current');
   });
 });

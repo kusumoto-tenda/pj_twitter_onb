@@ -129,7 +129,7 @@ test('ナビからログアウトすると/loginで3秒通知し、Cookieが消�
   }
   await page.goto(`/profile/${me.displayId}`);
   await expect(profileHeader(page).getByRole('link', { name: 'プロフィール編集' })).toHaveCount(0);
-  await expect(profileHeader(page).getByRole('link', { name: 'アカウント削除' })).toHaveCount(0);
+  await expect(nav(page).getByRole('link', { name: 'アカウント削除' })).toHaveCount(0);
 
   // ログアウトでは利用者・投稿・関係を消さない
   expect(await counts(me)).toEqual(before);
@@ -150,7 +150,7 @@ test('自分のプロフィールのログアウトも同じ動作で、他の�
     await login(page, me);
 
     await page.goto(`/profile/${me.displayId}`);
-    await expect(profileHeader(page).getByRole('link', { name: 'アカウント削除' })).toBeVisible();
+    await expect(nav(page).getByRole('link', { name: 'アカウント削除' })).toBeVisible();
     await profileLogout(page).click();
     await expectLoggedOutOnLoginPage(page);
 

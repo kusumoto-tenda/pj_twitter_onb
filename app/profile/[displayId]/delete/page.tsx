@@ -31,7 +31,7 @@ export default async function DeleteAccountPage({ params }: { params: Promise<{ 
 
   const ownHref = profileHref({ displayId: profile.displayId, tab: 'tweets' });
   return (
-    <PageShell activePage="profile" profileHref={ownHref}>
+    <PageShell activePage="accountDelete" profileHref={ownHref}>
       <AccountDeleteForm
         // 削除対象は表示時のUUIDで固定する。削除時にもActionで本人か確認する。
         action={deleteAccountAction.bind(null, profile.id)}
