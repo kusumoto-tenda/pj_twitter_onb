@@ -340,7 +340,7 @@ describe('ナビとプロフィールの配置', () => {
     expect(within(nav).getByRole('button', { name: 'ログアウト' })).toBeInTheDocument();
   });
 
-  it('自分のプロフィールではアカウント削除の近くに、検証済みのprofile.idで同じActionのボタンを置く', async () => {
+  it('自分のプロフィールでは編集リンクの近くに、検証済みのprofile.idで同じActionのボタンを置く', async () => {
     defaultAction.mockReturnValue(pendingAction());
     render(
       <Providers beginDraft={vi.fn()}>
@@ -349,8 +349,9 @@ describe('ナビとプロフィールの配置', () => {
     );
     const header = screen.getByRole('region', { name: 'プロフィール' });
     const button = within(header).getByRole('button', { name: 'ログアウト' });
-    const deleteLink = within(header).getByRole('link', { name: 'アカウント削除' });
-    expect(button.closest('div')).toBe(deleteLink.closest('div'));
+    const editLink = within(header).getByRole('link', { name: 'プロフィール編集' });
+    expect(button.closest('div')).toBe(editLink.closest('div'));
+    expect(within(header).queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
 
     await userEvent.setup().click(button);
     await waitFor(() => expect(defaultAction).toHaveBeenCalledTimes(1));
