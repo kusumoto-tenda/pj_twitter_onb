@@ -88,6 +88,7 @@ pnpm dev
 
 ## アカウント削除の仕様メモ
 
+- 削除画面への導線は、ログイン中のサイドバー（左ナビ）の一番下に置く。プロフィール画面には置かない。
 - `/profile/{ユーザーID}/delete` は本人だけが使える。ページ表示（GET）では削除せず、Server Actionで毎回セッションのUUIDを確認し、`actorId === targetId` かつ現在のパスワードが一致したときだけ削除する。
 - 削除は `DELETE FROM twitter.users WHERE id = ...` の1文だけで行い、投稿・フォロー・リツイートは既存FKのON DELETE CASCADEで消える（論理削除・復元はなし）。
 - 削除後は表示を `revalidatePath` で無効化し、Auth.jsの `signOut({ redirect: false })` で認証Cookieを無効化してから `/login` へ移動する。通知は表示用Cookie `flash_account`（`deleted` / `signout-failed` / `account-missing`）で出す。

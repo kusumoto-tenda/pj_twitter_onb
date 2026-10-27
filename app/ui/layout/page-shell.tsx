@@ -3,13 +3,13 @@ import { SessionLogoutControl } from '@/app/ui/auth/session-logout-control';
 import { MainNavigation } from '@/app/ui/timeline/main-navigation';
 import { CreateTweetLauncher } from '@/app/ui/tweets/create-tweet-launcher';
 
-/** 左ナビ（375pxでは上部）と本文の列。ナビの末尾に投稿とログアウトを置く。メイン画面・プロフィール画面で共有する。 */
+/** 左ナビ（375pxでは上部）と本文の列。ナビの末尾に投稿とログアウト、一番下にアカウント削除を置く。メイン画面・プロフィール画面で共有する。 */
 export function PageShell({
   activePage,
   profileHref,
   children,
 }: {
-  activePage: 'home' | 'profile' | 'favorites' | null;
+  activePage: 'home' | 'profile' | 'favorites' | 'accountDelete' | null;
   profileHref: string | null;
   children: React.ReactNode;
 }) {

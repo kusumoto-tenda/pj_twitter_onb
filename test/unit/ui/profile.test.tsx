@@ -118,7 +118,7 @@ describe('ProfileHeader', () => {
     expect(screen.getByRole('region', { name: 'プロフィール' }).querySelector('[data-bio]')).toBeNull();
   });
 
-  it('自分なら編集・削除・ログアウトを表示し、フォロー操作は出さない', () => {
+  it('自分なら編集・ログアウトを表示し、フォロー操作は出さない（アカウント削除はナビに置く）', () => {
     render(<ProfileHeader profile={{ ...profile, followedByViewer: false }} isSelf viewerId={profile.id} tab="tweets" />);
 
     expect(screen.getByText('自分のプロフィール')).toBeInTheDocument();
@@ -126,10 +126,7 @@ describe('ProfileHeader', () => {
       'href',
       '/profile/Alice_1/edit',
     );
-    expect(screen.getByRole('link', { name: 'アカウント削除' })).toHaveAttribute(
-      'href',
-      '/profile/Alice_1/delete',
-    );
+    expect(screen.queryByRole('link', { name: 'アカウント削除' })).not.toBeInTheDocument();
     expect(screen.queryByTestId('follow-button')).not.toBeInTheDocument();
     expect(screen.getByTestId('logout-button')).toHaveAttribute('data-actor', profile.id);
     expect(screen.queryByRole('button', { name: /^フォロー/ })).not.toBeInTheDocument();
