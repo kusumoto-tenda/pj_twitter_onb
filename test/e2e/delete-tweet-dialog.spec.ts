@@ -157,8 +157,11 @@ test('本人のメニューから確認して削除すると、画像とリツ�
   await expect(deleteDialog(page)).toBeHidden();
   await expect(page).toHaveURL('/?follow=true');
   await expect(card(page, `消す投稿 ${t}`)).toHaveCount(0);
-  await expect(card(page, `残す投稿 ${t}`)).toBeVisible();
   await expect(deletedToast(page)).toBeHidden({ timeout: 4_000 });
+  // フォローのみには自分の投稿が出ないので、残した投稿は全体の一覧で確かめる
+  await page.goto('/');
+  await expect(card(page, `消す投稿 ${t}`)).toHaveCount(0);
+  await expect(card(page, `残す投稿 ${t}`)).toBeVisible();
   expect(await exists('tweets', 'id', tweetId)).toBe(false);
   expect(await exists('retweets', 'tweet_id', tweetId)).toBe(false);
   expect(await exists('images', 'tweet_id', tweetId)).toBe(false);

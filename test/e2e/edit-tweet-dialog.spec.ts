@@ -303,13 +303,18 @@ test('Aで開いてBにログインし直して保存しても、誰の投稿も
 
 test('フォロー条件・ページ位置・プロフィールのタブを保ったまま更新し、戻る・進むでも更新前に戻らない', async ({ page }) => {
   const me = await loginableUser('位置を保つ');
+  const other = await loginableUser('リツイートする人');
   const t = token();
   // 2ページ目に編集対象が来るよう、新しい投稿を20件以上作る
   const target = await post(me, `2ページ目の投稿 ${t}`);
-  await fixtures.tweets(
-    me,
-    Array.from({ length: 21 }, (_, i) => ({ content: `埋め${i} ${t}`, createdAt: new Date(Date.now() + 60_000 + i).toISOString() })),
-  );
+  const fillers = (prefix: string) =>
+    Array.from({ length: 21 }, (_, i) => ({ content: `${prefix}${i} ${t}`, createdAt: new Date(Date.now() + 60_000 + i).toISOString() }));
+  // プロフィールのページ送り用の自分の投稿
+  await fixtures.tweets(me, fillers('埋め'));
+  // フォローのみには自分の投稿が出ないので、フォロー中の人のリツイートとして編集対象を出す
+  await fixtures.follow(me, other);
+  await fixtures.retweet(other, target, new Date(Date.now() + 1_000).toISOString());
+  await fixtures.tweets(other, fillers('他人の埋め'));
 
   await login(page, me);
   // スクロールできる高さにして、スクロール位置が保たれることを確かめる

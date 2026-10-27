@@ -132,7 +132,7 @@ test('ログイン後のフォロー切り替えで、リツイート実行者�
   // 再読み込みせずに戻ると、チェックと一覧の両方が全体に戻る。
   await followToggle(page).check();
   await expect(page).toHaveURL('/?follow=true');
-  await expect.poll(() => visibleContents(page, all)).toHaveLength(3);
+  await expect.poll(() => visibleContents(page, all)).toHaveLength(2);
   await page.goBack();
   await expect(page).toHaveURL('/');
   await expect(followToggle(page)).not.toBeChecked();
@@ -141,15 +141,15 @@ test('ログイン後のフォロー切り替えで、リツイート実行者�
   await followToggle(page).check();
   await expect(page).toHaveURL('/?follow=true');
   await expect(followToggle(page)).toBeChecked();
-  // フォロー一覧: BのリツイートC投稿、B、A
-  await expect.poll(() => visibleContents(page, all)).toEqual([contents.c, contents.b, contents.a]);
+  // フォロー一覧: BのリツイートC投稿、B（自分Aの投稿は含めない）
+  await expect.poll(() => visibleContents(page, all)).toEqual([contents.c, contents.b]);
   await expect(
     page.getByRole('article').filter({ hasText: 'フォロー中Bさんがリツイート' }),
   ).toContainText(contents.c);
 
   await page.reload();
   await expect(followToggle(page)).toBeChecked();
-  await expect.poll(() => visibleContents(page, all)).toEqual([contents.c, contents.b, contents.a]);
+  await expect.poll(() => visibleContents(page, all)).toEqual([contents.c, contents.b]);
 
   await page.goBack();
   await expect(page).toHaveURL('/');
@@ -162,9 +162,12 @@ test('ページ送りで重複なく次の20件へ進み、フォロー条件を
 }) => {
   const t = token();
   const viewer = await loginableUser('ページ送り');
+  // フォローのみには自分の投稿が出ないので、フォロー中の作者の投稿で確かめる
+  const author = await fixtures.user('ページ送りの作者');
+  await fixtures.follow(viewer, author);
   const contents = Array.from({ length: 25 }, (_, i) => `投稿${String(i).padStart(2, '0')} ${t}`);
   await fixtures.tweets(
-    viewer,
+    author,
     contents.map((content, i) => ({ content, createdAt: at(10, i) })),
   );
   const newestFirst = [...contents].reverse();
@@ -199,10 +202,13 @@ test('フォロー一覧が空なら空の表示、不正なカーソルなら�
   page,
 }) => {
   const isolated = await loginableUser('ひとり');
+  // 自分の投稿があっても、フォロー中のユーザーがいなければ空の表示になる
+  await fixtures.tweet(isolated, `ひとりの投稿 ${token()}`, at(1));
 
   await login(page, isolated);
   await page.goto('/?follow=true');
-  await expect(page.getByText('自分とフォロー中のユーザーの投稿はまだありません')).toBeVisible();
+  await expect(page.getByText('フォロー中のユーザーの投稿はまだありません')).toBeVisible();
+  await expect(page.getByRole('article')).toHaveCount(0);
 
   await page.goto('/?follow=true&cursor=broken!!');
   const back = page.getByRole('link', { name: '最新に戻る' });
@@ -217,12 +223,15 @@ test('幅375pxとPC幅で、ナビ・切り替え・本文・ページ送りを�
 }) => {
   const t = token();
   const viewer = await loginableUser('レイアウト');
+  // フォローのみで表示させるため、投稿はフォロー中の作者が行う
+  const author = await fixtures.user('レイアウトの作者');
+  await fixtures.follow(viewer, author);
   const longWord = `${'a'.repeat(200)}${t}`;
   const longUrl = `https://example.com/${'x'.repeat(150)}`;
-  await fixtures.tweet(viewer, `${longUrl}\n改行のあと ${t}`, at(1));
-  await fixtures.tweet(viewer, longWord, at(2));
+  await fixtures.tweet(author, `${longUrl}\n改行のあと ${t}`, at(1));
+  await fixtures.tweet(author, longWord, at(2));
   await fixtures.tweets(
-    viewer,
+    author,
     Array.from({ length: 20 }, (_, i) => ({ content: `埋め${i} ${t}`, createdAt: at(0, i) })),
   );
 

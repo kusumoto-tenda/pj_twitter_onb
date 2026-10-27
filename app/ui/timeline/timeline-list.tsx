@@ -15,7 +15,7 @@ export function TimelineList({
   if (items.length === 0) {
     return (
       <p className="px-4 py-10 text-center text-gray-500">
-        {followingOnly ? '自分とフォロー中のユーザーの投稿はまだありません' : 'まだ投稿がありません'}
+        {followingOnly ? 'フォロー中のユーザーの投稿はまだありません' : 'まだ投稿がありません'}
       </p>
     );
   }

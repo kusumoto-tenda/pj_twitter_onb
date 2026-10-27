@@ -160,9 +160,10 @@ describe('PostgresUserRepository.updateProfile', () => {
       (await profiles.findConnectionsPage({ subjectId: bob.id, direction: 'following', after: null, limit: 20 }))
         .items,
     ).toEqual([renamed]);
+    // アリスをフォローしているボブのフォロー一覧で、アリスの出来事を確かめる
     const timeline = await new PostgresTimelineQuery(sql).findPage({
       followingOnly: true,
-      viewerId: alice.id,
+      viewerId: bob.id,
       after: null,
       limit: 20,
     });

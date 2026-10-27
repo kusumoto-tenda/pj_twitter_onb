@@ -205,7 +205,7 @@ describe('HomePage', () => {
 
     expect(query.requests).toEqual([]);
     expect(screen.getByRole('link', { name: '最新に戻る' })).toHaveAttribute('href', '/?follow=true');
-    expect(screen.queryByText('自分とフォロー中のユーザーの投稿はまだありません')).not.toBeInTheDocument();
+    expect(screen.queryByText('フォロー中のユーザーの投稿はまだありません')).not.toBeInTheDocument();
   });
 
   it('有効なカーソルを渡し、「最新に戻る」と条件を保った「次の20件」を表示する', async () => {

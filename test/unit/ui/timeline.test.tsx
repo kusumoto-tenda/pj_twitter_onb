@@ -291,7 +291,7 @@ describe('TimelineList', () => {
     expect(screen.getByText('まだ投稿がありません')).toBeInTheDocument();
 
     rerender(<TimelineList items={[]} followingOnly />);
-    expect(screen.getByText('自分とフォロー中のユーザーの投稿はまだありません')).toBeInTheDocument();
+    expect(screen.getByText('フォロー中のユーザーの投稿はまだありません')).toBeInTheDocument();
   });
 
   it('不正なカーソルでは条件を保った最新へのリンクを表示する', () => {

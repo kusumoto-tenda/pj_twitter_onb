@@ -90,7 +90,7 @@ describe('PostgresTimelineQuery', () => {
     expect(items[0].key.eventAt).toBe(at(3));
   });
 
-  it('フォロー一覧は出来事の実行者で絞り込む', async () => {
+  it('フォロー一覧は出来事の実行者で絞り込み、自分の出来事は含めない', async () => {
     const a = await fixtures.user('A');
     const b = await fixtures.user('B');
     const c = await fixtures.user('C');
@@ -114,15 +114,10 @@ describe('PostgresTimelineQuery', () => {
       bTweet,
       aTweet,
     ]);
-    expect(following.map((item) => item.key.eventId)).toEqual([
-      aRetweetsC,
-      bRetweetsC,
-      bTweet,
-      aTweet,
-    ]);
+    expect(following.map((item) => item.key.eventId)).toEqual([bRetweetsC, bTweet]);
   });
 
-  it('フォロー0人でも自分の投稿・リツイートを表示し、他人の出来事は含めない', async () => {
+  it('フォロー0人なら、自分の投稿・リツイートも他人の出来事も含めず空になる', async () => {
     const loner = await fixtures.user('ひとり');
     const other = await fixtures.user('ほか');
     const otherTweet = await fixtures.tweet(other, 'ほかの投稿', at(1));
@@ -131,7 +126,9 @@ describe('PostgresTimelineQuery', () => {
 
     const items = await followingEvents(loner);
 
-    expect(items.map((item) => item.key.eventId)).toEqual([ownRetweet, own]);
+    expect(items.map((item) => item.key.eventId)).not.toContain(own);
+    expect(items.map((item) => item.key.eventId)).not.toContain(ownRetweet);
+    expect(items).toEqual([]);
   });
 
   it('同じ投稿の元投稿と複数のリツイートを別の出来事として表示する', async () => {
@@ -153,6 +150,9 @@ describe('PostgresTimelineQuery', () => {
 
   it('同一時刻・マイクロ秒差・種類違いを含む45件を、重複・欠落なくページ送りできる', async () => {
     const viewer = await fixtures.user('ページ送り');
+    // 対象の出来事だけが入るよう、viewerだけをフォローする読者の一覧で確かめる。
+    const reader = await fixtures.user('読者');
+    await fixtures.follow(reader, viewer);
     const sameTime = at(10, 500000);
     const tweetItems = [
       // 同一時刻の通常投稿5件
@@ -176,7 +176,7 @@ describe('PostgresTimelineQuery', () => {
     const pageSizes: number[] = [];
     let after = null;
     for (let i = 0; i < 10; i++) {
-      const page = await query.findPage({ followingOnly: true, viewerId: viewer.id, after, limit: 20 });
+      const page = await query.findPage({ followingOnly: true, viewerId: reader.id, after, limit: 20 });
       pageSizes.push(page.items.length);
       seen.push(...page.items.map((item) => `${item.key.kind}:${item.key.eventId}`));
       if (!page.nextCursor) break;
@@ -189,7 +189,7 @@ describe('PostgresTimelineQuery', () => {
     expect(seen.map((key) => key.split(':')[1]).sort()).toEqual([...expected].sort());
 
     // 一括取得した順番とページ送りの順番が一致する
-    const all = await followingEvents(viewer);
+    const all = await followingEvents(reader);
     expect(all.map((item) => `${item.key.kind}:${item.key.eventId}`)).toEqual(seen);
     // 同一時刻ではretweetが先、同じ種類の中ではUUIDの降順
     const sameTimeKeys = all.filter((item) => item.key.eventAt === sameTime).map((item) => item.key);
@@ -203,10 +203,12 @@ describe('PostgresTimelineQuery', () => {
     [20, false],
     [21, true],
   ])('%i件ならnextCursorの有無は%s', async (count, hasNext) => {
-    const viewer = await fixtures.user('件数');
+    const author = await fixtures.user('件数');
+    const viewer = await fixtures.user('件数の読者');
+    await fixtures.follow(viewer, author);
     if (count > 0) {
       await fixtures.tweets(
-        viewer,
+        author,
         Array.from({ length: count }, (_, i) => ({ content: `投稿${i}`, createdAt: at(20, i) })),
       );
     }
