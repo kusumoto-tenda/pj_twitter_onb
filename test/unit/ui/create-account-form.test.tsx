@@ -19,7 +19,7 @@ function errorState(overrides: Partial<Extract<CreateAccountFormState, { status:
     status: 'error',
     code: 'INVALID_INPUT',
     fieldErrors: {},
-    values: { name: '', displayId: '', bio: '' },
+    values: { name: '', displayId: '' },
     attempt: 1,
     ...overrides,
   } as CreateAccountFormState;
@@ -29,18 +29,17 @@ async function fillAndSubmit() {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText('ユーザーID'), 'ab');
   await user.type(screen.getByLabelText('名前'), 'アリス');
-  await user.type(screen.getByLabelText('自己紹介（任意）'), 'よろしく');
   await user.type(screen.getByLabelText('パスワード'), 'secret-pw');
   await user.click(screen.getByRole('button', { name: 'アカウントを作成' }));
 }
 
 describe('CreateAccountForm', () => {
-  it('ID・名前・自己紹介・パスワード欄、登録ボタン、ログインへのリンクを表示する', () => {
+  it('ID・名前・パスワード欄だけを表示し、自己紹介は求めない', () => {
     render(<CreateAccountForm action={vi.fn()} />);
 
     expect(screen.getByLabelText('ユーザーID')).toHaveAttribute('name', 'displayId');
     expect(screen.getByLabelText('名前')).toHaveAttribute('name', 'name');
-    expect(screen.getByLabelText('自己紹介（任意）')).toHaveAttribute('name', 'bio');
+    expect(screen.queryByLabelText(/自己紹介/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('パスワード')).toHaveAttribute('type', 'password');
     expect(screen.getByRole('button', { name: 'アカウントを作成' })).toBeEnabled();
     expect(screen.getByRole('link', { name: 'ログイン' })).toHaveAttribute('href', '/login');
@@ -57,7 +56,6 @@ describe('CreateAccountForm', () => {
     expect(Object.fromEntries(data)).toEqual({
       displayId: 'ab',
       name: 'アリス',
-      bio: 'よろしく',
       password: 'secret-pw',
     });
   });
@@ -83,7 +81,7 @@ describe('CreateAccountForm', () => {
     const action = vi.fn<Action>().mockResolvedValue(
       errorState({
         fieldErrors: { displayId: ['ユーザーIDは5文字以上15文字以下で入力してください'] },
-        values: { name: 'アリス', displayId: 'ab', bio: 'よろしく' },
+        values: { name: 'アリス', displayId: 'ab' },
       }),
     );
     render(<CreateAccountForm action={action} />);
@@ -102,7 +100,7 @@ describe('CreateAccountForm', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('アカウントの作成に失敗しました');
     expect(screen.getByLabelText('ユーザーID')).toHaveValue('ab');
     expect(screen.getByLabelText('名前')).toHaveValue('アリス');
-    expect(screen.getByLabelText('自己紹介（任意）')).toHaveValue('よろしく');
+    expect(screen.queryByLabelText(/自己紹介/)).not.toBeInTheDocument();
     expect(screen.getByLabelText('パスワード')).toHaveValue('');
     expect(screen.getByLabelText('名前')).toHaveAttribute('aria-invalid', 'false');
   });
