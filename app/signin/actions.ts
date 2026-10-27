@@ -34,7 +34,7 @@ function valuesFrom(formData: FormData): CreateAccountFormValues {
     const value = formData.get(key);
     return typeof value === 'string' ? value : '';
   };
-  return { name: text('name'), displayId: text('displayId'), bio: text('bio') };
+  return { name: text('name'), displayId: text('displayId') };
 }
 
 export async function createAccountAction(

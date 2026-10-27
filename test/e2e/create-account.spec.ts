@@ -20,17 +20,16 @@ async function countUsers(displayId: string): Promise<number> {
 
 async function fillSignIn(
   page: Page,
-  { displayId, name = 'E2E太郎', bio = '', password = 'password123' }: {
+  { displayId, name = 'E2E太郎', password = 'password123' }: {
     displayId: string;
     name?: string;
-    bio?: string;
     password?: string;
   },
 ) {
   await page.goto('/signin');
   await page.getByLabel('ユーザーID').fill(displayId);
   await page.getByLabel('名前').fill(name);
-  await page.getByLabel('自己紹介（任意）').fill(bio);
+  await expect(page.getByLabel(/自己紹介/)).toHaveCount(0);
   await page.getByLabel('パスワード').fill(password);
   await page.getByRole('button', { name: 'アカウントを作成' }).click();
 }
@@ -46,7 +45,7 @@ test.afterAll(async () => {
 test('有効な入力で登録するとログイン済みでメイン画面に移動し、成功通知を3秒表示する', async ({ page }) => {
   const displayId = newDisplayId();
 
-  await fillSignIn(page, { displayId, name: 'E2E太郎', bio: 'よろしく' });
+  await fillSignIn(page, { displayId, name: 'E2E太郎' });
 
   await expect(page).toHaveURL('/');
   const toast = page.getByRole('status').filter({ hasText: 'アカウントを作成しました' });
@@ -58,7 +57,7 @@ test('有効な入力で登録するとログイン済みでメイン画面に�
   // パスワードは平文で保存されていない。
   const [row] = await sql`SELECT password_hash, bio FROM twitter.users WHERE display_id = ${displayId}`;
   expect(row.password_hash).not.toContain('password123');
-  expect(row.bio).toBe('よろしく');
+  expect(row.bio).toBe('');
 
   // 再読込後もサーバー側で同じ利用者として認証され、通知は再表示しない。
   await page.reload();

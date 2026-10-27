@@ -103,6 +103,17 @@ describe('parseCreateAccountForm', () => {
 });
 
 describe('createAccountAction', () => {
+  it('自己紹介の欄がない登録でも、空の自己紹介でアカウントを作成する', async () => {
+    const data = validForm();
+    data.delete('bio');
+
+    await expect(createAccountAction(initialCreateAccountState, data)).rejects.toThrow('NEXT_REDIRECT');
+
+    expect(users.accounts).toHaveLength(1);
+    expect(users.accounts[0].bio).toBe('');
+    expect(boundary.signIn).toHaveBeenCalledTimes(1);
+  });
+
   it('成功時は登録後にCredentials認証し、通知Cookieを設定してから / へredirectする', async () => {
     await expect(createAccountAction(initialCreateAccountState, validForm())).rejects.toThrow(
       'NEXT_REDIRECT',
@@ -123,7 +134,7 @@ describe('createAccountAction', () => {
   });
 
   it('入力違反なら項目エラーと入力値（パスワード以外）を返し、認証・redirectしない', async () => {
-    const data = form({ name: '', displayId: 'ab', bio: 'よろしく', password: 'secret-pw' });
+    const data = form({ name: '', displayId: 'ab', password: 'secret-pw' });
 
     const state = await createAccountAction(initialCreateAccountState, data);
 
@@ -131,7 +142,7 @@ describe('createAccountAction', () => {
       status: 'error',
       code: 'INVALID_INPUT',
       fieldErrors: { name: expect.any(Array), displayId: expect.any(Array) },
-      values: { name: '', displayId: 'ab', bio: 'よろしく' },
+      values: { name: '', displayId: 'ab' },
     });
     expect(JSON.stringify(state)).not.toContain('secret-pw');
     expect(boundary.calls).toEqual([]);

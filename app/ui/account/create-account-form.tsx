@@ -15,7 +15,7 @@ type CreateAccountAction = (
   formData: FormData,
 ) => Promise<CreateAccountFormState>;
 
-const emptyValues = { name: '', displayId: '', bio: '' };
+const emptyValues = { name: '', displayId: '' };
 
 export function CreateAccountForm({ action }: { action: CreateAccountAction }) {
   const [state, formAction, pending] = useActionState(action, initialCreateAccountState);
@@ -26,7 +26,7 @@ export function CreateAccountForm({ action }: { action: CreateAccountAction }) {
   return (
     <>
       <Toast message={ACCOUNT_CREATE_FAILED_MESSAGE} tone="error" trigger={failed?.attempt ?? null} />
-      {/* 失敗のたびに再マウントし、名前・ID・自己紹介だけを再表示する（パスワードは空にする）。 */}
+      {/* 失敗のたびに再マウントし、名前・IDだけを再表示する（パスワードは空にする）。 */}
       <form key={failed?.attempt ?? 0} action={formAction} noValidate className="space-y-5">
         {failed?.code === 'ACCOUNT_CREATED_SESSION_FAILED' && (
           <div className="rounded-lg border-2 border-amber-500 bg-amber-50 p-4 text-sm">
@@ -51,9 +51,6 @@ export function CreateAccountForm({ action }: { action: CreateAccountAction }) {
           {(props) => (
             <input {...props} name="name" type="text" autoComplete="name" defaultValue={values.name} />
           )}
-        </FormField>
-        <FormField id="bio" label="自己紹介（任意）" errors={errors.bio}>
-          {(props) => <textarea {...props} name="bio" rows={3} defaultValue={values.bio} />}
         </FormField>
         <FormField id="password" label="パスワード" errors={errors.password}>
           {(props) => (
