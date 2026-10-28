@@ -85,6 +85,13 @@ describe('blobImageUploader.upload', () => {
     expect(blob.put).not.toHaveBeenCalled();
   });
 
+  it('予約が5xxで失敗したら（予約後に失敗した可能性があるため）、理由とuploadIdを返す', async () => {
+    fetchMock.mockResolvedValueOnce(json(503, { code: 'UNAVAILABLE', message: '時間をおいて再度お試しください' }));
+
+    expect(await upload()).toEqual({ ok: false, uploadId: UPLOAD_ID, message: '時間をおいて再度お試しください' });
+    expect(blob.put).not.toHaveBeenCalled();
+  });
+
   it('予約自体が失敗したら、uploadIdなしで理由を返す', async () => {
     fetchMock.mockResolvedValueOnce(json(409, { code: 'LIMIT_REACHED', message: '画像は4枚まで添付できます' }));
 
@@ -103,6 +110,14 @@ describe('blobImageUploader.discardUpload', () => {
   ])('%s', async (_label, response, expected) => {
     fetchMock.mockImplementationOnce(response);
 
-    expect(await blobImageUploader.discardUpload(UPLOAD_ID)).toBe(expected);
+    expect(await blobImageUploader.discardUpload(UPLOAD_ID, 'draft-1')).toBe(expected);
+  });
+
+  it('予約より先に届いた場合に備えて、下書きIDを添えて送る', async () => {
+    fetchMock.mockResolvedValueOnce(json(200, { ok: true }));
+
+    await blobImageUploader.discardUpload(UPLOAD_ID, 'draft-1');
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ uploadId: UPLOAD_ID, draftId: 'draft-1' });
   });
 });

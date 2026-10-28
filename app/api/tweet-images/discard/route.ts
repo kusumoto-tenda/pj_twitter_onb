@@ -3,7 +3,10 @@ import { errorResponse, guardMutation, jsonResponse } from '@/app/lib/route-guar
 import { discardImageUpload } from '@/application/media/discard-image-upload';
 import { discardTweetDraft } from '@/application/tweets/discard-tweet-draft';
 
-/** 添付の解除（uploadId）またはダイアログのキャンセル（draftId）。本人の未投稿のものだけを破棄する。 */
+/**
+ * 添付の解除（uploadId。予約より先に届いた解除にも備えてdraftIdを添える）またはダイアログのキャンセル（draftIdのみ）。
+ * 本人の未投稿のものだけを破棄する。
+ */
 export async function POST(request: Request) {
   const guard = await guardMutation(request);
   if (!guard.ok) return guard.response;
@@ -12,7 +15,11 @@ export async function POST(request: Request) {
 
   const result =
     typeof uploadId === 'string'
-      ? await discardImageUpload(deps, { actorId: guard.actorId, uploadId })
+      ? await discardImageUpload(deps, {
+          actorId: guard.actorId,
+          uploadId,
+          draftId: typeof draftId === 'string' ? draftId : undefined,
+        })
       : typeof draftId === 'string'
         ? await discardTweetDraft(deps, { actorId: guard.actorId, draftId })
         : null;

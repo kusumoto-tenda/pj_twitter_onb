@@ -101,7 +101,7 @@ describe('TweetImagePicker', () => {
     await act(async () => pending[1].resolve({ ok: false, message: '中断しました' }));
     await user.click(screen.getByRole('button', { name: '画像1を削除' }));
 
-    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001');
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-000000000001', 'draft-1');
     expect(revoke).toHaveBeenCalledTimes(2);
     expect(screen.queryAllByRole('img')).toHaveLength(0);
     expect(onChange).toHaveBeenLastCalledWith({ uploadIds: [], busy: false });
@@ -147,7 +147,7 @@ describe('TweetImagePicker', () => {
       pending[0].resolve({ ok: false, uploadId: '00000000-0000-4000-8000-0000000000aa', message: '中断しました' }),
     );
 
-    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000aa');
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000aa', 'draft-1');
   });
 
   it('アップロード中に解除した画像が後から成功しても、その予約を破棄する', async () => {
@@ -159,7 +159,7 @@ describe('TweetImagePicker', () => {
     await user.click(screen.getByRole('button', { name: '画像1を削除' }));
     await act(async () => pending[0].resolve({ ok: true, uploadId: '00000000-0000-4000-8000-0000000000bb' }));
 
-    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000bb');
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000bb', 'draft-1');
     expect(screen.queryAllByRole('img')).toHaveLength(0);
   });
 
@@ -249,7 +249,7 @@ describe('TweetImagePicker', () => {
     );
 
     await waitFor(() => expect(screen.getAllByRole('img')).toHaveLength(1));
-    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000dd');
+    expect(uploader.discardUpload).toHaveBeenCalledWith('00000000-0000-4000-8000-0000000000dd', 'draft-1');
     expect(screen.getByRole('button', { name: '画像1を削除' })).toBeEnabled();
     expect(onChange).toHaveBeenLastCalledWith({ uploadIds: ['00000000-0000-4000-8000-000000000001'], busy: false });
   });

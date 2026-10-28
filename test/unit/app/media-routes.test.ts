@@ -223,6 +223,17 @@ describe('POST /api/tweet-images/discard', () => {
     expect(store.drafts.get(draftId)?.status).toBe('discarded');
   });
 
+  it('予約より先に届いた解除（draftId付き）の後は、同じIDの予約を400で拒否する', async () => {
+    const draftId = await draft();
+    const uploadId = '00000000-0000-4000-8000-0000000000c2';
+
+    expect((await discard.POST(post('/api/tweet-images/discard', { uploadId, draftId }))).status).toBe(200);
+    const late = await upload.POST(post('/api/tweet-images/upload', { draftId, uploadId, contentType: 'image/png', size: 1 }));
+
+    expect(late.status).toBe(400);
+    expect(storage.tokens).toHaveLength(0);
+  });
+
   it('別のOrigin・不正な本文は拒否する', async () => {
     const draftId = await draft();
 

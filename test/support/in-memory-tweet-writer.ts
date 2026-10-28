@@ -3,6 +3,7 @@ import type {
   OwnedUpload,
   ReserveUploadOutcome,
 } from '@/application/media/ports/media-repository';
+import { uploadPathname } from '@/application/media/media';
 import type { UploadStatus, VerifiedImage } from '@/application/media/media';
 import type { PublishOutcome, TweetWriter } from '@/application/tweets/ports/tweet-writer';
 import { MAX_IMAGES_PER_TWEET, type ValidTweetInput } from '@/domain/tweets/tweet-validation';
@@ -155,9 +156,34 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
     return 'verified' as const;
   }
 
-  async discardUpload({ actorId, uploadId, now }: { actorId: string; uploadId: string; now: Date }) {
+  async discardUpload({ actorId, uploadId, draftId, now }: { actorId: string; uploadId: string; draftId?: string; now: Date }) {
     const upload = this.uploads.get(uploadId);
-    if (!upload) return 'not-found' as const;
+    if (!upload) {
+      const draft = draftId === undefined ? undefined : this.drafts.get(draftId);
+      if (!draft) return 'not-found' as const;
+      if (draft.ownerId !== actorId) return 'forbidden' as const;
+      if (draft.status !== 'open' || draft.expiresAt <= now) return 'not-found' as const;
+      const storageKey = uploadPathname(draft.id, uploadId);
+      this.uploads.set(uploadId, {
+        id: uploadId,
+        draftId: draft.id,
+        storageKey,
+        status: 'discarded',
+        ownerId: actorId,
+        tokenValidUntil: now,
+        image: null,
+      });
+      if (!this.deleteJobs.has(storageKey)) {
+        this.deleteJobs.set(storageKey, {
+          storageKey,
+          notBefore: draft.expiresAt,
+          attempts: 0,
+          nextAttemptAt: draft.expiresAt,
+          lastErrorCode: null,
+        });
+      }
+      return 'discarded' as const;
+    }
     if (upload.ownerId !== actorId) return 'forbidden' as const;
     if (upload.status === 'attached') return 'attached' as const;
     if (upload.status === 'reserved' || upload.status === 'verified') this.discard(upload, now);

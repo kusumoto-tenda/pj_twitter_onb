@@ -17,7 +17,7 @@ export interface ImageUploader {
     onStage: (stage: UploadStage) => void;
   }): Promise<UploadResult>;
   /** 予約を破棄する。解放できた（予約がもう無い場合を含む）ときだけtrue。 */
-  discardUpload(uploadId: string): Promise<boolean>;
+  discardUpload(uploadId: string, draftId: string): Promise<boolean>;
   discardDraft(draftId: string): void;
 }
 
@@ -31,7 +31,7 @@ async function postJson(path: string, body: unknown, init: RequestInit = {}) {
     ...init,
   });
   const json = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  return { ok: response.ok, json };
+  return { ok: response.ok, status: response.status, json };
 }
 
 /**
@@ -49,7 +49,11 @@ export const blobImageUploader: ImageUploader = {
         { draftId, uploadId, contentType: file.type, size: file.size },
         { signal },
       );
-      if (!reserved.ok) return { ok: false, message: String(reserved.json.message ?? GENERIC_ERROR) };
+      if (!reserved.ok) {
+        const message = String(reserved.json.message ?? GENERIC_ERROR);
+        // 4xxは予約前に断られたもの。5xxは予約後に失敗し、予約が残っている可能性がある。
+        return reserved.status >= 500 ? { ok: false, uploadId, message } : { ok: false, message };
+      }
       const body = reserved.json as { pathname: string; token: string };
 
       onStage('uploading');
@@ -63,13 +67,14 @@ export const blobImageUploader: ImageUploader = {
       return { ok: false, uploadId, message: GENERIC_ERROR };
     }
   },
-  async discardUpload(uploadId) {
+  async discardUpload(uploadId, draftId) {
     try {
       // ページ遷移中でも届くようkeepaliveで送る。
       const response = await fetch('/api/tweet-images/discard', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ uploadId }),
+        // 予約より先に届いた場合でも、後から届く予約を拒否できるよう下書きを添える。
+        body: JSON.stringify({ uploadId, draftId }),
         keepalive: true,
       });
       // 404は予約がもう無い（解放済み）ことを示す。それ以外の失敗では予約が残っている可能性がある。

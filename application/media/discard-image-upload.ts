@@ -7,11 +7,11 @@ export type DiscardImageUploadResult =
 /** 添付の解除。本人の未投稿の画像だけを破棄し、実体は後で回収する。 */
 export async function discardImageUpload(
   deps: { media: Pick<MediaRepository, 'discardUpload'>; now: () => Date },
-  { actorId, uploadId }: { actorId: string | null; uploadId: string },
+  { actorId, uploadId, draftId }: { actorId: string | null; uploadId: string; draftId?: string },
 ): Promise<DiscardImageUploadResult> {
   if (actorId === null) return { ok: false, code: 'UNAUTHENTICATED' };
   try {
-    const outcome = await deps.media.discardUpload({ actorId, uploadId, now: deps.now() });
+    const outcome = await deps.media.discardUpload({ actorId, uploadId, draftId, now: deps.now() });
     switch (outcome) {
       case 'discarded':
         return { ok: true };

@@ -4,6 +4,7 @@ import type {
   OwnedUpload,
   ReserveUploadOutcome,
 } from '@/application/media/ports/media-repository';
+import { uploadPathname } from '@/application/media/media';
 import type { UploadStatus, VerifiedImage } from '@/application/media/media';
 import { MAX_IMAGES_PER_TWEET } from '@/domain/tweets/tweet-validation';
 import { UUID_PATTERN, discardOpenUploads } from './media-sql';
@@ -102,13 +103,40 @@ export class PostgresMediaRepository implements MediaRepository {
     return rows.length === 1 ? ('verified' as const) : ('not-reservable' as const);
   }
 
-  async discardUpload({ actorId, uploadId, now }: { actorId: string; uploadId: string; now: Date }) {
+  async discardUpload({ actorId, uploadId, draftId, now }: { actorId: string; uploadId: string; draftId?: string; now: Date }) {
     if (!UUID_PATTERN.test(uploadId)) return 'not-found' as const;
     return this.sql.begin(async (tx) => {
-      const [found] = await tx<{ draft_id: string }[]>`
+      const findUpload = () => tx<{ draft_id: string }[]>`
         SELECT draft_id FROM twitter.media_uploads WHERE id = ${uploadId}
       `;
-      if (!found) return 'not-found' as const;
+      let [found] = await findUpload();
+      if (!found) {
+        if (draftId === undefined || !UUID_PATTERN.test(draftId)) return 'not-found' as const;
+        // 予約より先に解除が届いた。予約と同じく下書きをロックして順番をそろえ、まだ予約が無ければ破棄済みの印を残す。
+        const [draft] = await tx<{ owner_id: string | null; status: string; expires_at: Date }[]>`
+          SELECT owner_id, status, expires_at FROM twitter.tweet_drafts WHERE id = ${draftId} FOR UPDATE
+        `;
+        if (!draft) return 'not-found' as const;
+        if (draft.owner_id !== actorId) return 'forbidden' as const;
+        [found] = await findUpload();
+        if (!found) {
+          // 閉じた下書きにはもう予約できないため、印は要らない。
+          if (draft.status !== 'open' || draft.expires_at <= now) return 'not-found' as const;
+          const storageKey = uploadPathname(draftId, uploadId);
+          await tx`
+            INSERT INTO twitter.media_uploads
+              (id, draft_id, owner_id, storage_key, status, token_valid_until, created_at)
+            VALUES (${uploadId}, ${draftId}, ${actorId}, ${storageKey}, 'discarded', ${now}, ${now})
+          `;
+          // 下書きの期限が切れれば予約は来ないため、その後に印ごと片付ける。
+          await tx`
+            INSERT INTO twitter.media_delete_jobs (storage_key, not_before, next_attempt_at)
+            VALUES (${storageKey}, ${draft.expires_at}, ${draft.expires_at})
+            ON CONFLICT (storage_key) DO NOTHING
+          `;
+          return 'discarded' as const;
+        }
+      }
       // 投稿確定と同じく、下書き→画像の順にロックする。
       await tx`SELECT 1 FROM twitter.tweet_drafts WHERE id = ${found.draft_id} FOR UPDATE`;
       const [upload] = await tx<{ owner_id: string | null; status: UploadStatus }[]>`
