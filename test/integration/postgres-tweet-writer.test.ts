@@ -242,6 +242,103 @@ describe('PostgresMediaRepository.reserveUpload', () => {
   });
 });
 
+describe('PostgresMediaRepository.reserveUpload（同じIDの再送）', () => {
+  async function reserveWith(actorId: string, draftId: string, uploadId: string, tokenValidUntil: Date) {
+    return media.media.reserveUpload({
+      actorId,
+      draftId,
+      uploadId,
+      storageKey: `tweet-uploads/${draftId}/${uploadId}`,
+      tokenValidUntil,
+      now: NOW,
+    });
+  }
+
+  it('予約中の同じIDなら枠を増やさず、トークンの期限だけ延ばす', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const draftId = await media.draft(alice.id);
+    const uploadId = randomUUID();
+    const later = new Date(NOW.getTime() + 30 * 60_000);
+
+    expect(await reserveWith(alice.id, draftId, uploadId, new Date(NOW.getTime() + 15 * 60_000))).toBe('reserved');
+    expect(await reserveWith(alice.id, draftId, uploadId, later)).toBe('reserved');
+
+    const rows = await sql`SELECT token_valid_until FROM twitter.media_uploads WHERE draft_id = ${draftId}`;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].token_valid_until).toEqual(later);
+  });
+
+  it('他人・別の下書き・破棄済みのIDは予約しない', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const bob = await users.user('ボブ', 'Tw');
+    const draftId = await media.draft(alice.id);
+    const otherDraft = await media.draft(alice.id);
+    const bobsDraft = await media.draft(bob.id);
+    const used = await media.reserved(alice.id, draftId);
+    const discarded = await media.reserved(alice.id, draftId);
+    await media.media.discardUpload({ actorId: alice.id, uploadId: discarded.uploadId, now: NOW });
+
+    expect(await reserveWith(bob.id, bobsDraft, used.uploadId, NOW)).toBe('forbidden');
+    expect(await reserveWith(alice.id, otherDraft, used.uploadId, NOW)).toBe('conflict');
+    expect(await reserveWith(alice.id, draftId, discarded.uploadId, NOW)).toBe('conflict');
+  });
+});
+
+describe('PostgresMediaRepository.discardUpload（予約より先に届いた解除）', () => {
+  it('破棄済みの印を残し、後から届いた同じIDの予約を受け付けない。印は下書きの期限後に片付ける', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const draftId = await media.draft(alice.id, NOW);
+    const uploadId = randomUUID();
+    const storageKey = `tweet-uploads/${draftId}/${uploadId}`;
+
+    expect(await media.media.discardUpload({ actorId: alice.id, uploadId, draftId, now: NOW })).toBe('discarded');
+    expect(
+      await media.media.reserveUpload({ actorId: alice.id, draftId, uploadId, storageKey, tokenValidUntil: NOW, now: NOW }),
+    ).toBe('conflict');
+
+    const [row] = await sql`SELECT status FROM twitter.media_uploads WHERE id = ${uploadId}`;
+    const [job] = await sql`SELECT not_before FROM twitter.media_delete_jobs WHERE storage_key = ${storageKey}`;
+    const [draft] = await sql`SELECT expires_at FROM twitter.tweet_drafts WHERE id = ${draftId}`;
+    expect(row.status).toBe('discarded');
+    expect(job.not_before).toEqual(draft.expires_at);
+  });
+
+  it('解除と予約が同時に届いても、使用中の予約は残らない', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const draftId = await media.draft(alice.id);
+
+    for (let i = 0; i < 5; i++) {
+      const uploadId = randomUUID();
+      await Promise.all([
+        media.media.discardUpload({ actorId: alice.id, uploadId, draftId, now: NOW }),
+        media.media.reserveUpload({
+          actorId: alice.id,
+          draftId,
+          uploadId,
+          storageKey: `tweet-uploads/${draftId}/${uploadId}`,
+          tokenValidUntil: NOW,
+          now: NOW,
+        }),
+      ]);
+    }
+
+    const active = await sql`
+      SELECT id FROM twitter.media_uploads WHERE draft_id = ${draftId} AND status IN ('reserved', 'verified')
+    `;
+    expect(active).toHaveLength(0);
+  });
+
+  it('他人の下書きには印を残さない', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const bob = await users.user('ボブ', 'Tw');
+    const draftId = await media.draft(alice.id);
+    const uploadId = randomUUID();
+
+    expect(await media.media.discardUpload({ actorId: bob.id, uploadId, draftId, now: NOW })).toBe('forbidden');
+    expect(await sql`SELECT 1 FROM twitter.media_uploads WHERE id = ${uploadId}`).toHaveLength(0);
+  });
+});
+
 describe('PostgresTweetWriter.discardDraft', () => {
   it('本人の未投稿の下書きを破棄し、画像の削除をトークンの期限後に予約する', async () => {
     const alice = await users.user('アリス', 'Tw');

@@ -124,6 +124,81 @@ describe('reserveImageUpload', () => {
   });
 });
 
+describe('reserveImageUpload（クライアントが決めた予約ID）', () => {
+  const CLIENT_ID = '00000000-0000-4000-8000-0000000000c1';
+
+  it('指定のIDで予約し、同じIDの再送では枠を増やさずトークンを発行し直す', async () => {
+    const { deps, storage, store } = setup();
+    const draftId = await draftFor(deps);
+    const input = { actorId: ALICE, draftId, uploadId: CLIENT_ID.toUpperCase(), contentType: 'image/png', size: 100 };
+
+    const first = await reserveImageUpload(deps, input);
+    const resent = await reserveImageUpload(deps, input);
+
+    expect(first).toMatchObject({ ok: true, uploadId: CLIENT_ID, pathname: `tweet-uploads/${draftId}/${CLIENT_ID}` });
+    expect(resent).toEqual(first);
+    expect(storage.tokens).toHaveLength(2);
+    expect(store.uploads.size).toBe(1);
+  });
+
+  it('応答を失った予約も、そのIDで解放すれば枠が戻る', async () => {
+    const { deps } = setup();
+    const draftId = await draftFor(deps);
+    const lost = [];
+    for (let i = 0; i < 4; i++) {
+      const uploadId = uuid(900 + i);
+      await reserveImageUpload(deps, { actorId: ALICE, draftId, uploadId, contentType: 'image/png', size: 100 });
+      lost.push(uploadId);
+    }
+    expect(
+      await reserveImageUpload(deps, { actorId: ALICE, draftId, contentType: 'image/png', size: 100 }),
+    ).toEqual({ ok: false, code: 'LIMIT_REACHED' });
+
+    for (const uploadId of lost) await discardImageUpload(deps, { actorId: ALICE, uploadId });
+
+    expect(await reserveImageUpload(deps, { actorId: ALICE, draftId, contentType: 'image/png', size: 100 })).toMatchObject({
+      ok: true,
+    });
+  });
+
+  it('UUIDでないID、他人・別の下書き・破棄済みのIDでは予約しない', async () => {
+    const { deps, storage } = setup();
+    const draftId = await draftFor(deps);
+    const otherDraft = await draftFor(deps);
+    const bobsDraft = await draftFor(deps, BOB);
+    const used = await reserve(deps, draftId);
+    const discarded = await reserve(deps, draftId);
+    await discardImageUpload(deps, { actorId: ALICE, uploadId: discarded.uploadId });
+    const tokens = storage.tokens.length;
+    const base = { actorId: ALICE, draftId, contentType: 'image/png', size: 100 };
+
+    expect(await reserveImageUpload(deps, { ...base, uploadId: 'not-a-uuid' })).toEqual({ ok: false, code: 'INVALID_REQUEST' });
+    expect(await reserveImageUpload(deps, { ...base, draftId: otherDraft, uploadId: used.uploadId })).toEqual({
+      ok: false,
+      code: 'INVALID_REQUEST',
+    });
+    expect(await reserveImageUpload(deps, { ...base, uploadId: discarded.uploadId })).toEqual({
+      ok: false,
+      code: 'INVALID_REQUEST',
+    });
+    expect(
+      await reserveImageUpload(deps, { ...base, actorId: BOB, draftId: bobsDraft, uploadId: used.uploadId }),
+    ).toEqual({ ok: false, code: 'FORBIDDEN' });
+    expect(storage.tokens).toHaveLength(tokens);
+  });
+
+  it('トークンを発行できなければ、予約を解放して枠を空ける', async () => {
+    const { deps, storage, store } = setup();
+    const draftId = await draftFor(deps);
+    vi.spyOn(storage, 'createUploadToken').mockRejectedValueOnce(new Error('blob down'));
+
+    const result = await reserveImageUpload(deps, { actorId: ALICE, draftId, contentType: 'image/png', size: 100 });
+
+    expect(result).toEqual({ ok: false, code: 'UNAVAILABLE' });
+    expect([...store.uploads.values()].map((u) => u.status)).toEqual(['discarded']);
+  });
+});
+
 describe('verifyImageUpload', () => {
   async function uploaded(bytes: Uint8Array, contentType: string, actorId = ALICE) {
     const context = setup();
@@ -238,6 +313,48 @@ describe('discardImageUpload', () => {
 
     expect(await discardImageUpload(deps, { actorId: ALICE, uploadId })).toEqual({ ok: false, code: 'ATTACHED' });
     expect(store.uploads.get(uploadId)?.status).toBe('attached');
+  });
+
+  it('予約より先に解除が届いても、後から届いた同じIDの予約は受け付けず、枠は埋まらない', async () => {
+    const { deps, storage } = setup();
+    const draftId = await draftFor(deps);
+    const input = { actorId: ALICE, draftId, contentType: 'image/png', size: 100 };
+
+    for (let i = 0; i < 4; i++) {
+      const uploadId = uuid(900 + i);
+      expect(await discardImageUpload(deps, { actorId: ALICE, uploadId, draftId })).toEqual({ ok: true });
+      expect(await reserveImageUpload(deps, { ...input, uploadId })).toEqual({ ok: false, code: 'INVALID_REQUEST' });
+    }
+
+    expect(storage.tokens).toHaveLength(0);
+    expect(await reserveImageUpload(deps, input)).toMatchObject({ ok: true });
+  });
+
+  it('予約前の解除でも、他人の下書きには印を残さない。下書きが無ければNOT_FOUND', async () => {
+    const { deps, store } = setup();
+    const draftId = await draftFor(deps, ALICE);
+
+    expect(await discardImageUpload(deps, { actorId: BOB, uploadId: uuid(900), draftId })).toEqual({
+      ok: false,
+      code: 'FORBIDDEN',
+    });
+    expect(await discardImageUpload(deps, { actorId: ALICE, uploadId: uuid(901) })).toEqual({
+      ok: false,
+      code: 'NOT_FOUND',
+    });
+    expect(store.uploads.size).toBe(0);
+  });
+
+  it('予約前の解除で残した印は、下書きの期限後に片付ける', async () => {
+    const { deps, store, setNow } = setup();
+    const draftId = await draftFor(deps);
+    await discardImageUpload(deps, { actorId: ALICE, uploadId: uuid(900), draftId });
+
+    expect(await cleanupMedia(deps, {})).toMatchObject({ deleted: 0 });
+    setNow(new Date(NOW.getTime() + 24 * 3600_000));
+    expect(await cleanupMedia(deps, {})).toMatchObject({ deleted: 1, failed: 0 });
+    expect(store.uploads.size).toBe(0);
+    expect(store.deleteJobs.size).toBe(0);
   });
 });
 

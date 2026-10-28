@@ -88,7 +88,7 @@ export function TweetImagePicker({
         if (attachment.controller.signal.aborted) {
           if (!mounted.current) {
             // 閉じた後は下書きごと破棄されるため、送るだけでよい。
-            if (result.uploadId) void uploader.discardUpload(result.uploadId);
+            if (result.uploadId) void uploader.discardUpload(result.uploadId, draftId);
             return;
           }
           if (removing.current.delete(attachment.localId)) void finishRemoval(attachment, result.uploadId);
@@ -134,7 +134,7 @@ export function TweetImagePicker({
   const release = async (attachment: Attachment): Promise<boolean> => {
     if (!attachment.uploadId) return true;
     update(attachment.localId, { releasing: true, notice: undefined });
-    const released = await uploader.discardUpload(attachment.uploadId);
+    const released = await uploader.discardUpload(attachment.uploadId, draftId);
     update(attachment.localId, released ? { releasing: false } : { releasing: false, notice: RELEASE_FAILED });
     return released;
   };

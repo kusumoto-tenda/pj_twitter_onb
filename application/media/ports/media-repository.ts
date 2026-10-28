@@ -5,13 +5,18 @@ export type ReserveUploadOutcome =
   | 'forbidden'
   | 'draft-not-found'
   | 'draft-closed'
-  | 'limit-reached';
+  | 'limit-reached'
+  /** 同じIDが別の下書き・状態で使われている。 */
+  | 'conflict';
 
 export type OwnedUpload = { id: string; draftId: string; storageKey: string; status: UploadStatus };
 
 /** 画像の予約・検証・破棄・回収の状態を保存する。所有者・下書きの確認は保存側でもロックして行う。 */
 export interface MediaRepository {
-  /** 下書きをロックし、所有者・有効期限・使用中の枚数（4枚まで）を確認して予約する。 */
+  /**
+   * 下書きをロックし、所有者・有効期限・使用中の枚数（4枚まで）を確認して予約する。
+   * 同じ下書きで予約中の同じIDなら、再送とみなしてトークンの期限だけ延ばし 'reserved' を返す。
+   */
   reserveUpload(input: {
     actorId: string;
     draftId: string;
@@ -32,10 +37,15 @@ export interface MediaRepository {
     image: VerifiedImage;
     now: Date;
   }): Promise<'verified' | 'not-reservable'>;
-  /** 未投稿の画像を破棄し、トークンの期限後に実体を削除する予約を残す。 */
+  /**
+   * 未投稿の画像を破棄し、トークンの期限後に実体を削除する予約を残す。
+   * draftIdがあり、予約がまだ無い（予約より先に解除が届いた）ときは、その下書きに破棄済みの印を残し、
+   * 後から届いた同じIDの予約を受け付けないようにする。
+   */
   discardUpload(input: {
     actorId: string;
     uploadId: string;
+    draftId?: string;
     now: Date;
   }): Promise<'discarded' | 'not-found' | 'forbidden' | 'attached'>;
   /** 期限切れの未投稿下書きを破棄し、その画像の削除を予約する。破棄した件数を返す。 */
