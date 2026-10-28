@@ -463,6 +463,55 @@ describe('CreateTweetLauncher / CreateTweetDialog', () => {
       expect(ctx.beginDraft).toHaveBeenCalledTimes(2);
     });
 
+    it('準備の通信の通知は3秒で自動で消え、消えた後も押せば開ける', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const ctx = setup();
+        ctx.beginDraft.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+        await ctx.user.click(launcher());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(2500));
+        expect(screen.getByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(500));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+        await open(ctx);
+        expect(ctx.beginDraft).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('準備の通信の失敗が続けば通知を出し直し、再度の失敗の時点から3秒表示する', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const ctx = setup();
+        ctx.beginDraft
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+        await ctx.user.click(launcher());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(2000));
+
+        // 表示中に押し直して、また失敗する
+        await ctx.user.click(launcher());
+        await waitFor(() => expect(ctx.beginDraft).toHaveBeenCalledTimes(2));
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        // 最初の失敗から3秒を過ぎても、再度の失敗から3秒経つまでは表示し続ける
+        act(() => vi.advanceTimersByTime(2000));
+        expect(screen.getByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(1000));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+        await open(ctx);
+        expect(ctx.beginDraft).toHaveBeenCalledTimes(3);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('下書きの準備で投げられたredirectは変換せずに抜け、通信の案内も出さない', async () => {
       const control = redirectError('/login');
       const captured = captureUnhandledRejections();

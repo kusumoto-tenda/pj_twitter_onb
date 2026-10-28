@@ -11,7 +11,7 @@ import {
   TWEET_DELETED_MESSAGE,
   TWEET_UPDATED_MESSAGE,
 } from '@/app/ui/notifications/flash';
-import { Toast } from '@/app/ui/notifications/toast';
+import { TOAST_DURATION_MS, Toast } from '@/app/ui/notifications/toast';
 import { CreateTweetDialog, type CreateTweetAction } from './create-tweet-dialog';
 import {
   DeleteTweetDialog,
@@ -101,7 +101,13 @@ export function TweetComposerProvider({
     openingRef.current = next;
     setOpeningState(next);
   }, []);
-  const [error, setError] = useState<string | null>(null);
+  // 準備の失敗の案内。通信の失敗は3秒で消す（失敗のたびに新しい値にして、その時点から数え直す）。
+  const [error, setError] = useState<{ message: string; autoHide: boolean } | null>(null);
+  useEffect(() => {
+    if (!error?.autoHide) return;
+    const timer = setTimeout(() => setError(null), TOAST_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [error]);
   const [updatedAt, setUpdatedAt] = useState<number | null>(null);
   const [deletedAt, setDeletedAt] = useState<number | null>(null);
   const [goneAt, setGoneAt] = useState<number | null>(null);
@@ -124,8 +130,12 @@ export function TweetComposerProvider({
         // 開く直前にサーバーで利用者・所有者を確認する。未ログインならサーバーがログイン画面へ移動させる。
         // 通信の失敗では開かずに案内する。応答を失った下書きはUUIDが分からないため破棄せず、期限切れの回収に任せる。
         const outcome = await invokeDialogAction(begin);
-        const result = outcome.ok ? toState(outcome.value) : ACTION_NETWORK_FAILED_MESSAGE;
-        if (typeof result === 'string') setError(result);
+        if (!outcome.ok) {
+          setError({ message: ACTION_NETWORK_FAILED_MESSAGE, autoHide: true });
+          return;
+        }
+        const result = toState(outcome.value);
+        if (typeof result === 'string') setError({ message: result, autoHide: false });
         else setState(result);
       } finally {
         setOpening(false);
@@ -211,7 +221,7 @@ export function TweetComposerProvider({
           role="alert"
           className="fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg"
         >
-          {error}
+          {error.message}
         </p>
       )}
       {/* 更新の成功は画面を移動せずに知らせる（現在のURL・一覧の位置を保つ）。 */}
