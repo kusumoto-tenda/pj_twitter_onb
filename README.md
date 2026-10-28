@@ -29,7 +29,7 @@ pnpm dev
 
 - `.env.local` が `.env` より優先される。ローカル専用の `AUTH_URL` などは `.env` に書く（`.env.example` 参照）。
 - `vercel env pull` で取得するDBは本番と同じ。開発で分けたい場合は Neon で開発用ブランチを作り、その接続URLを `.env.development.local` の `POSTGRES_URL`（プール経由）と `POSTGRES_URL_NON_POOLING`（プールなし）に書く。`pnpm dev` と `pnpm db:migrate` はこちらを優先する。
-- Twitter 用のテーブルは PostgreSQL schema `twitter` に作成する。教材の `/seed` は `public` schema の教材用テーブルを作るもので、このアプリのDB準備には使わない。
+- Twitter 用のテーブルは PostgreSQL schema `twitter` に作成する。
 - マイグレーションはリクエスト処理やビルドからは実行しない。スキーマを変えたらデプロイ前に `pnpm db:migrate` を実行する。
 
 ### テスト用DB
