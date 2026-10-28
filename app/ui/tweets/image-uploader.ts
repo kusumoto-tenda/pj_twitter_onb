@@ -40,17 +40,17 @@ async function postJson(path: string, body: unknown, init: RequestInit = {}) {
  */
 export const blobImageUploader: ImageUploader = {
   async upload({ draftId, file, signal, onStage }) {
-    // 予約が取れた後の失敗・中断では、呼び出し側が予約を解放できるよう必ずuploadIdを返す。
-    let uploadId: string | undefined;
+    // 予約IDは先に決めて送る。予約の応答を失っても（サーバーでは予約済みかもしれない）、
+    // 呼び出し側がこのIDで予約を解放できるよう、通信の失敗・中断では必ずuploadIdを返す。
+    const uploadId = crypto.randomUUID();
     try {
       const reserved = await postJson(
         '/api/tweet-images/upload',
-        { draftId, contentType: file.type, size: file.size },
+        { draftId, uploadId, contentType: file.type, size: file.size },
         { signal },
       );
       if (!reserved.ok) return { ok: false, message: String(reserved.json.message ?? GENERIC_ERROR) };
-      const body = reserved.json as { uploadId: string; pathname: string; token: string };
-      uploadId = body.uploadId;
+      const body = reserved.json as { pathname: string; token: string };
 
       onStage('uploading');
       await put(body.pathname, file, { access: 'private', token: body.token, contentType: file.type, abortSignal: signal });

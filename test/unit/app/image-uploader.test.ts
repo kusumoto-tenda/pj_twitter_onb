@@ -18,9 +18,11 @@ beforeEach(() => {
   fetchMock.mockReset();
   blob.put.mockReset();
   vi.stubGlobal('fetch', fetchMock);
+  vi.spyOn(crypto, 'randomUUID').mockReturnValue(UPLOAD_ID);
 });
 afterEach(() => {
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
 });
 
 function reserveSucceeds() {
@@ -64,6 +66,23 @@ describe('blobImageUploader.upload', () => {
     });
 
     expect(await upload(controller.signal)).toMatchObject({ ok: false, uploadId: UPLOAD_ID });
+  });
+
+  it('予約IDを決めて送る', async () => {
+    reserveSucceeds();
+    blob.put.mockResolvedValue({});
+    fetchMock.mockResolvedValueOnce(json(200, { uploadId: UPLOAD_ID, width: 1, height: 1 }));
+
+    await upload();
+
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ draftId: 'draft-1', uploadId: UPLOAD_ID });
+  });
+
+  it('予約の応答を失ったら（サーバーでは予約済みかもしれないため）、解放できるようuploadIdを返す', async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    expect(await upload()).toMatchObject({ ok: false, uploadId: UPLOAD_ID });
+    expect(blob.put).not.toHaveBeenCalled();
   });
 
   it('予約自体が失敗したら、uploadIdなしで理由を返す', async () => {

@@ -28,6 +28,20 @@ export class PostgresMediaRepository implements MediaRepository {
       if (!draft) return 'draft-not-found';
       if (draft.owner_id !== input.actorId) return 'forbidden';
       if (draft.status !== 'open' || draft.expires_at <= input.now) return 'draft-closed';
+      const [existing] = await tx<{ draft_id: string; owner_id: string | null; status: UploadStatus }[]>`
+        SELECT draft_id, owner_id, status FROM twitter.media_uploads WHERE id = ${input.uploadId} FOR UPDATE
+      `;
+      if (existing) {
+        if (existing.owner_id !== input.actorId) return 'forbidden';
+        if (existing.draft_id !== input.draftId || existing.status !== 'reserved') return 'conflict';
+        // 応答を失った予約の再送。新しく発行するトークンの期限まで削除を待てるよう期限を延ばす。
+        await tx`
+          UPDATE twitter.media_uploads
+          SET token_valid_until = GREATEST(token_valid_until, ${input.tokenValidUntil})
+          WHERE id = ${input.uploadId}
+        `;
+        return 'reserved';
+      }
       const [{ count }] = await tx<{ count: number }[]>`
         SELECT count(*)::int AS count FROM twitter.media_uploads
         WHERE draft_id = ${input.draftId} AND status IN ('reserved', 'verified')

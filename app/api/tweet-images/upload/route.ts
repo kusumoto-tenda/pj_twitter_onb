@@ -6,14 +6,20 @@ import { reserveImageUpload } from '@/application/media/reserve-image-upload';
 export async function POST(request: Request) {
   const guard = await guardMutation(request);
   if (!guard.ok) return guard.response;
-  const { draftId, contentType, size } = guard.body;
-  if (typeof draftId !== 'string' || typeof contentType !== 'string' || typeof size !== 'number') {
+  const { draftId, uploadId, contentType, size } = guard.body;
+  if (
+    typeof draftId !== 'string' ||
+    (uploadId !== undefined && typeof uploadId !== 'string') ||
+    typeof contentType !== 'string' ||
+    typeof size !== 'number'
+  ) {
     return errorResponse('INVALID_REQUEST');
   }
 
   const result = await reserveImageUpload(getTweetDependencies(), {
     actorId: guard.actorId,
     draftId,
+    uploadId,
     contentType,
     size,
   });

@@ -114,6 +114,13 @@ export class InMemoryTweetStore implements TweetWriter, MediaRepository {
     if (!draft) return 'draft-not-found';
     if (draft.ownerId !== input.actorId) return 'forbidden';
     if (draft.status !== 'open' || draft.expiresAt <= input.now) return 'draft-closed';
+    const existing = this.uploads.get(input.uploadId);
+    if (existing) {
+      if (existing.ownerId !== input.actorId) return 'forbidden';
+      if (existing.draftId !== input.draftId || existing.status !== 'reserved') return 'conflict';
+      if (existing.tokenValidUntil < input.tokenValidUntil) existing.tokenValidUntil = input.tokenValidUntil;
+      return 'reserved';
+    }
     const active = [...this.uploads.values()].filter(
       (u) => u.draftId === input.draftId && (u.status === 'reserved' || u.status === 'verified'),
     );

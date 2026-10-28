@@ -242,6 +242,48 @@ describe('PostgresMediaRepository.reserveUpload', () => {
   });
 });
 
+describe('PostgresMediaRepository.reserveUpload（同じIDの再送）', () => {
+  async function reserveWith(actorId: string, draftId: string, uploadId: string, tokenValidUntil: Date) {
+    return media.media.reserveUpload({
+      actorId,
+      draftId,
+      uploadId,
+      storageKey: `tweet-uploads/${draftId}/${uploadId}`,
+      tokenValidUntil,
+      now: NOW,
+    });
+  }
+
+  it('予約中の同じIDなら枠を増やさず、トークンの期限だけ延ばす', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const draftId = await media.draft(alice.id);
+    const uploadId = randomUUID();
+    const later = new Date(NOW.getTime() + 30 * 60_000);
+
+    expect(await reserveWith(alice.id, draftId, uploadId, new Date(NOW.getTime() + 15 * 60_000))).toBe('reserved');
+    expect(await reserveWith(alice.id, draftId, uploadId, later)).toBe('reserved');
+
+    const rows = await sql`SELECT token_valid_until FROM twitter.media_uploads WHERE draft_id = ${draftId}`;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].token_valid_until).toEqual(later);
+  });
+
+  it('他人・別の下書き・破棄済みのIDは予約しない', async () => {
+    const alice = await users.user('アリス', 'Tw');
+    const bob = await users.user('ボブ', 'Tw');
+    const draftId = await media.draft(alice.id);
+    const otherDraft = await media.draft(alice.id);
+    const bobsDraft = await media.draft(bob.id);
+    const used = await media.reserved(alice.id, draftId);
+    const discarded = await media.reserved(alice.id, draftId);
+    await media.media.discardUpload({ actorId: alice.id, uploadId: discarded.uploadId, now: NOW });
+
+    expect(await reserveWith(bob.id, bobsDraft, used.uploadId, NOW)).toBe('forbidden');
+    expect(await reserveWith(alice.id, otherDraft, used.uploadId, NOW)).toBe('conflict');
+    expect(await reserveWith(alice.id, draftId, discarded.uploadId, NOW)).toBe('conflict');
+  });
+});
+
 describe('PostgresTweetWriter.discardDraft', () => {
   it('本人の未投稿の下書きを破棄し、画像の削除をトークンの期限後に予約する', async () => {
     const alice = await users.user('アリス', 'Tw');

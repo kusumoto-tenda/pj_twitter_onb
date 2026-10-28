@@ -115,10 +115,26 @@ describe('POST /api/tweet-images/upload', () => {
       { draftId, contentType: 'image/png', size: 5 * 1024 * 1024 + 1 },
       { draftId, contentType: 'image/png' },
       { draftId: 123, contentType: 'image/png', size: 1 },
+      { draftId, uploadId: 123, contentType: 'image/png', size: 1 },
+      { draftId, uploadId: 'not-a-uuid', contentType: 'image/png', size: 1 },
     ]) {
       expect((await upload.POST(post('/api/tweet-images/upload', body))).status).toBe(400);
     }
     expect(storage.tokens).toHaveLength(0);
+  });
+
+  it('クライアントが決めたIDで予約し、同じIDの再送では枠を増やさない', async () => {
+    const draftId = await draft();
+    const uploadId = '00000000-0000-4000-8000-0000000000c1';
+    const body = { draftId, uploadId, contentType: 'image/png', size: 1 };
+
+    const first = await upload.POST(post('/api/tweet-images/upload', body));
+    const resent = await upload.POST(post('/api/tweet-images/upload', body));
+
+    expect(first.status).toBe(200);
+    expect(resent.status).toBe(200);
+    expect(await resent.json()).toMatchObject({ uploadId, pathname: `tweet-uploads/${draftId}/${uploadId}` });
+    expect(store.uploads.size).toBe(1);
   });
 
   it('5枚目は409で拒否する', async () => {
