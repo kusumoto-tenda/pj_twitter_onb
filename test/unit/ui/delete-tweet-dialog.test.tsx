@@ -349,6 +349,46 @@ describe('DeleteTweetDialog', () => {
       expect(beginDelete).toHaveBeenCalledTimes(2);
     });
 
+    it('準備の通信の通知は3秒で自動で消え、消えた後も開ける', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const beginDelete = vi
+          .fn<BeginDelete>()
+          .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+          .mockResolvedValue({ ok: true, value: TARGET });
+        const ctx = setup({ beginDelete });
+
+        await ctx.user.click(menuButton());
+        await ctx.user.click(deleteItem());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(3000));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+        await waitFor(() => expect(menuButton()).toBeEnabled());
+        await open(ctx);
+        expect(beginDelete).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('サーバーが返した準備の失敗の理由は、3秒経っても消さない', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const ctx = setup({
+          beginDelete: vi.fn<BeginDelete>().mockResolvedValue({ ok: false, message: 'このツイートは削除できません' }),
+        });
+
+        await ctx.user.click(menuButton());
+        await ctx.user.click(deleteItem());
+        expect(await screen.findByRole('alert')).toHaveTextContent('このツイートは削除できません');
+        act(() => vi.advanceTimersByTime(3000));
+        expect(screen.getByRole('alert')).toHaveTextContent('このツイートは削除できません');
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('削除の準備で投げられたredirectは変換せずに抜け、通信の案内も出さない', async () => {
       const control = redirectError('/login');
       const captured = captureUnhandledRejections();

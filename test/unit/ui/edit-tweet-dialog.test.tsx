@@ -381,6 +381,26 @@ describe('EditTweetDialog', () => {
       expect(ctx.beginEdit).toHaveBeenCalledTimes(2);
     });
 
+    it('準備の通信の通知は3秒で自動で消え、消えた後も開ける', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const ctx = setup();
+        ctx.beginEdit.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+        await ctx.user.click(menuButton());
+        await ctx.user.click(editItem());
+        expect(await screen.findByRole('alert')).toHaveTextContent(NETWORK_TOAST);
+        act(() => vi.advanceTimersByTime(3000));
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+        await waitFor(() => expect(menuButton()).toBeEnabled());
+        await open(ctx);
+        expect(ctx.beginEdit).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('編集の準備で投げられたredirectは変換せずに抜け、通信の案内も出さない', async () => {
       const control = redirectError('/login');
       const captured = captureUnhandledRejections();
