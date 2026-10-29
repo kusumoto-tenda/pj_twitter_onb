@@ -6,8 +6,8 @@ const boundary = vi.hoisted(() => ({ auth: vi.fn() }));
 
 vi.mock('@/app/_auth/auth', () => ({ auth: boundary.auth }));
 // ナビのログアウト導線は利用者DBの実在確認に依存しない。
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => { throw new Error('DB must not be opened'); } }));
-vi.mock('@/infra/db/client', () => ({ getSql: () => { throw new Error('DB must not be opened'); } }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => { throw new Error('DB must not be opened'); } }));
+vi.mock('@/infra/persistence/postgres/db/client', () => ({ getSql: () => { throw new Error('DB must not be opened'); } }));
 vi.mock('@/app/ui/auth/logout-button', () => ({ LogoutButton: () => null }));
 
 const { SessionLogoutControl } = await import('@/app/ui/auth/session-logout-control');

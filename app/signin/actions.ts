@@ -3,15 +3,15 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/app/_auth/auth';
-import { getAccountDependencies } from '@/app/_composition/account';
+import { getAccountDependencies } from '@/main/container/account';
 import { isSuccessfulSignIn } from '@/app/lib/form-data';
 import {
   ACCOUNT_CREATED_FLASH,
   FLASH_COOKIE,
   FLASH_MAX_AGE_SECONDS,
 } from '@/app/ui/notifications/flash';
-import { createAccount } from '@/application/users/create-account';
-import type { FieldErrors } from '@/domain/users/user';
+import { createAccount } from '@/application/usecases/users/create-account';
+import type { FieldErrors } from '@/domain/entities/users/user';
 import type {
   CreateAccountErrorCode,
   CreateAccountFormState,

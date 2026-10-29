@@ -7,7 +7,7 @@ import type { SetRetweetActionResult } from '@/app/retweets/actions';
 import { ActionFeedbackProvider } from '@/app/ui/notifications/action-feedback-provider';
 import { RetweetButton } from '@/app/ui/retweets/retweet-button';
 import { TweetCard } from '@/app/ui/timeline/tweet-card';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { TimelineItem } from '@/application/dtos/timeline/timeline';
 
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({ TweetActionsMenu: () => null }));
 vi.mock('next/link', () => ({

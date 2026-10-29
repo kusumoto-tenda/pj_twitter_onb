@@ -1,5 +1,5 @@
 import { normalizeNewlines, readStringFields } from '@/app/lib/form-data';
-import type { CreateAccountInput } from '@/domain/users/user';
+import type { CreateAccountInput } from '@/domain/entities/users/user';
 
 /** 登録フォームのFormDataを入力に変換する。UUID・作成日時などクライアント提供の値は採用しない。 */
 export function parseCreateAccountForm(

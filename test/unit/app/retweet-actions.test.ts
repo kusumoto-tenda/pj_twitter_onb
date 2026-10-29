@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import { InMemoryRetweetStore } from '@/test/support/in-memory-retweet-store';
 import type { InMemoryUserRepository } from '@/test/support/in-memory-user-repository';
@@ -28,8 +28,8 @@ vi.mock('next/cache', () => ({
   }),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
-vi.mock('@/app/_composition/retweets', () => ({ getRetweetDependencies: () => boundary.retweetDeps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
+vi.mock('@/main/container/retweets', () => ({ getRetweetDependencies: () => boundary.retweetDeps }));
 
 const { setRetweetAction } = await import('@/app/retweets/actions');
 

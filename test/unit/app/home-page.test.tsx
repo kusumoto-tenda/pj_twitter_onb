@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TimelineCursor, TimelinePage } from '@/application/timeline/timeline';
-import { createAccount } from '@/application/users/create-account';
+import type { TimelineCursor, TimelinePage } from '@/application/dtos/timeline/timeline';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { encodeCursor } from '@/app/lib/timeline-query';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import { InMemoryTimelineQuery } from '@/test/support/in-memory-timeline-query';
@@ -53,10 +53,10 @@ vi.mock('next/link', () => ({
   ),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({
+vi.mock('@/main/container/account', () => ({
   getAccountDependencies: () => boundary.accountDeps,
 }));
-vi.mock('@/app/_composition/timeline', () => ({
+vi.mock('@/main/container/timeline', () => ({
   getTimelineDependencies: () => boundary.timelineDeps,
 }));
 

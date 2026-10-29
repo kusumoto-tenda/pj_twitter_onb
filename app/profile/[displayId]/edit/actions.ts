@@ -4,15 +4,15 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getAccountDependencies } from '@/app/_composition/account';
+import { getAccountDependencies } from '@/main/container/account';
 import { profileHref } from '@/app/lib/profile-query';
 import {
   FLASH_MAX_AGE_SECONDS,
   PROFILE_UPDATED_COOKIE,
   PROFILE_UPDATED_FLASH,
 } from '@/app/ui/notifications/flash';
-import { updateProfile } from '@/application/users/update-profile';
-import type { EditProfileFieldErrors } from '@/domain/users/profile-edit-validation';
+import { updateProfile } from '@/application/usecases/users/update-profile';
+import type { EditProfileFieldErrors } from '@/domain/value_objects/users/profile-edit-validation';
 import type {
   ProfileEditErrorCode,
   ProfileEditFormState,

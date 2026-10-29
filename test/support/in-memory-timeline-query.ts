@@ -1,8 +1,8 @@
 import type {
   TimelinePageRequest,
   TimelineQuery,
-} from '@/application/timeline/ports/timeline-query';
-import type { TimelinePage } from '@/application/timeline/timeline';
+} from '@/application/query_service_ifs/timeline/timeline-query';
+import type { TimelinePage } from '@/application/dtos/timeline/timeline';
 
 /** 受け取った条件を記録し、指定したページを返すテスト用Query。 */
 export class InMemoryTimelineQuery implements TimelineQuery {

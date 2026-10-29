@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { resolveViewer, viewerProfileDisplayId, type Viewer } from '@/app/_auth/viewer';
-import { getTimelineDependencies } from '@/app/_composition/timeline';
+import { getTimelineDependencies } from '@/main/container/timeline';
 import { profileHref } from '@/app/lib/profile-query';
 import { parseCursorParam, parseFollowParam, timelineHref } from '@/app/lib/timeline-query';
 import { AccountCreatedFlash } from '@/app/ui/notifications/account-created-flash';
@@ -10,7 +10,7 @@ import { TimelineFilter } from '@/app/ui/timeline/timeline-filter';
 import { InvalidCursorNotice, TimelineList } from '@/app/ui/timeline/timeline-list';
 import { TimelinePagination } from '@/app/ui/timeline/timeline-pagination';
 import { TimelineRetry } from '@/app/ui/timeline/timeline-retry';
-import { getTimeline } from '@/application/timeline/get-timeline';
+import { getTimeline } from '@/application/usecases/timeline/get-timeline';
 import { HomeShell } from './layout-shell';
 
 type SearchParams = Record<string, string | string[] | undefined>;

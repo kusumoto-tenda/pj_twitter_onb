@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { TimelineItem, TimelinePerson } from '@/application/timeline/timeline';
-import { PostgresTimelineQuery } from '@/infra/queries/postgres-timeline-query';
+import type { TimelineItem, TimelinePerson } from '@/application/dtos/timeline/timeline';
+import { PostgresTimelineQuery } from '@/infra/persistence/postgres/query_services/postgres-timeline-query';
 import {
   connectTestDatabase,
   deleteUsersByDisplayIds,

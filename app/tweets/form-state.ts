@@ -1,4 +1,4 @@
-import type { TweetFieldErrors } from '@/domain/tweets/tweet-validation';
+import type { TweetFieldErrors } from '@/domain/value_objects/tweets/tweet-validation';
 
 export type CreateTweetErrorCode =
   | 'INVALID_REQUEST'

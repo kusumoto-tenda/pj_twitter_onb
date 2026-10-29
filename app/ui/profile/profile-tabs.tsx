@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { ProfileTab } from '@/application/profile/profile';
+import type { ProfileTab } from '@/application/dtos/profile/profile';
 import { profileHref } from '@/app/lib/profile-query';
 
 const TABS = [

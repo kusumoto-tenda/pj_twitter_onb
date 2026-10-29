@@ -7,7 +7,7 @@ import {
   jwtCallback,
   sessionCallback,
 } from '@/app/_auth/config';
-import type { AccountProfile } from '@/domain/users/user';
+import type { AccountProfile } from '@/domain/entities/users/user';
 
 const profile: AccountProfile = {
   id: '00000000-0000-4000-8000-000000000001',

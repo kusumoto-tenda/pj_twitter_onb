@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ProfileSummary } from '@/application/profile/profile';
-import type { TimelineCursor, TimelineItem } from '@/application/timeline/timeline';
-import { createAccount } from '@/application/users/create-account';
+import type { ProfileSummary } from '@/application/dtos/profile/profile';
+import type { TimelineCursor, TimelineItem } from '@/application/dtos/timeline/timeline';
+import { createAccount } from '@/application/usecases/users/create-account';
 import {
   encodeActivityCursor,
   encodeConnectionCursor,
@@ -75,10 +75,10 @@ vi.mock('next/link', () => ({
   ),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({
+vi.mock('@/main/container/account', () => ({
   getAccountDependencies: () => boundary.accountDeps,
 }));
-vi.mock('@/app/_composition/profile', () => ({
+vi.mock('@/main/container/profile', () => ({
   getProfileDependencies: () => boundary.profileDeps,
 }));
 

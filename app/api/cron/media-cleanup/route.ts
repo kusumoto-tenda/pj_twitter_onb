@@ -1,6 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
-import { getTweetDependencies } from '@/app/_composition/tweet';
-import { cleanupMedia } from '@/application/media/cleanup-media';
+import { getTweetDependencies } from '@/main/container/tweet';
+import { cleanupMedia } from '@/application/usecases/media/cleanup-media';
 
 function isAuthorized(request: Request): boolean {
   const secret = process.env.CRON_SECRET;

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { ProfileSummary, ProfileTab } from '@/application/profile/profile';
+import type { ProfileSummary, ProfileTab } from '@/application/dtos/profile/profile';
 import { profileHref } from '@/app/lib/profile-query';
 import { LogoutButton } from '@/app/ui/auth/logout-button';
 import { FollowButton } from '@/app/ui/profile/follow-button';

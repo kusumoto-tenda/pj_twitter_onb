@@ -1,4 +1,4 @@
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 
 const notFound = () =>
   new Response('Not Found', { status: 404, headers: { 'Cache-Control': 'no-store' } });

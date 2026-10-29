@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getLikeDependencies } from '@/app/_composition/likes';
-import { setLike } from '@/application/likes/set-like';
+import { getLikeDependencies } from '@/main/container/likes';
+import { setLike } from '@/application/usecases/likes/set-like';
 
 const MESSAGES = {
   UNAUTHENTICATED: 'ログイン中のみいいねできます',

@@ -1,4 +1,4 @@
-import type { RetweetRepository } from '@/application/retweets/ports/retweet-repository';
+import type { RetweetRepository } from '@/domain/repository_ifs/retweet-repository';
 
 type Retweet = { id: string; executorId: string; tweetId: string; createdAt: Date };
 

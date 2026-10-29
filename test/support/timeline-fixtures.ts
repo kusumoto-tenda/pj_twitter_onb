@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
-import type { TimelinePerson } from '@/application/timeline/timeline';
+import type { TimelinePerson } from '@/application/dtos/timeline/timeline';
 import { uniqueDisplayId } from './test-db';
 
 /**

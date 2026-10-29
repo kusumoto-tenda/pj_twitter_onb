@@ -1,4 +1,4 @@
-import type { TimelineCursor, TimelineEventKind } from '@/application/timeline/timeline';
+import type { TimelineCursor, TimelineEventKind } from '@/application/dtos/timeline/timeline';
 import {
   decodeCursorParts,
   encodeCursorParts,

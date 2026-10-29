@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateEditTweetInput } from '@/domain/tweets/edit-tweet-validation';
+import { validateEditTweetInput } from '@/domain/value_objects/tweets/edit-tweet-validation';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, '0')}`;
 const input = (overrides: Partial<{ content: string; keepImageIds: string[]; uploadIds: string[] }> = {}) => ({

@@ -1,5 +1,5 @@
-import type { ImageInspector } from '@/application/media/ports/image-inspector';
-import type { MediaStorage } from '@/application/media/ports/media-storage';
+import type { ImageInspector } from '@/domain/external_service_ifs/media/image-inspector';
+import type { MediaStorage } from '@/domain/external_service_ifs/media/media-storage';
 
 type StoredObject = { bytes: Uint8Array; contentType: string; uploadedAt: Date };
 

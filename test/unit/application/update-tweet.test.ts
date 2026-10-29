@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { CommitEditOutcome, PrepareEditOutcome } from '@/application/tweets/ports/tweet-editor';
-import { beginTweetEdit } from '@/application/tweets/begin-tweet-edit';
-import { updateTweet } from '@/application/tweets/update-tweet';
+import type { CommitEditOutcome, PrepareEditOutcome } from '@/domain/repository_ifs/tweet-editor';
+import { beginTweetEdit } from '@/application/usecases/tweets/begin-tweet-edit';
+import { updateTweet } from '@/application/usecases/tweets/update-tweet';
 
 const ACTOR = '00000000-0000-4000-8000-0000000000a1';
 const TWEET = '00000000-0000-4000-8000-0000000000d1';

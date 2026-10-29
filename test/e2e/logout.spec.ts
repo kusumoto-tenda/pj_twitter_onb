@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page, type Route } from '@playwright/test';
 import postgres from 'postgres';
-import type { TimelinePerson } from '@/application/timeline/timeline';
-import { createAccount } from '@/application/users/create-account';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
-import { ScryptPasswordHasher } from '@/infra/security/scrypt-password-hasher';
+import type { TimelinePerson } from '@/application/dtos/timeline/timeline';
+import { createAccount } from '@/application/usecases/users/create-account';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
+import { ScryptPasswordHasher } from '@/infra/external_services/auth/scrypt-password-hasher';
 import { requireTestDatabaseUrl, uniqueDisplayId } from '../support/test-db';
 import { TimelineFixtures } from '../support/timeline-fixtures';
 

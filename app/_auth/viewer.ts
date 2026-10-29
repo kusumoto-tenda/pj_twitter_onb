@@ -1,8 +1,8 @@
 import 'server-only';
 import { auth } from '@/app/_auth/auth';
-import { getAccountDependencies } from '@/app/_composition/account';
-import { findAccountProfile } from '@/application/users/find-account-profile';
-import type { AccountProfile } from '@/domain/users/user';
+import { getAccountDependencies } from '@/main/container/account';
+import { findAccountProfile } from '@/application/usecases/users/find-account-profile';
+import type { AccountProfile } from '@/domain/entities/users/user';
 
 export type Viewer =
   | { status: 'anonymous' }

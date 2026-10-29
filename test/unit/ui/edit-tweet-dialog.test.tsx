@@ -2,7 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { StrictMode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
+import type { EditableTweet } from '@/domain/repository_ifs/tweet-editor';
 import type { EditTweetFormState } from '@/app/tweets/edit-form-state';
 import type { ImageUploader } from '@/app/ui/tweets/image-uploader';
 import { TweetActionsMenu } from '@/app/ui/tweets/tweet-actions-menu';

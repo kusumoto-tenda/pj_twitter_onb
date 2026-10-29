@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { TimelineItem } from '@/application/dtos/timeline/timeline';
 import { MainNavigation } from '@/app/ui/timeline/main-navigation';
 import { TimelineFilter } from '@/app/ui/timeline/timeline-filter';
 import { InvalidCursorNotice, TimelineList } from '@/app/ui/timeline/timeline-list';

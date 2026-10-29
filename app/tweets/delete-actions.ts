@@ -4,10 +4,10 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 import { FLASH_MAX_AGE_SECONDS, TWEET_ALREADY_DELETED_MESSAGE, TWEET_FLASH_COOKIE } from '@/app/ui/notifications/flash';
-import { beginTweetDelete } from '@/application/tweets/begin-tweet-delete';
-import { deleteTweet } from '@/application/tweets/delete-tweet';
+import { beginTweetDelete } from '@/application/usecases/tweets/begin-tweet-delete';
+import { deleteTweet } from '@/application/usecases/tweets/delete-tweet';
 import type { DeleteTweetFailureCode, DeleteTweetFormState } from './delete-form-state';
 
 const BEGIN_MESSAGES = {

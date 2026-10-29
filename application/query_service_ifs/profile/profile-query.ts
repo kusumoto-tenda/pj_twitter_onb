@@ -1,0 +1,43 @@
+import type { TimelineCursor, TimelineEventKind, TimelinePage } from '@/application/dtos/timeline/timeline';
+import type {
+  ConnectionCursor,
+  ConnectionDirection,
+  ConnectionPage,
+  LikeCursor,
+  ProfileLikesPage,
+  ProfileSummary,
+} from '@/application/dtos/profile/profile';
+
+/** 公開いいね一覧の読み取り。取得障害はthrowする。 */
+export interface ProfileLikesQuery {
+  /** subjectIdがいいねした元投稿を、いいねした日時の降順で取得する。未ログインでも取得できる。 */
+  findLikedPage(input: {
+    subjectId: string;
+    /** いいね・お気に入りの本人状態の判定に使う閲覧者（対象者とは別）。未ログインならnull。 */
+    viewerId: string | null;
+    after: LikeCursor | null;
+    limit: number;
+  }): Promise<ProfileLikesPage>;
+}
+
+/** プロフィール画面用の読み取り。取得障害はthrowする。 */
+export interface ProfileQuery extends ProfileLikesQuery {
+  /** 大文字小文字を区別せずに検索する。未登録ならnull。 */
+  findSummary(input: { displayId: string; viewerId: string | null }): Promise<ProfileSummary | null>;
+  /** tweetは対象者の通常投稿、retweetは対象者が実行したリツイート。 */
+  findActivityPage(input: {
+    subjectId: string;
+    /** お気に入り・いいねの判定に使う閲覧者（対象者とは別）。未ログインならnull。 */
+    viewerId: string | null;
+    kind: TimelineEventKind;
+    after: TimelineCursor | null;
+    limit: number;
+  }): Promise<TimelinePage>;
+  /** followingは対象者がフォローしている人、followersは対象者をフォローしている人。 */
+  findConnectionsPage(input: {
+    subjectId: string;
+    direction: ConnectionDirection;
+    after: ConnectionCursor | null;
+    limit: number;
+  }): Promise<ConnectionPage>;
+}

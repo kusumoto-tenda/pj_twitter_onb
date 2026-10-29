@@ -1,4 +1,4 @@
-import type { LoginFieldErrors } from '@/domain/users/login-validation';
+import type { LoginFieldErrors } from '@/domain/value_objects/users/login-validation';
 
 export type LoginErrorCode = 'INVALID_INPUT' | 'INVALID_CREDENTIALS' | 'UNAVAILABLE';
 

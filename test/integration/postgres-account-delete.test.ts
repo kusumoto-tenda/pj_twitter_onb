@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { TimelinePerson } from '@/application/timeline/timeline';
-import { authenticateUser } from '@/application/users/authenticate-user';
-import { createAccount } from '@/application/users/create-account';
-import { deleteAccount } from '@/application/users/delete-account';
-import { PostgresProfileQuery } from '@/infra/queries/postgres-profile-query';
-import { PostgresTimelineQuery } from '@/infra/queries/postgres-timeline-query';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
-import { ScryptPasswordHasher } from '@/infra/security/scrypt-password-hasher';
+import type { TimelinePerson } from '@/application/dtos/timeline/timeline';
+import { authenticateUser } from '@/application/usecases/users/authenticate-user';
+import { createAccount } from '@/application/usecases/users/create-account';
+import { deleteAccount } from '@/application/usecases/users/delete-account';
+import { PostgresProfileQuery } from '@/infra/persistence/postgres/query_services/postgres-profile-query';
+import { PostgresTimelineQuery } from '@/infra/persistence/postgres/query_services/postgres-timeline-query';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
+import { ScryptPasswordHasher } from '@/infra/external_services/auth/scrypt-password-hasher';
 import { connectTestDatabase, uniqueDisplayId } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';
 

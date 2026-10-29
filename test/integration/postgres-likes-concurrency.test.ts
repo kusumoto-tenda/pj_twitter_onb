@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { PostgresLikeRepository } from '@/infra/repositories/postgres-like-repository';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
+import { PostgresLikeRepository } from '@/infra/persistence/postgres/repositories/postgres-like-repository';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
 import { connectTestDatabase } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';
 

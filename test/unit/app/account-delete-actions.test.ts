@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import type { FakePasswordHasher } from '@/test/support/fake-password-hasher';
 import type { InMemoryUserRepository } from '@/test/support/in-memory-user-repository';
@@ -43,7 +43,7 @@ vi.mock('@/app/_auth/auth', () => ({
     return boundary.signOut(...args);
   },
 }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.deps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.deps }));
 
 const { deleteAccountAction } = await import('@/app/profile/[displayId]/delete/actions');
 const { initialAccountDeleteState } = await import('@/app/profile/[displayId]/delete/form-state');

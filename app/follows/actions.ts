@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getFollowDependencies } from '@/app/_composition/follow';
-import { setFollow } from '@/application/follows/set-follow';
+import { getFollowDependencies } from '@/main/container/follow';
+import { setFollow } from '@/application/usecases/follows/set-follow';
 
 const MESSAGES = {
   UNAUTHENTICATED: 'ログイン中のみフォローできます',

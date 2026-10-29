@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { FavoriteEntry } from '@/application/favorites/favorite';
-import { createAccount } from '@/application/users/create-account';
+import type { FavoriteEntry } from '@/application/dtos/favorites/favorite';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { encodeFavoriteCursor } from '@/app/lib/favorite-query';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import { InMemoryFavoriteStore } from '@/test/support/in-memory-favorite-store';
@@ -52,8 +52,8 @@ vi.mock('next/link', () => ({
   ),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
-vi.mock('@/app/_composition/favorites', () => ({ getFavoriteDependencies: () => boundary.favoriteDeps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
+vi.mock('@/main/container/favorites', () => ({ getFavoriteDependencies: () => boundary.favoriteDeps }));
 
 const { default: FavoritesPage, metadata } = await import('@/app/favorites/page');
 

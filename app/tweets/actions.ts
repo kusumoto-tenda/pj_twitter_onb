@@ -4,11 +4,11 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 import { FLASH_MAX_AGE_SECONDS, TWEET_FLASH_COOKIE, type TweetFlashValue } from '@/app/ui/notifications/flash';
-import { beginTweetDraft } from '@/application/tweets/begin-tweet-draft';
-import { createTweet } from '@/application/tweets/create-tweet';
-import type { TweetFieldErrors } from '@/domain/tweets/tweet-validation';
+import { beginTweetDraft } from '@/application/usecases/tweets/begin-tweet-draft';
+import { createTweet } from '@/application/usecases/tweets/create-tweet';
+import type { TweetFieldErrors } from '@/domain/value_objects/tweets/tweet-validation';
 import type { CreateTweetErrorCode, CreateTweetFormState } from './form-state';
 
 const MESSAGES = {

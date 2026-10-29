@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { logout } from '@/application/auth/logout';
-import type { SessionTerminator } from '@/application/auth/ports/session-terminator';
+import { logout } from '@/application/usecases/auth/logout';
+import type { SessionTerminator } from '@/domain/external_service_ifs/auth/session-terminator';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';
 const BOB = '00000000-0000-4000-8000-0000000000b1';

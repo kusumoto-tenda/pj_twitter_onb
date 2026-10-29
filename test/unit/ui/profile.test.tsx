@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ProfileSummary } from '@/application/profile/profile';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { ProfileSummary } from '@/application/dtos/profile/profile';
+import type { TimelineItem } from '@/application/dtos/timeline/timeline';
 import { ProfileActivityList } from '@/app/ui/profile/profile-activity-list';
 import { ProfileConnectionsList } from '@/app/ui/profile/profile-connections-list';
 import { ProfileHeader, formatJoinedDate } from '@/app/ui/profile/profile-header';

@@ -1,4 +1,4 @@
-import type { DeleteTarget, TweetDeleter } from '@/application/tweets/ports/tweet-deleter';
+import type { DeleteTarget, TweetDeleter } from '@/domain/repository_ifs/tweet-deleter';
 import type { InMemoryTweetStore } from './in-memory-tweet-writer';
 
 /** 作成用のテストストアと状態を共有する、実DBと同じ規則の削除の偽実装。 */

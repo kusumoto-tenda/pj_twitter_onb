@@ -2,8 +2,8 @@ import type {
   CommitEditOutcome,
   PrepareEditOutcome,
   TweetEditor,
-} from '@/application/tweets/ports/tweet-editor';
-import type { ValidEditTweetInput } from '@/domain/tweets/edit-tweet-validation';
+} from '@/domain/repository_ifs/tweet-editor';
+import type { ValidEditTweetInput } from '@/domain/value_objects/tweets/edit-tweet-validation';
 import type { InMemoryTweetStore } from './in-memory-tweet-writer';
 
 type EditMeta = { targetTweetId: string; baseRevision: number };

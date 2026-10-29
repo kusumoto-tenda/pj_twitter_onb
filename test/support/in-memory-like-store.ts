@@ -1,4 +1,4 @@
-import type { LikeRepository } from '@/application/likes/ports/like-repository';
+import type { LikeRepository } from '@/domain/repository_ifs/like-repository';
 
 type Like = { id: string; executorId: string; tweetId: string; createdAt: Date };
 

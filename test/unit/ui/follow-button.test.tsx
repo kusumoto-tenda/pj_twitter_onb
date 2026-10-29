@@ -7,7 +7,7 @@ import type { SetFollowActionResult } from '@/app/follows/actions';
 import { ActionFeedbackProvider } from '@/app/ui/notifications/action-feedback-provider';
 import { FollowButton } from '@/app/ui/profile/follow-button';
 import { ProfileHeader } from '@/app/ui/profile/profile-header';
-import type { ProfileSummary } from '@/application/profile/profile';
+import type { ProfileSummary } from '@/application/dtos/profile/profile';
 
 // ルートのProviderを使う操作は、プロフィールから渡される本人UUIDだけを検証する。
 vi.mock('@/app/ui/auth/logout-button', () => ({

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { resolveViewer, viewerProfileDisplayId } from '@/app/_auth/viewer';
-import { getProfileDependencies } from '@/app/_composition/profile';
+import { getProfileDependencies } from '@/main/container/profile';
 import type { SearchParamValue } from '@/app/lib/cursor-validation';
 import {
   encodeActivityCursor,
@@ -23,11 +23,11 @@ import { ProfileRetry } from '@/app/ui/profile/profile-retry';
 import { ProfileTabs } from '@/app/ui/profile/profile-tabs';
 import { InvalidCursorNotice } from '@/app/ui/timeline/timeline-list';
 import { TimelinePagination } from '@/app/ui/timeline/timeline-pagination';
-import { getProfile } from '@/application/profile/get-profile';
-import { getProfileActivity } from '@/application/profile/get-profile-activity';
-import { getProfileConnections } from '@/application/profile/get-profile-connections';
-import { getProfileLikes } from '@/application/profile/get-profile-likes';
-import type { ProfileSummary, ProfileTab } from '@/application/profile/profile';
+import { getProfile } from '@/application/usecases/profile/get-profile';
+import { getProfileActivity } from '@/application/usecases/profile/get-profile-activity';
+import { getProfileConnections } from '@/application/usecases/profile/get-profile-connections';
+import { getProfileLikes } from '@/application/usecases/profile/get-profile-likes';
+import type { ProfileSummary, ProfileTab } from '@/application/dtos/profile/profile';
 
 // タイトルのためにDBを重ねて照会しないよう、静的なタイトルにする。
 export const metadata: Metadata = { title: 'プロフィール' };

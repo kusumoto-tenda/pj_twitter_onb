@@ -1,4 +1,4 @@
-import type { FollowRepository } from '@/application/follows/ports/follow-repository';
+import type { FollowRepository } from '@/domain/repository_ifs/follow-repository';
 
 type Follow = { id: string; followerId: string; followId: string; createdAt: Date };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
-import { findAccountProfile } from '@/application/users/find-account-profile';
+import { createAccount } from '@/application/usecases/users/create-account';
+import { findAccountProfile } from '@/application/usecases/users/find-account-profile';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 
 describe('findAccountProfile', () => {

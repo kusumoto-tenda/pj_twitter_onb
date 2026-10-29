@@ -1,6 +1,6 @@
-import type { FavoritePage } from '@/application/favorites/favorite';
-import type { FavoriteQuery } from '@/application/favorites/ports/favorite-query';
-import type { FavoriteRepository } from '@/application/favorites/ports/favorite-repository';
+import type { FavoritePage } from '@/application/dtos/favorites/favorite';
+import type { FavoriteQuery } from '@/application/query_service_ifs/favorites/favorite-query';
+import type { FavoriteRepository } from '@/domain/repository_ifs/favorite-repository';
 
 type Favorite = { id: string; userId: string; tweetId: string; createdAt: Date };
 

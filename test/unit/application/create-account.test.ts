@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import {
   FIXED_ID,
   FIXED_NOW,

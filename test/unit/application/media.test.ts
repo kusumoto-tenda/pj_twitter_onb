@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { cleanupMedia } from '@/application/media/cleanup-media';
-import { discardImageUpload } from '@/application/media/discard-image-upload';
-import { reserveImageUpload } from '@/application/media/reserve-image-upload';
-import { verifyImageUpload } from '@/application/media/verify-image-upload';
-import { beginTweetDraft } from '@/application/tweets/begin-tweet-draft';
-import { createTweet } from '@/application/tweets/create-tweet';
+import { cleanupMedia } from '@/application/usecases/media/cleanup-media';
+import { discardImageUpload } from '@/application/usecases/media/discard-image-upload';
+import { reserveImageUpload } from '@/application/usecases/media/reserve-image-upload';
+import { verifyImageUpload } from '@/application/usecases/media/verify-image-upload';
+import { beginTweetDraft } from '@/application/usecases/tweets/begin-tweet-draft';
+import { createTweet } from '@/application/usecases/tweets/create-tweet';
 import {
   FakeImageInspector,
   FakeMediaStorage,

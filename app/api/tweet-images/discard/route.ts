@@ -1,7 +1,7 @@
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 import { errorResponse, guardMutation, jsonResponse } from '@/app/lib/route-guard';
-import { discardImageUpload } from '@/application/media/discard-image-upload';
-import { discardTweetDraft } from '@/application/tweets/discard-tweet-draft';
+import { discardImageUpload } from '@/application/usecases/media/discard-image-upload';
+import { discardTweetDraft } from '@/application/usecases/tweets/discard-tweet-draft';
 
 /**
  * 添付の解除（uploadId。予約より先に届いた解除にも備えてdraftIdを添える）またはダイアログのキャンセル（draftIdのみ）。

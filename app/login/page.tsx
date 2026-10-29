@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { auth } from '@/app/_auth/auth';
-import { getAccountDependencies } from '@/app/_composition/account';
+import { getAccountDependencies } from '@/main/container/account';
 import { LoginForm } from '@/app/ui/account/login-form';
 import { AccountDeletedFlash } from '@/app/ui/notifications/account-deleted-flash';
 import { LoggedOutFlash } from '@/app/ui/notifications/logged-out-flash';
 import { TweetFlash } from '@/app/ui/notifications/tweet-flash';
 import { XLogo } from '@/app/ui/x-logo';
-import { findAccountProfile } from '@/application/users/find-account-profile';
+import { findAccountProfile } from '@/application/usecases/users/find-account-profile';
 import { loginAction } from './actions';
 
 export const metadata: Metadata = { title: 'ログイン' };

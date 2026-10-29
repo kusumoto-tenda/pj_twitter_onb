@@ -6,10 +6,12 @@ Next.js App Router の教材をベースにした Twitter（X）風アプリ。�
 
 | 層 | 場所 | 役割 |
 | --- | --- | --- |
-| domain | `domain/` | 入力ルール・ユーザーの型。フレームワークやDBに依存しない |
-| application | `application/` | 登録・認証などのユースケースと、外部依存のポート（interface） |
-| infra | `infra/` | PostgreSQL・scrypt によるポートの実装、マイグレーション |
-| app | `app/` | 画面、Server Action、Auth.js の設定。具体実装の組み立ては `app/_composition/` だけで行う |
+| shared | `shared/` | UUID正規化など業務知識を含まない処理。他の層をimportしない |
+| domain | `domain/` | `entities/`（ユーザーの型）、`value_objects/`（入力ルール・画像の状態）、`repository_ifs/`（永続化の契約）、`external_service_ifs/`（パスワードハッシュ・セッション終了・ストレージ・画像検査の契約）。フレームワークやDB、上位層に依存しない |
+| application | `application/` | `usecases/<機能>/`（登録・投稿などの処理）、`dtos/<機能>/`（一覧型・結果型）、`query_service_ifs/<機能>/`（タイムライン・プロフィール・お気に入りの読み取り契約）。Next.jsや具体実装に依存しない |
+| infra | `infra/` | `persistence/postgres/`（接続・マイグレーション・`repositories/`・`query_services/`）と `external_services/`（scrypt・Vercel Blob・sharp）。domain/applicationの契約を実装する |
+| main | `main/container/` | 具体実装の組み立て（DI）。Web用は機能別ファイルで `server-only`・遅延初期化、CLI用は `cli/` に置き `server-only` を使わない |
+| app | `app/` | 画面、Server Action、Route Handler、Auth.js の設定。サーバー側の処理は `main/container/` の取得関数だけを呼び、クライアントコンポーネントからは import しない |
 
 ## セットアップ（Vercel + Postgres）
 

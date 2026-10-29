@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import { InMemoryFollowStore } from '@/test/support/in-memory-follow-store';
 import type { InMemoryUserRepository } from '@/test/support/in-memory-user-repository';
@@ -28,8 +28,8 @@ vi.mock('next/cache', () => ({
   }),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
-vi.mock('@/app/_composition/follow', () => ({ getFollowDependencies: () => boundary.followDeps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
+vi.mock('@/main/container/follow', () => ({ getFollowDependencies: () => boundary.followDeps }));
 
 const { setFollowAction } = await import('@/app/follows/actions');
 

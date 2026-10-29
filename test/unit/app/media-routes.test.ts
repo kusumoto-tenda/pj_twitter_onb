@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import {
   FakeImageInspector,
@@ -19,8 +19,8 @@ const boundary = vi.hoisted(() => ({
 }));
 
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
-vi.mock('@/app/_composition/tweet', () => ({ getTweetDependencies: () => boundary.tweetDeps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
+vi.mock('@/main/container/tweet', () => ({ getTweetDependencies: () => boundary.tweetDeps }));
 
 const upload = await import('@/app/api/tweet-images/upload/route');
 const verify = await import('@/app/api/tweet-images/verify/route');

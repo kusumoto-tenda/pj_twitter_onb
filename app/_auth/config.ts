@@ -1,8 +1,8 @@
 import type { NextAuthConfig, Session, User } from 'next-auth';
 import type { JWT } from 'next-auth/jwt';
 import Credentials from 'next-auth/providers/credentials';
-import type { Credentials as AccountCredentials } from '@/application/users/authenticate-user';
-import type { AccountProfile } from '@/domain/users/user';
+import type { Credentials as AccountCredentials } from '@/application/usecases/users/authenticate-user';
+import type { AccountProfile } from '@/domain/entities/users/user';
 
 export const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 

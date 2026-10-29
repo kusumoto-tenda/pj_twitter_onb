@@ -1,4 +1,4 @@
-import type { PasswordHasher } from '@/application/users/ports/password-hasher';
+import type { PasswordHasher } from '@/domain/external_service_ifs/auth/password-hasher';
 
 /** テスト用。安全性はなく、平文を識別できる固定形式の文字列を返す。 */
 export class FakePasswordHasher implements PasswordHasher {

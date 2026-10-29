@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
-import { updateProfile } from '@/application/users/update-profile';
+import { createAccount } from '@/application/usecases/users/create-account';
+import { updateProfile } from '@/application/usecases/users/update-profile';
 import {
   FIXED_ID,
   FIXED_NOW,

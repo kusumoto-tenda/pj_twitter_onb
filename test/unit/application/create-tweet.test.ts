@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { beginTweetDraft } from '@/application/tweets/begin-tweet-draft';
-import { createTweet } from '@/application/tweets/create-tweet';
-import { discardTweetDraft } from '@/application/tweets/discard-tweet-draft';
+import { beginTweetDraft } from '@/application/usecases/tweets/begin-tweet-draft';
+import { createTweet } from '@/application/usecases/tweets/create-tweet';
+import { discardTweetDraft } from '@/application/usecases/tweets/discard-tweet-draft';
 import { InMemoryTweetStore } from '@/test/support/in-memory-tweet-writer';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';

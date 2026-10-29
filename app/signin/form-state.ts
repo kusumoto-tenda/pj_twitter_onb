@@ -1,4 +1,4 @@
-import type { FieldErrors } from '@/domain/users/user';
+import type { FieldErrors } from '@/domain/entities/users/user';
 
 /** 失敗時に再表示する入力値。パスワードは含めない。 */
 export type CreateAccountFormValues = { name: string; displayId: string };

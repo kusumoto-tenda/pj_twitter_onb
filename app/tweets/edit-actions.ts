@@ -4,12 +4,12 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 import { FLASH_MAX_AGE_SECONDS, TWEET_FLASH_COOKIE } from '@/app/ui/notifications/flash';
-import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
-import { beginTweetEdit } from '@/application/tweets/begin-tweet-edit';
-import { updateTweet } from '@/application/tweets/update-tweet';
-import type { TweetFieldErrors } from '@/domain/tweets/tweet-validation';
+import type { EditableTweet } from '@/domain/repository_ifs/tweet-editor';
+import { beginTweetEdit } from '@/application/usecases/tweets/begin-tweet-edit';
+import { updateTweet } from '@/application/usecases/tweets/update-tweet';
+import type { TweetFieldErrors } from '@/domain/value_objects/tweets/tweet-validation';
 import type { EditTweetErrorCode, EditTweetFormState } from './edit-form-state';
 
 const BEGIN_MESSAGES = {

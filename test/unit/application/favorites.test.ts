@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getFavorites } from '@/application/favorites/get-favorites';
-import { setFavorite } from '@/application/favorites/set-favorite';
+import { getFavorites } from '@/application/usecases/favorites/get-favorites';
+import { setFavorite } from '@/application/usecases/favorites/set-favorite';
 import { InMemoryFavoriteStore } from '@/test/support/in-memory-favorite-store';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';

@@ -5,7 +5,7 @@ import { profileHref } from '@/app/lib/profile-query';
 import { PageShell } from '@/app/ui/layout/page-shell';
 import { AccountDeleteForm } from '@/app/ui/profile/account-delete-form';
 import { ProfileRetry } from '@/app/ui/profile/profile-retry';
-import { normalizeDisplayId } from '@/domain/users/account-validation';
+import { normalizeDisplayId } from '@/domain/value_objects/users/account-validation';
 import { deleteAccountAction } from './actions';
 
 export const metadata: Metadata = { title: 'アカウント削除' };

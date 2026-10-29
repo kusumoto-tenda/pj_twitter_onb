@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getFavoriteDependencies } from '@/app/_composition/favorites';
+import { getFavoriteDependencies } from '@/main/container/favorites';
 import type { SearchParamValue } from '@/app/lib/cursor-validation';
 import { encodeFavoriteCursor, favoritesHref, parseFavoriteCursor } from '@/app/lib/favorite-query';
 import { profileHref } from '@/app/lib/profile-query';
@@ -10,7 +10,7 @@ import { PageShell } from '@/app/ui/layout/page-shell';
 import { InvalidCursorNotice } from '@/app/ui/timeline/timeline-list';
 import { TimelinePagination } from '@/app/ui/timeline/timeline-pagination';
 import { TimelineRetry } from '@/app/ui/timeline/timeline-retry';
-import { getFavorites } from '@/application/favorites/get-favorites';
+import { getFavorites } from '@/application/usecases/favorites/get-favorites';
 
 export const metadata: Metadata = { title: 'お気に入り' };
 

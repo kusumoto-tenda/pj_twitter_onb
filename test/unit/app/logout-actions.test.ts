@@ -12,10 +12,10 @@ const boundary = vi.hoisted(() => ({
 }));
 
 vi.mock('@/app/_auth/auth', () => ({ auth: boundary.auth }));
-vi.mock('@/app/_composition/session', () => ({ getSessionDependencies: () => ({ sessions: { end: boundary.end } }) }));
+vi.mock('@/main/container/session', () => ({ getSessionDependencies: () => ({ sessions: { end: boundary.end } }) }));
 // ログアウトは利用者の実在・DB障害に依存しない。
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => { throw new Error('DB must not be opened'); } }));
-vi.mock('@/infra/db/client', () => ({ getSql: () => { throw new Error('DB must not be opened'); } }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => { throw new Error('DB must not be opened'); } }));
+vi.mock('@/infra/persistence/postgres/db/client', () => ({ getSql: () => { throw new Error('DB must not be opened'); } }));
 vi.mock('next/cache', () => ({ revalidatePath: boundary.revalidate }));
 vi.mock('next/headers', () => ({ cookies: async () => ({ set: boundary.cookieSet }) }));
 vi.mock('next/navigation', () => ({ redirect: boundary.redirect }));

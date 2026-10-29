@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
 import postgres from 'postgres';
-import { createAccount } from '@/application/users/create-account';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
-import { ScryptPasswordHasher } from '@/infra/security/scrypt-password-hasher';
+import { createAccount } from '@/application/usecases/users/create-account';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
+import { ScryptPasswordHasher } from '@/infra/external_services/auth/scrypt-password-hasher';
 import { deleteUsersByDisplayIds, requireTestDatabaseUrl, uniqueDisplayId } from '../support/test-db';
 
 // マイグレーションは global setup で適用済み。ここではimport.meta.urlを使うモジュールを読まない。

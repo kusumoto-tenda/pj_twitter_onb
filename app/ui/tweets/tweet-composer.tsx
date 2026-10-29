@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
+import type { EditableTweet } from '@/domain/repository_ifs/tweet-editor';
 import { beginTweetDraftAction, createTweetAction } from '@/app/tweets/actions';
 import { beginTweetDeleteAction, deleteTweetAction } from '@/app/tweets/delete-actions';
 import { beginTweetEditAction, updateTweetAction } from '@/app/tweets/edit-actions';
