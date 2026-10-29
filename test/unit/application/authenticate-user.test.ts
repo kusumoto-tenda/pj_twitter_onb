@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { authenticateUser } from '@/application/users/authenticate-user';
-import { createAccount } from '@/application/users/create-account';
+import { authenticateUser } from '@/application/usecases/users/authenticate-user';
+import { createAccount } from '@/application/usecases/users/create-account';
 import {
   FIXED_ID,
   FIXED_NOW,

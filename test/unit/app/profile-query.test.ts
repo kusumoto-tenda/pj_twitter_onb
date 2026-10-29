@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { ConnectionCursor } from '@/application/profile/profile';
-import type { TimelineCursor } from '@/application/timeline/timeline';
+import type { ConnectionCursor } from '@/application/dtos/profile/profile';
+import type { TimelineCursor } from '@/application/dtos/timeline/timeline';
 import {
   encodeActivityCursor,
   encodeConnectionCursor,

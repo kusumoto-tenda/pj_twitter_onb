@@ -10,7 +10,7 @@ import { ProfileHeader } from '@/app/ui/profile/profile-header';
 import { MainNavigation } from '@/app/ui/timeline/main-navigation';
 import { CreateTweetLauncher } from '@/app/ui/tweets/create-tweet-launcher';
 import { TweetComposerProvider, useTweetComposer } from '@/app/ui/tweets/tweet-composer';
-import type { ProfileSummary } from '@/application/profile/profile';
+import type { ProfileSummary } from '@/application/dtos/profile/profile';
 import { CaptureBoundary, redirectError } from '../../support/next-control';
 
 vi.mock('next/link', () => ({

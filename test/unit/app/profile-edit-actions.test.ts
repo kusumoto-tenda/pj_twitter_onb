@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import { InMemoryUserRepository } from '@/test/support/in-memory-user-repository';
 
@@ -32,7 +32,7 @@ vi.mock('next/headers', () => ({
   })),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.deps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.deps }));
 
 const { updateProfileAction } = await import('@/app/profile/[displayId]/edit/actions');
 const { parseProfileEditForm } = await import('@/app/profile/[displayId]/edit/parse-form');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { TimelineCursor } from '@/application/timeline/timeline';
+import type { TimelineCursor } from '@/application/dtos/timeline/timeline';
 import {
   MAX_CURSOR_LENGTH,
   encodeCursor,

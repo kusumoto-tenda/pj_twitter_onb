@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { PostgresProfileQuery } from '@/infra/queries/postgres-profile-query';
-import { PostgresTimelineQuery } from '@/infra/queries/postgres-timeline-query';
-import { PostgresFollowRepository } from '@/infra/repositories/postgres-follow-repository';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
+import { PostgresProfileQuery } from '@/infra/persistence/postgres/query_services/postgres-profile-query';
+import { PostgresTimelineQuery } from '@/infra/persistence/postgres/query_services/postgres-timeline-query';
+import { PostgresFollowRepository } from '@/infra/persistence/postgres/repositories/postgres-follow-repository';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
 import { connectTestDatabase, uniqueDisplayId } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';
 

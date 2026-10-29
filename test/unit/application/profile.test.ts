@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getProfile } from '@/application/profile/get-profile';
-import { getProfileActivity } from '@/application/profile/get-profile-activity';
-import { getProfileConnections } from '@/application/profile/get-profile-connections';
-import type { ProfileSummary } from '@/application/profile/profile';
-import type { TimelineCursor } from '@/application/timeline/timeline';
+import { getProfile } from '@/application/usecases/profile/get-profile';
+import { getProfileActivity } from '@/application/usecases/profile/get-profile-activity';
+import { getProfileConnections } from '@/application/usecases/profile/get-profile-connections';
+import type { ProfileSummary } from '@/application/dtos/profile/profile';
+import type { TimelineCursor } from '@/application/dtos/timeline/timeline';
 import { InMemoryProfileQuery } from '@/test/support/in-memory-profile-query';
 
 const subjectId = '00000000-0000-4000-8000-000000000001';

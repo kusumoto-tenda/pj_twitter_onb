@@ -1,6 +1,6 @@
-import type { ProfileLikesQuery, ProfileQuery } from '@/application/profile/ports/profile-query';
-import type { ConnectionPage, ProfileLikesPage, ProfileSummary } from '@/application/profile/profile';
-import type { TimelinePage } from '@/application/timeline/timeline';
+import type { ProfileLikesQuery, ProfileQuery } from '@/application/query_service_ifs/profile/profile-query';
+import type { ConnectionPage, ProfileLikesPage, ProfileSummary } from '@/application/dtos/profile/profile';
+import type { TimelinePage } from '@/application/dtos/timeline/timeline';
 
 type Requests = {
   summary: Parameters<ProfileQuery['findSummary']>[0][];

@@ -1,6 +1,6 @@
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 import { errorResponse, guardMutation, jsonResponse } from '@/app/lib/route-guard';
-import { verifyImageUpload } from '@/application/media/verify-image-upload';
+import { verifyImageUpload } from '@/application/usecases/media/verify-image-upload';
 
 /**
  * アップロード済みの実体を検証する。完了webhookに頼らず、ブラウザからの明示的な要求で行う。

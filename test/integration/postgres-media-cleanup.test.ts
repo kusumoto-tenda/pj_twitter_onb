@@ -1,6 +1,6 @@
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
 import { MediaFixtures, PNG_IMAGE } from '@/test/support/media-fixtures';
 import { connectTestDatabase } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';

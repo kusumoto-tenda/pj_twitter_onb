@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { setFollow } from '@/application/follows/set-follow';
-import type { FollowRepository } from '@/application/follows/ports/follow-repository';
+import { setFollow } from '@/application/usecases/follows/set-follow';
+import type { FollowRepository } from '@/domain/repository_ifs/follow-repository';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';
 const BOB = '00000000-0000-4000-8000-0000000000b1';

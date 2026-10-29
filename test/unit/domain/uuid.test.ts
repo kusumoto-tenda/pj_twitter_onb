@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeUuid } from '@/domain/shared/uuid';
+import { normalizeUuid } from '@/shared/uuid';
 
 describe('normalizeUuid', () => {
   it('UUIDは小文字に揃えて返す', () => {

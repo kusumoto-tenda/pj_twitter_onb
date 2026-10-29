@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth } from '@/app/_auth/auth';
-import { getSessionDependencies } from '@/app/_composition/session';
+import { getSessionDependencies } from '@/main/container/session';
 import { readStringFields } from '@/app/lib/form-data';
 import {
   FLASH_MAX_AGE_SECONDS,
@@ -12,8 +12,8 @@ import {
   LOGGED_OUT_FLASH,
   LOGOUT_FAILED_MESSAGE,
 } from '@/app/ui/notifications/flash';
-import { logout } from '@/application/auth/logout';
-import { normalizeUuid } from '@/domain/shared/uuid';
+import { logout } from '@/application/usecases/auth/logout';
+import { normalizeUuid } from '@/shared/uuid';
 import type { LogoutErrorCode, LogoutFormState } from './form-state';
 
 /** 現在の認証セッションだけを確認し、利用者DBの実在確認をログアウトの前提にしない。 */

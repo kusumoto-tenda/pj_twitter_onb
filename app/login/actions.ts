@@ -4,7 +4,7 @@ import { CredentialsSignin } from 'next-auth';
 import { redirect } from 'next/navigation';
 import { signIn } from '@/app/_auth/auth';
 import { classifySignInResult, readStringFields, type SignInOutcome } from '@/app/lib/form-data';
-import { validateLoginInput, type LoginFieldErrors } from '@/domain/users/login-validation';
+import { validateLoginInput, type LoginFieldErrors } from '@/domain/value_objects/users/login-validation';
 import type { LoginErrorCode, LoginFormState } from './form-state';
 
 const MESSAGES = {

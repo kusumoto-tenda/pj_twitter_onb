@@ -1,4 +1,4 @@
-import type { EditProfileFieldErrors } from '@/domain/users/profile-edit-validation';
+import type { EditProfileFieldErrors } from '@/domain/value_objects/users/profile-edit-validation';
 
 /** 失敗時に再表示する入力値。 */
 export type ProfileEditFormValues = { name: string; displayId: string; bio: string };

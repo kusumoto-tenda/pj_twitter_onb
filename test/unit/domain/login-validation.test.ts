@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateLoginInput } from '@/domain/users/login-validation';
+import { validateLoginInput } from '@/domain/value_objects/users/login-validation';
 
 const valid = { displayId: 'Alice_1', password: 'password123' };
 

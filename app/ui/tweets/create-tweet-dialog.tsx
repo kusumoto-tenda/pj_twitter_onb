@@ -8,7 +8,7 @@ import {
   TWEET_FAILED_MESSAGE,
 } from '@/app/ui/notifications/flash';
 import { Toast } from '@/app/ui/notifications/toast';
-import { TWEET_CONTENT_MAX_LENGTH } from '@/domain/tweets/tweet-validation';
+import { TWEET_CONTENT_MAX_LENGTH } from '@/domain/value_objects/tweets/tweet-validation';
 import type { ImageUploader } from './image-uploader';
 import { invokeDialogAction } from './invoke-dialog-action';
 import { trapFocus } from './dialog-focus';

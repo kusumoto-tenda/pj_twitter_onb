@@ -1,6 +1,6 @@
 import { auth } from '@/app/_auth/auth';
 import { LogoutButton } from '@/app/ui/auth/logout-button';
-import { normalizeUuid } from '@/domain/shared/uuid';
+import { normalizeUuid } from '@/shared/uuid';
 
 const authUnavailable = (
   <p className="text-sm text-gray-500">ログイン状態を確認できませんでした。再読み込みしてください</p>

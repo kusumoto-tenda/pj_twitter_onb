@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getTimeline } from '@/application/timeline/get-timeline';
-import type { TimelineCursor, TimelinePage } from '@/application/timeline/timeline';
+import { getTimeline } from '@/application/usecases/timeline/get-timeline';
+import type { TimelineCursor, TimelinePage } from '@/application/dtos/timeline/timeline';
 import { InMemoryTimelineQuery } from '@/test/support/in-memory-timeline-query';
 
 const viewerId = '00000000-0000-4000-8000-000000000001';

@@ -30,7 +30,7 @@ vi.mock('@/app/_auth/auth', () => ({
     return boundary.signIn(...args);
   },
 }));
-vi.mock('@/app/_composition/account', () => ({
+vi.mock('@/main/container/account', () => ({
   getAccountDependencies: () => boundary.deps,
 }));
 

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { TimelineImage, TimelineItem } from '@/application/timeline/timeline';
+import type { TimelineImage, TimelineItem } from '@/application/dtos/timeline/timeline';
 import { profileHref } from '@/app/lib/profile-query';
 import { FavoriteButton } from '@/app/ui/favorites/favorite-button';
 import { LikeButton } from '@/app/ui/likes/like-button';

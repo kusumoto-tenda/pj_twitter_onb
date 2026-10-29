@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { TimelineItem } from '@/application/dtos/timeline/timeline';
 import { TweetCard } from './tweet-card';
 
 export function TimelineList({

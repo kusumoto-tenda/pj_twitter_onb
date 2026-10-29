@@ -1,8 +1,6 @@
 
-import postgres from 'postgres';
-import { cleanupMedia } from '../application/media/cleanup-media';
-import { VercelBlobStorage } from '../infra/media/vercel-blob-storage';
-import { PostgresMediaRepository } from '../infra/repositories/postgres-media-repository';
+import { cleanupMedia } from '../application/usecases/media/cleanup-media';
+import { createMediaCleanupDependencies } from '../main/container/cli/media-cleanup';
 import { resolveCleanupTarget, type CleanupTarget } from './cleanup-target';
 
 // 使い方: pnpm media:cleanup        → POSTGRES_URL_NON_POOLING（なければ POSTGRES_URL）と BLOB_READ_WRITE_TOKEN
@@ -24,12 +22,9 @@ try {
   process.exit(1);
 }
 
-const sql = postgres(target.databaseUrl, { max: 1, onnotice: () => {} });
+const { sql, dependencies } = createMediaCleanupDependencies(target.databaseUrl, target.blobToken);
 try {
-  const result = await cleanupMedia(
-    { media: new PostgresMediaRepository(sql), storage: new VercelBlobStorage(target.blobToken), now: () => new Date() },
-    {},
-  );
+  const result = await cleanupMedia(dependencies, {});
   console.log(`回収しました (${target.label}): ${JSON.stringify(result)}`);
 } finally {
   await sql.end();

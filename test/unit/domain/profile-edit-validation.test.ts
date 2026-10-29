@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { validateEditProfileInput } from '@/domain/users/profile-edit-validation';
+import { validateEditProfileInput } from '@/domain/value_objects/users/profile-edit-validation';
 
 const valid = { name: 'アリス', displayId: 'Alice_1', bio: 'よろしく' };
 

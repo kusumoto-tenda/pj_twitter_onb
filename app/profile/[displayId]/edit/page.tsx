@@ -5,7 +5,7 @@ import { profileHref } from '@/app/lib/profile-query';
 import { PageShell } from '@/app/ui/layout/page-shell';
 import { ProfileEditForm } from '@/app/ui/profile/profile-edit-form';
 import { ProfileRetry } from '@/app/ui/profile/profile-retry';
-import { normalizeDisplayId } from '@/domain/users/account-validation';
+import { normalizeDisplayId } from '@/domain/value_objects/users/account-validation';
 import { updateProfileAction } from './actions';
 
 export const metadata: Metadata = { title: 'プロフィール編集' };

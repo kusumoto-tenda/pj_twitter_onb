@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useCallback, useEffect, useRef, useState } from 'react';
-import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
+import type { EditableTweet } from '@/domain/repository_ifs/tweet-editor';
 import { initialEditTweetState, type EditTweetFormState } from '@/app/tweets/edit-form-state';
 import {
   ACTION_NETWORK_FAILED_MESSAGE,
@@ -9,7 +9,7 @@ import {
   TWEET_UPDATE_FAILED_MESSAGE,
 } from '@/app/ui/notifications/flash';
 import { Toast } from '@/app/ui/notifications/toast';
-import { MAX_IMAGES_PER_TWEET, TWEET_CONTENT_MAX_LENGTH } from '@/domain/tweets/tweet-validation';
+import { MAX_IMAGES_PER_TWEET, TWEET_CONTENT_MAX_LENGTH } from '@/domain/value_objects/tweets/tweet-validation';
 import { trapFocus } from './dialog-focus';
 import { EditTweetImages } from './edit-tweet-images';
 import type { ImageUploader } from './image-uploader';

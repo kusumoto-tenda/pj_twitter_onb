@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 
 const boundary = vi.hoisted(() => ({
@@ -28,7 +28,7 @@ vi.mock('next/link', () => ({
   ),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.deps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.deps }));
 vi.mock('@/app/profile/[displayId]/delete/actions', () => ({
   deleteAccountAction: {
     bind: (_this: unknown, targetId: unknown) => {

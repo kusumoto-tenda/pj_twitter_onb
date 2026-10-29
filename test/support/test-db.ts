@@ -10,7 +10,7 @@ export function requireTestDatabaseUrl(): string {
 export async function connectTestDatabase() {
   const sql = postgres(requireTestDatabaseUrl(), { max: 5, onnotice: () => {} });
   // E2E（PlaywrightのCJS変換）からは読み込まないよう、必要時にだけimportする。
-  const { runMigrations } = await import('@/infra/db/migrate');
+  const { runMigrations } = await import('@/infra/persistence/postgres/db/migrate');
   await runMigrations(sql);
   return sql;
 }

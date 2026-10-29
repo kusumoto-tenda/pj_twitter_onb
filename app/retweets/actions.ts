@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getRetweetDependencies } from '@/app/_composition/retweets';
-import { setRetweet } from '@/application/retweets/set-retweet';
+import { getRetweetDependencies } from '@/main/container/retweets';
+import { setRetweet } from '@/application/usecases/retweets/set-retweet';
 
 const MESSAGES = {
   UNAUTHENTICATED: 'ログイン中のみリツイートできます',

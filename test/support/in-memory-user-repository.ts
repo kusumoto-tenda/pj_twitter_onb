@@ -3,10 +3,10 @@ import type {
   DeleteUserOutcome,
   UpdateProfileOutcome,
   UserRepository,
-} from '@/application/users/ports/user-repository';
-import { normalizeDisplayId } from '@/domain/users/account-validation';
-import type { ValidEditProfileInput } from '@/domain/users/profile-edit-validation';
-import { toAccountProfile, type StoredAccount } from '@/domain/users/user';
+} from '@/domain/repository_ifs/user-repository';
+import { normalizeDisplayId } from '@/domain/value_objects/users/account-validation';
+import type { ValidEditProfileInput } from '@/domain/value_objects/users/profile-edit-validation';
+import { toAccountProfile, type StoredAccount } from '@/domain/entities/users/user';
 
 export class InMemoryUserRepository implements UserRepository {
   readonly accounts: StoredAccount[] = [];

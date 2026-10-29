@@ -1,5 +1,5 @@
-import type { AccountDependencies } from '@/application/users/create-account';
-import type { CreateAccountInput } from '@/domain/users/user';
+import type { AccountDependencies } from '@/application/usecases/users/create-account';
+import type { CreateAccountInput } from '@/domain/entities/users/user';
 import { FakePasswordHasher } from './fake-password-hasher';
 import { InMemoryUserRepository } from './in-memory-user-repository';
 

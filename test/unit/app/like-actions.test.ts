@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
+import { createAccount } from '@/application/usecases/users/create-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 import { InMemoryLikeStore } from '@/test/support/in-memory-like-store';
 import type { InMemoryUserRepository } from '@/test/support/in-memory-user-repository';
@@ -27,8 +27,8 @@ vi.mock('next/cache', () => ({
   }),
 }));
 vi.mock('@/app/_auth/auth', () => ({ auth: vi.fn(async () => boundary.session) }));
-vi.mock('@/app/_composition/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
-vi.mock('@/app/_composition/likes', () => ({ getLikeDependencies: () => boundary.likeDeps }));
+vi.mock('@/main/container/account', () => ({ getAccountDependencies: () => boundary.accountDeps }));
+vi.mock('@/main/container/likes', () => ({ getLikeDependencies: () => boundary.likeDeps }));
 
 const { setLikeAction } = await import('@/app/likes/actions');
 

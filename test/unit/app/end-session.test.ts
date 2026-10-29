@@ -4,10 +4,10 @@ const boundary = vi.hoisted(() => ({ signOut: vi.fn() }));
 vi.mock('@/app/_auth/auth', () => ({ signOut: boundary.signOut }));
 // ログアウトは利用者DBの実在やDB接続を必要としない。
 vi.mock('@/app/_auth/viewer', () => { throw new Error('ログアウトでresolveViewerを読み込んではいけません'); });
-vi.mock('@/infra/db/client', () => { throw new Error('ログアウトでDBへ依存してはいけません'); });
+vi.mock('@/infra/persistence/postgres/db/client', () => { throw new Error('ログアウトでDBへ依存してはいけません'); });
 
 import { endSession } from '@/app/_auth/end-session';
-import { getSessionDependencies } from '@/app/_composition/session';
+import { getSessionDependencies } from '@/main/container/session';
 
 beforeEach(() => {
   boundary.signOut.mockReset().mockResolvedValue({ redirect: 'http://localhost:3000/login' });

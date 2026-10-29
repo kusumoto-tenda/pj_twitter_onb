@@ -1,4 +1,4 @@
-import type { FavoriteCursor } from '@/application/favorites/favorite';
+import type { FavoriteCursor } from '@/application/dtos/favorites/favorite';
 import { decodeCursorParts, encodeCursorParts, isUtcMicros, isUuid, type SearchParamValue } from './cursor-validation';
 
 const SCOPE = 'favorites';

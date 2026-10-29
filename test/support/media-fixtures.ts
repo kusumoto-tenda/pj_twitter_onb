@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
-import { uploadPathname } from '@/application/media/media';
-import type { VerifiedImage } from '@/application/media/media';
-import { PostgresMediaRepository } from '@/infra/repositories/postgres-media-repository';
-import { PostgresTweetWriter } from '@/infra/repositories/postgres-tweet-writer';
+import { uploadPathname } from '@/domain/value_objects/media/media';
+import type { VerifiedImage } from '@/domain/value_objects/media/media';
+import { PostgresMediaRepository } from '@/infra/persistence/postgres/repositories/postgres-media-repository';
+import { PostgresTweetWriter } from '@/infra/persistence/postgres/repositories/postgres-tweet-writer';
 
 export const PNG_IMAGE: VerifiedImage = { size: 1234, contentType: 'image/png', width: 40, height: 30 };
 

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { DeleteTarget } from '@/application/tweets/ports/tweet-deleter';
-import { beginTweetDelete } from '@/application/tweets/begin-tweet-delete';
-import { deleteTweet } from '@/application/tweets/delete-tweet';
+import type { DeleteTarget } from '@/domain/repository_ifs/tweet-deleter';
+import { beginTweetDelete } from '@/application/usecases/tweets/begin-tweet-delete';
+import { deleteTweet } from '@/application/usecases/tweets/delete-tweet';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';
 const BOB = '00000000-0000-4000-8000-0000000000b1';

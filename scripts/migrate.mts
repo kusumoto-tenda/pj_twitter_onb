@@ -1,5 +1,4 @@
-import postgres from 'postgres';
-import { runMigrations } from '../infra/db/migrate';
+import { createMigrationDependencies } from '../main/container/cli/migration';
 import { resolveMigrationTarget, type MigrationTarget } from './migration-target';
 
 // 使い方: pnpm db:migrate        → POSTGRES_URL_NON_POOLING（なければ POSTGRES_URL）に適用
@@ -22,9 +21,9 @@ try {
   process.exit(1);
 }
 
-const sql = postgres(target.url, { max: 1, onnotice: () => {} });
+const { sql, run } = createMigrationDependencies(target.url);
 try {
-  const applied = await runMigrations(sql);
+  const applied = await run();
   console.log(
     applied.length > 0 ? `適用しました (${target.name}): ${applied.join(', ')}` : `適用済みです (${target.name})`,
   );

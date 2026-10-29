@@ -1,6 +1,6 @@
 'use client';
 
-import type { EditableTweet } from '@/application/tweets/ports/tweet-editor';
+import type { EditableTweet } from '@/domain/repository_ifs/tweet-editor';
 
 /**
  * 編集中の投稿に添付済みの画像。解除はフォーム内の変更だけで、保存するまで元の投稿は変えない。

@@ -9,7 +9,7 @@ import { ActionFeedbackProvider } from '@/app/ui/notifications/action-feedback-p
 import { ProfileLikesList } from '@/app/ui/profile/profile-likes-list';
 import { ProfileTabs } from '@/app/ui/profile/profile-tabs';
 import { TweetCard } from '@/app/ui/timeline/tweet-card';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { TimelineItem } from '@/application/dtos/timeline/timeline';
 
 vi.mock('@/app/ui/tweets/tweet-actions-menu', () => ({ TweetActionsMenu: () => null }));
 vi.mock('next/link', () => ({

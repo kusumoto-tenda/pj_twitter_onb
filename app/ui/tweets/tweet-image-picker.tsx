@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { MAX_IMAGES_PER_TWEET, validateImageFile } from '@/domain/tweets/tweet-validation';
+import { MAX_IMAGES_PER_TWEET, validateImageFile } from '@/domain/value_objects/tweets/tweet-validation';
 import type { ImageUploader } from './image-uploader';
 
 type Attachment = {

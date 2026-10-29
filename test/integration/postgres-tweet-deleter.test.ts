@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { TimelinePerson } from '@/application/timeline/timeline';
-import { PostgresTweetDeleter } from '@/infra/repositories/postgres-tweet-deleter';
-import { PostgresTweetEditor } from '@/infra/repositories/postgres-tweet-editor';
+import type { TimelinePerson } from '@/application/dtos/timeline/timeline';
+import { PostgresTweetDeleter } from '@/infra/persistence/postgres/repositories/postgres-tweet-deleter';
+import { PostgresTweetEditor } from '@/infra/persistence/postgres/repositories/postgres-tweet-editor';
 import { MediaFixtures, PNG_IMAGE } from '@/test/support/media-fixtures';
 import { connectTestDatabase } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';

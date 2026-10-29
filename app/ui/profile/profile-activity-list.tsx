@@ -1,5 +1,5 @@
-import type { ActivityTab } from '@/application/profile/profile';
-import type { TimelineItem } from '@/application/timeline/timeline';
+import type { ActivityTab } from '@/application/dtos/profile/profile';
+import type { TimelineItem } from '@/application/dtos/timeline/timeline';
 import { TweetCard } from '@/app/ui/timeline/tweet-card';
 
 export function ProfileActivityList({

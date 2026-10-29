@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { setRetweet } from '@/application/retweets/set-retweet';
-import type { RetweetRepository } from '@/application/retweets/ports/retweet-repository';
+import { setRetweet } from '@/application/usecases/retweets/set-retweet';
+import type { RetweetRepository } from '@/domain/repository_ifs/retweet-repository';
 
 const ALICE = '00000000-0000-4000-8000-0000000000a1';
 const BOB = '00000000-0000-4000-8000-0000000000b1';

@@ -2,8 +2,8 @@
 
 import { revalidatePath } from 'next/cache';
 import { resolveViewer } from '@/app/_auth/viewer';
-import { getFavoriteDependencies } from '@/app/_composition/favorites';
-import { setFavorite } from '@/application/favorites/set-favorite';
+import { getFavoriteDependencies } from '@/main/container/favorites';
+import { setFavorite } from '@/application/usecases/favorites/set-favorite';
 
 const MESSAGES = {
   UNAUTHENTICATED: 'ログイン中のみお気に入りに設定できます',

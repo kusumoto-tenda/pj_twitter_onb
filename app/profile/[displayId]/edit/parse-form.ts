@@ -1,5 +1,5 @@
 import { normalizeNewlines, readStringFields } from '@/app/lib/form-data';
-import type { EditProfileInput } from '@/domain/users/profile-edit-validation';
+import type { EditProfileInput } from '@/domain/value_objects/users/profile-edit-validation';
 
 /** 編集フォームのFormDataから3項目だけを取り出す。UUIDや作成日などクライアント提供の値は採用しない。 */
 export function parseProfileEditForm(

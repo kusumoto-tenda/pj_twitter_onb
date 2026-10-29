@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { TimelinePerson } from '@/application/timeline/timeline';
-import type { ValidEditTweetInput } from '@/domain/tweets/edit-tweet-validation';
-import { PostgresTweetEditor } from '@/infra/repositories/postgres-tweet-editor';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
+import type { TimelinePerson } from '@/application/dtos/timeline/timeline';
+import type { ValidEditTweetInput } from '@/domain/value_objects/tweets/edit-tweet-validation';
+import { PostgresTweetEditor } from '@/infra/persistence/postgres/repositories/postgres-tweet-editor';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
 import { MediaFixtures, PNG_IMAGE } from '@/test/support/media-fixtures';
 import { connectTestDatabase } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';

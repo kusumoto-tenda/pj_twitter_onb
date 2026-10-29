@@ -2,11 +2,11 @@ import type {
   MediaRepository,
   OwnedUpload,
   ReserveUploadOutcome,
-} from '@/application/media/ports/media-repository';
-import { uploadPathname } from '@/application/media/media';
-import type { UploadStatus, VerifiedImage } from '@/application/media/media';
-import type { PublishOutcome, TweetWriter } from '@/application/tweets/ports/tweet-writer';
-import { MAX_IMAGES_PER_TWEET, type ValidTweetInput } from '@/domain/tweets/tweet-validation';
+} from '@/domain/repository_ifs/media-repository';
+import { uploadPathname } from '@/domain/value_objects/media/media';
+import type { UploadStatus, VerifiedImage } from '@/domain/value_objects/media/media';
+import type { PublishOutcome, TweetWriter } from '@/domain/repository_ifs/tweet-writer';
+import { MAX_IMAGES_PER_TWEET, type ValidTweetInput } from '@/domain/value_objects/tweets/tweet-validation';
 
 type Draft = {
   id: string;

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { StoredAccount } from '@/domain/users/user';
-import { PostgresUserRepository } from '@/infra/repositories/postgres-user-repository';
+import type { StoredAccount } from '@/domain/entities/users/user';
+import { PostgresUserRepository } from '@/infra/persistence/postgres/repositories/postgres-user-repository';
 import {
   connectTestDatabase,
   deleteUsersByDisplayIds,

@@ -1,4 +1,4 @@
-import type { ProfileLikeEntry } from '@/application/profile/profile';
+import type { ProfileLikeEntry } from '@/application/dtos/profile/profile';
 import { TweetCard } from '@/app/ui/timeline/tweet-card';
 
 /**

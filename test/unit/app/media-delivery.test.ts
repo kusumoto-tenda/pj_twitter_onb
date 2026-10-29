@@ -3,9 +3,9 @@ import { FakeMediaStorage, PNG_BYTES } from '@/test/support/fake-media-storage';
 import { InMemoryTweetStore } from '@/test/support/in-memory-tweet-writer';
 
 const boundary = vi.hoisted(() => ({ tweetDeps: undefined as unknown, cleanup: vi.fn() }));
-vi.mock('@/app/_composition/tweet', () => ({ getTweetDependencies: () => boundary.tweetDeps }));
-vi.mock('@/application/media/cleanup-media', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/application/media/cleanup-media')>();
+vi.mock('@/main/container/tweet', () => ({ getTweetDependencies: () => boundary.tweetDeps }));
+vi.mock('@/application/usecases/media/cleanup-media', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/application/usecases/media/cleanup-media')>();
   return {
     cleanupMedia: (...args: Parameters<typeof actual.cleanupMedia>) => {
       boundary.cleanup(...args);

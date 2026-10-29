@@ -1,6 +1,6 @@
-import { getTweetDependencies } from '@/app/_composition/tweet';
+import { getTweetDependencies } from '@/main/container/tweet';
 import { errorResponse, guardMutation, jsonResponse } from '@/app/lib/route-guard';
-import { reserveImageUpload } from '@/application/media/reserve-image-upload';
+import { reserveImageUpload } from '@/application/usecases/media/reserve-image-upload';
 
 /** 画像1枚分の予約と、予約パスだけに書き込める短命のトークンを発行する。画像の本体は受け取らない。 */
 export async function POST(request: Request) {

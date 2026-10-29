@@ -3,7 +3,7 @@ import {
   countCharacters,
   normalizeDisplayId,
   validateAccountInput,
-} from '@/domain/users/account-validation';
+} from '@/domain/value_objects/users/account-validation';
 
 const valid = { name: 'アリス', displayId: 'Alice_1', bio: '', password: 'password123' };
 

@@ -1,8 +1,8 @@
 import postgres from 'postgres';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import type { TimelinePerson } from '@/application/timeline/timeline';
-import { PostgresProfileQuery } from '@/infra/queries/postgres-profile-query';
-import { PostgresTimelineQuery } from '@/infra/queries/postgres-timeline-query';
+import type { TimelinePerson } from '@/application/dtos/timeline/timeline';
+import { PostgresProfileQuery } from '@/infra/persistence/postgres/query_services/postgres-profile-query';
+import { PostgresTimelineQuery } from '@/infra/persistence/postgres/query_services/postgres-timeline-query';
 import { MediaFixtures, PNG_IMAGE } from '@/test/support/media-fixtures';
 import { connectTestDatabase } from '@/test/support/test-db';
 import { TimelineFixtures } from '@/test/support/timeline-fixtures';

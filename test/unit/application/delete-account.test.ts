@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createAccount } from '@/application/users/create-account';
-import { deleteAccount } from '@/application/users/delete-account';
+import { createAccount } from '@/application/usecases/users/create-account';
+import { deleteAccount } from '@/application/usecases/users/delete-account';
 import { FIXED_ID, createTestDependencies, validInput } from '@/test/support/account-fixtures';
 
 const OTHER_ID = '00000000-0000-4000-8000-000000000002';

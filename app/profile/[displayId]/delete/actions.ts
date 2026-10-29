@@ -4,14 +4,14 @@ import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { auth, signOut } from '@/app/_auth/auth';
-import { getAccountDependencies } from '@/app/_composition/account';
+import { getAccountDependencies } from '@/main/container/account';
 import { isSuccessfulSignOut, readStringFields } from '@/app/lib/form-data';
 import {
   ACCOUNT_DELETED_COOKIE,
   FLASH_MAX_AGE_SECONDS,
   type AccountDeletedFlash,
 } from '@/app/ui/notifications/flash';
-import { deleteAccount } from '@/application/users/delete-account';
+import { deleteAccount } from '@/application/usecases/users/delete-account';
 import type { AccountDeleteErrorCode, AccountDeleteFormState } from './form-state';
 
 const MESSAGES = {

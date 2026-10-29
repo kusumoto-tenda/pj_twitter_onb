@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ScryptPasswordHasher } from '@/infra/security/scrypt-password-hasher';
+import { ScryptPasswordHasher } from '@/infra/external_services/auth/scrypt-password-hasher';
 
 const hasher = new ScryptPasswordHasher();
 

@@ -4,8 +4,8 @@ import type {
   ConnectionDirection,
   LikeCursor,
   ProfileTab,
-} from '@/application/profile/profile';
-import type { TimelineCursor } from '@/application/timeline/timeline';
+} from '@/application/dtos/profile/profile';
+import type { TimelineCursor } from '@/application/dtos/timeline/timeline';
 import {
   decodeCursorParts,
   encodeCursorParts,

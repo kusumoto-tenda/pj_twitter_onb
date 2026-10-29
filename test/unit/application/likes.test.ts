@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getProfileLikes } from '@/application/profile/get-profile-likes';
-import { setLike } from '@/application/likes/set-like';
+import { getProfileLikes } from '@/application/usecases/profile/get-profile-likes';
+import { setLike } from '@/application/usecases/likes/set-like';
 import { InMemoryLikeStore } from '@/test/support/in-memory-like-store';
 import { InMemoryProfileQuery } from '@/test/support/in-memory-profile-query';
 
